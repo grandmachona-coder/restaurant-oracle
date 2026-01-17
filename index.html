@@ -367,17 +367,21 @@ async function signUp(){
         });
         if(result.error)throw result.error;
         
+        // Check if this is the first user (make them owner)
+        var existingMembers = await supabase.from('team_members').select('id').limit(1);
+        var isFirstUser = !existingMembers.data || existingMembers.data.length === 0;
+        
         // Add to team_members table
         if(result.data.user){
             await supabase.from('team_members').insert({
                 user_id:result.data.user.id,
                 name:name,
                 email:email,
-                role:'employee'
+                role: isFirstUser ? 'owner' : 'employee'
             });
         }
         
-        showLoginSuccess('Account created! Check your email to confirm, then sign in.');
+        showLoginSuccess('Account created!' + (isFirstUser ? ' You are the Owner.' : '') + ' Check your email to confirm, then sign in.');
         switchLoginTab('signin');
     }catch(err){
         showLoginError(err.message||'Sign up failed');
