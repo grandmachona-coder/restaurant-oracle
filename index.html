@@ -1403,6 +1403,29 @@ function renderIngs(c,s){
         });
     });
     
+    // Find ingredients not used in any recipe
+    var usedIngIds=[];
+    D.recs.forEach(function(rec){
+        if(rec.ings && rec.ings.length){
+            rec.ings.forEach(function(ri){
+                if(usedIngIds.indexOf(ri.ingId)===-1)usedIngIds.push(ri.ingId);
+            });
+        }
+    });
+    var unusedIngs=activeIngs.filter(function(i){return usedIngIds.indexOf(i.id)===-1;});
+    
+    // Unused ingredients section
+    if(unusedIngs.length){
+        html+='<div class="sec" style="color:#ff7675;margin-top:24px">⚠️ Not Used in Any Recipe ('+unusedIngs.length+')</div>';
+        html+='<div style="background:rgba(255,118,117,.1);border:1px solid rgba(255,118,117,.2);border-radius:12px;padding:12px">';
+        unusedIngs.forEach(function(ing){
+            var cat=D.cats.find(function(c){return c.id===ing.catId;});
+            var catName=cat?cat.name:'Uncategorized';
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><div><span style="color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'+ing.name+'</span><span style="color:#636e72;font-size:calc(11px * var(--font-scale));margin-left:8px">'+catName+'</span></div><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button></div>';
+        });
+        html+='</div>';
+    }
+    
     // Archive section
     html+='<div class="archive-header" onclick="toggleArchive(\'ings\')"><span>📥 Archived ('+archivedIngs.length+')</span><span>'+(archiveOpen.ings?'▲':'▼')+'</span></div>';
     if(archiveOpen.ings&&archivedIngs.length){
@@ -2678,4 +2701,11 @@ function toggleFontControl(){
 
 function setFontScale(val){
     D.fontScale=+val;
-    document.getEleme
+    document.getElementById('font-scale-val').textContent=(D.fontScale*100).toFixed(0)+'%';
+    document.getElementById('font-slider').value=val;
+    try{localStorage.setItem('ro_fontScale',val);}catch(e){}
+    render();
+}
+</script>
+</body>
+</html>
