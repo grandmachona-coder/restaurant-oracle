@@ -232,7 +232,7 @@
                     <div class="user-dropdown" id="user-dropdown">
                         <div class="user-dropdown-header">
                             <div class="user-dropdown-name" id="user-name">User</div>
-                            <div class="user-dropdown-email" id="user-email">email@example.com</div>
+                            <div class="user-dropdown-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a2c7cfc3cbcee2c7dac3cfd2cec78cc1cdcf">[email&#160;protected]</a></div>
                         </div>
                         <div class="user-dropdown-item" onclick="syncNow()">🔄 Sync Now</div>
                         <div class="user-dropdown-item" onclick="exportData()">📤 Export Backup</div>
@@ -267,7 +267,7 @@
     </div>
     <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
 </div>
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ==================== SUPABASE CONFIG ====================
 var SUPABASE_URL='https://quoqhfbibsmsdicrddym.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1b3FoZmJpYnNtc2RpY3JkZHltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2Njc5MDUsImV4cCI6MjA4NDI0MzkwNX0.DaqF9ToMtgqdNZJfpj-nueGJBeQSq_Gutkl2bXhqhpo';
@@ -2353,6 +2353,11 @@ function openAdd(){
         html+='<div class="form-g"><label class="form-l">Category</label><select id="add-cat" class="form-i">';
         D.cats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
         html+='</select></div>';
+        html+='<div class="form-g"><label class="form-l">Storage Area</label><select id="add-area" class="form-i" onchange="updateSubAreaOptions()">';
+        html+='<option value="0">-- Not assigned --</option>';
+        D.areas.forEach(function(area){html+='<option value="'+area.id+'">'+area.name+'</option>';});
+        html+='</select></div>';
+        html+='<div class="form-g" id="sub-area-group" style="display:none"><label class="form-l">Sub-Area / Section</label><select id="add-sub-area" class="form-i"><option value="">-- None --</option></select></div>';
         html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="add-unit" class="form-i">';
         D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
         html+='</select></div>';
@@ -2400,13 +2405,37 @@ function addPrepItem(){
     render();
 }
 
+function updateSubAreaOptions(){
+    var areaId=+document.getElementById('add-area').value;
+    var subAreaGroup=document.getElementById('sub-area-group');
+    var subAreaSelect=document.getElementById('add-sub-area');
+    
+    if(!areaId){
+        subAreaGroup.style.display='none';
+        return;
+    }
+    
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    if(area && area.sections && area.sections.length > 0){
+        subAreaGroup.style.display='block';
+        var opts='<option value="">-- None --</option>';
+        area.sections.forEach(function(s){opts+='<option value="'+s+'">'+s+'</option>';});
+        subAreaSelect.innerHTML=opts;
+    }else{
+        subAreaGroup.style.display='none';
+    }
+}
+
 function addIng(){
     var name=document.getElementById('add-name').value;
     var catId=+document.getElementById('add-cat').value;
+    var areaId=+document.getElementById('add-area').value||0;
+    var subAreaEl=document.getElementById('add-sub-area');
+    var subArea=subAreaEl ? subAreaEl.value : '';
     var defUnit=document.getElementById('add-unit').value;
     if(!name){alert('Enter a name');return;}
     saveState('Add ingredient');
-    D.ings.push({id:nid++,name:name,catId:catId,areaId:0,subArea:'',defUnit:defUnit,archived:0,standalone:0,minQty:0});
+    D.ings.push({id:nid++,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:0,minQty:0});
     closeModal();
     render();
 }
@@ -2649,11 +2678,4 @@ function toggleFontControl(){
 
 function setFontScale(val){
     D.fontScale=+val;
-    document.getElementById('font-scale-val').textContent=(D.fontScale*100).toFixed(0)+'%';
-    document.getElementById('font-slider').value=val;
-    try{localStorage.setItem('ro_fontScale',val);}catch(e){}
-    render();
-}
-</script>
-</body>
-</html>
+    document.getEleme
