@@ -318,9 +318,12 @@ function showLoginSuccess(msg){
 }
 
 async function signIn(){
+    console.log('signIn called');
     hideLoginMessages();
     var email=document.getElementById('signin-email').value.trim();
     var password=document.getElementById('signin-password').value;
+    
+    console.log('Email:', email, 'Password length:', password.length);
     
     if(!email||!password){
         showLoginError('Please enter email and password');
@@ -330,11 +333,16 @@ async function signIn(){
     document.getElementById('signin-btn').disabled=true;
     document.getElementById('signin-btn').textContent='Signing in...';
     
+    console.log('Supabase available:', !!supabase);
+    
     try{
+        console.log('Attempting sign in...');
         var result=await supabase.auth.signInWithPassword({email:email,password:password});
+        console.log('Sign in result:', result);
         if(result.error)throw result.error;
         // Auth state change will handle the rest
     }catch(err){
+        console.error('Sign in error:', err);
         showLoginError(err.message||'Sign in failed');
         document.getElementById('signin-btn').disabled=false;
         document.getElementById('signin-btn').textContent='Sign In';
