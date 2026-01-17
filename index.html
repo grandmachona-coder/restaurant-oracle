@@ -138,7 +138,7 @@ var D={
         {id:13,name:'Right Wine Fridge',prep:0,subs:[]}
     ],
     cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'}],
-    menuCats:[{id:1,name:'Mix'},{id:2,name:'Empanada'},{id:3,name:'Salad'},{id:4,name:'Soup'},{id:5,name:'Tapas'},{id:6,name:'Cocktails'},{id:7,name:'N/A Beverages'},{id:8,name:'Sides'},{id:9,name:'Brunch'}],
+    menuCats:[{id:1,name:'Empanadas'},{id:2,name:'Ensalada'},{id:3,name:'Tapas'},{id:4,name:'Soup'},{id:5,name:'Desserts'},{id:6,name:'Red Wine'},{id:7,name:'White & Sparkling Wine'},{id:8,name:'Cocktails'},{id:9,name:'Brunch'},{id:10,name:'Beverages'},{id:11,name:'Sides'}],
     units:[
         {id:1,name:'each',abbr:'ea'},
         {id:2,name:'pound',abbr:'lb'},
@@ -192,18 +192,37 @@ var D={
         {id:50,name:'lexan',abbr:'lexan'}
     ],
     ings:[
-        {id:1,name:'Ground Beef',catId:1,areaId:1,subArea:''},
-        {id:2,name:'Chicken Breast',catId:1,areaId:1,subArea:''},
-        {id:3,name:'Onions',catId:2,areaId:3,subArea:'Left'},
-        {id:4,name:'Bell Peppers',catId:2,areaId:3,subArea:'Middle'},
-        {id:5,name:'Potatoes',catId:2,areaId:3,subArea:'Right'},
-        {id:6,name:'Cheese',catId:3,areaId:2,subArea:''},
-        {id:7,name:'Eggs',catId:3,areaId:2,subArea:''},
-        {id:8,name:'Flour',catId:4,areaId:10,subArea:''},
-        {id:9,name:'Salt',catId:4,areaId:4,subArea:''},
-        {id:10,name:'Olive Oil',catId:5,areaId:10,subArea:''},
-        {id:11,name:'Red Wine',catId:5,areaId:11,subArea:'Left Column'},
-        {id:12,name:'White Wine',catId:5,areaId:12,subArea:''}
+        {id:1,name:'Ground Beef',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0},
+        {id:2,name:'Chicken Breast',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0},
+        {id:3,name:'Onions',catId:2,areaId:3,subArea:'Left',defUnit:'ea',archived:0},
+        {id:4,name:'Bell Peppers',catId:2,areaId:3,subArea:'Middle',defUnit:'ea',archived:0},
+        {id:5,name:'Potatoes',catId:2,areaId:3,subArea:'Right',defUnit:'ea',archived:0},
+        {id:6,name:'Cheese',catId:3,areaId:2,subArea:'',defUnit:'lb',archived:0},
+        {id:7,name:'Eggs',catId:3,areaId:2,subArea:'',defUnit:'ea',archived:0},
+        {id:8,name:'Flour',catId:4,areaId:10,subArea:'',defUnit:'lb',archived:0},
+        {id:9,name:'Salt',catId:4,areaId:4,subArea:'',defUnit:'lb',archived:0},
+        {id:10,name:'Olive Oil',catId:5,areaId:10,subArea:'',defUnit:'gal',archived:0},
+        {id:11,name:'Red Wine',catId:5,areaId:11,subArea:'Left Column',defUnit:'btl',archived:0},
+        {id:12,name:'White Wine',catId:5,areaId:12,subArea:'',defUnit:'btl',archived:0},
+        {id:13,name:'Carrots',catId:2,areaId:3,subArea:'Left',defUnit:'cup',archived:0},
+        {id:14,name:'Prego Sauce',catId:5,areaId:10,subArea:'',defUnit:'cup',archived:0},
+        {id:15,name:'Vegetable Broth Cubes',catId:4,areaId:10,subArea:'',defUnit:'ea',archived:0},
+        {id:16,name:'Beef Bouillon',catId:4,areaId:10,subArea:'',defUnit:'cup',archived:0},
+        {id:17,name:'Chicken Bouillon',catId:4,areaId:10,subArea:'',defUnit:'cup',archived:0},
+        {id:18,name:'Paprika',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0},
+        {id:19,name:'Cumin',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0},
+        {id:20,name:'Empanada Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0},
+        {id:21,name:'Chicken Package (6 bags)',catId:1,areaId:1,subArea:'',defUnit:'pkg',archived:0},
+        {id:22,name:'Pizza Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0},
+        {id:23,name:'Green Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0},
+        {id:24,name:'Spanish Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0},
+        {id:25,name:'Oregano',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0},
+        {id:26,name:'Taco Seasoning',catId:4,areaId:4,subArea:'',defUnit:'pkg',archived:0},
+        {id:27,name:'Spinach',catId:2,areaId:8,subArea:'',defUnit:'pkg',archived:0},
+        {id:28,name:'Parmesan Cheese',catId:3,areaId:2,subArea:'',defUnit:'jar',archived:0},
+        {id:29,name:'Mozzarella Bar',catId:3,areaId:2,subArea:'',defUnit:'ea',archived:0},
+        {id:30,name:'Broccoli',catId:2,areaId:8,subArea:'',defUnit:'bag',archived:0},
+        {id:31,name:'Water',catId:5,areaId:4,subArea:'',defUnit:'cup',archived:0}
     ],
     inv:[
         {id:1,areaId:1,subArea:'',ingId:1,qty:10,unit:'lb'},
@@ -220,10 +239,101 @@ var D={
         {id:12,areaId:12,subArea:'',ingId:12,qty:6,unit:'btl'}
     ],
     recs:[
-        {id:1,name:'Beef Filling',group:'Filling',yield:95,shelfLife:'3 Days',notes:'Brown beef, add veggies',ings:[{ingId:1,qty:5,unit:'lb'},{ingId:3,qty:1,unit:'lb'},{ingId:4,qty:2,unit:'each'}],subRecs:[],photos:[],videos:[]},
-        {id:2,name:'Chicken Filling',group:'Filling',yield:90,shelfLife:'3 Days',notes:'Poach chicken, shred',ings:[{ingId:2,qty:4,unit:'lb'},{ingId:3,qty:0.5,unit:'lb'}],subRecs:[],photos:[],videos:[]},
-        {id:3,name:'Dough Discs',group:'Dough',yield:100,shelfLife:'2 Days',notes:'Mix, rest, roll',ings:[{ingId:8,qty:10,unit:'lb'},{ingId:7,qty:4,unit:'each'},{ingId:9,qty:0.25,unit:'lb'}],subRecs:[],photos:[],videos:[]},
-        {id:4,name:'Abuela Chona Mix',group:'Mix',yield:95,shelfLife:'7 Days',notes:'Brown ground beef first, then add vegetables.',ings:[{ingId:1,qty:6,unit:'lb'},{ingId:4,qty:3,unit:'each'},{ingId:5,qty:40,unit:'oz'},{ingId:3,qty:1,unit:'lb'},{ingId:7,qty:4,unit:'each'}],subRecs:[],photos:[],videos:[]}
+        {id:1,name:'Beef Filling',group:'Filling',catId:1,yield:95,shelfLife:'3 Days',notes:'Brown beef, add veggies',ings:[{ingId:1,qty:5,unit:'lb'},{ingId:3,qty:1,unit:'lb'},{ingId:4,qty:2,unit:'each'}],subRecs:[],photos:[],videos:[],archived:0},
+        {id:2,name:'Chicken Filling',group:'Filling',catId:1,yield:90,shelfLife:'3 Days',notes:'Poach chicken, shred',ings:[{ingId:2,qty:4,unit:'lb'},{ingId:3,qty:0.5,unit:'lb'}],subRecs:[],photos:[],videos:[],archived:0},
+        {id:3,name:'Dough Discs',group:'Dough',catId:1,yield:100,shelfLife:'2 Days',notes:'Mix, rest, roll',ings:[{ingId:8,qty:10,unit:'lb'},{ingId:7,qty:4,unit:'each'},{ingId:9,qty:0.25,unit:'lb'}],subRecs:[],photos:[],videos:[],archived:0},
+        // EMPANADA MIXES
+        {id:4,name:'Abuela Chona Mix',group:'Mix',catId:1,yield:95,shelfLife:'7 Days',notes:'Brown ground beef first, then add vegetables. Add potatoes and boiled eggs last.',ings:[
+            {ingId:1,qty:1,unit:'pack'},
+            {ingId:3,qty:1,unit:'ea'},
+            {ingId:4,qty:1,unit:'ea'},
+            {ingId:13,qty:2,unit:'cup'},
+            {ingId:14,qty:2,unit:'cup'},
+            {ingId:31,qty:1,unit:'cup'},
+            {ingId:15,qty:4,unit:'ea'},
+            {ingId:16,qty:0.25,unit:'cup'},
+            {ingId:17,qty:0.25,unit:'cup'},
+            {ingId:18,qty:3,unit:'tbsp'},
+            {ingId:19,qty:2,unit:'tbsp'},
+            {ingId:20,qty:2,unit:'tbsp'},
+            {ingId:5,qty:4,unit:'ea'},
+            {ingId:7,qty:4,unit:'ea'}
+        ],subRecs:[],photos:[],videos:[],archived:0},
+        {id:5,name:'Pollo Mix',group:'Mix',catId:1,yield:95,shelfLife:'7 Days',notes:'Cook chicken first, shred, then combine with vegetables and seasonings.',ings:[
+            {ingId:21,qty:1,unit:'pkg'},
+            {ingId:3,qty:2,unit:'ea'},
+            {ingId:4,qty:2,unit:'ea'},
+            {ingId:13,qty:4,unit:'cup'},
+            {ingId:14,qty:2,unit:'cup'},
+            {ingId:15,qty:4,unit:'ea'},
+            {ingId:16,qty:0.25,unit:'cup'},
+            {ingId:17,qty:0.25,unit:'cup'},
+            {ingId:18,qty:3,unit:'tbsp'},
+            {ingId:19,qty:2,unit:'tbsp'},
+            {ingId:22,qty:2,unit:'tbsp'}
+        ],subRecs:[],photos:[],videos:[],archived:0},
+        {id:6,name:'Beef Criolla Mix',group:'Mix',catId:1,yield:95,shelfLife:'7 Days',notes:'Brown ground beef first, add vegetables, then olives. Use half hot and half regular taco seasoning.',ings:[
+            {ingId:1,qty:1,unit:'pack'},
+            {ingId:3,qty:1,unit:'ea'},
+            {ingId:4,qty:1,unit:'ea'},
+            {ingId:13,qty:2,unit:'cup'},
+            {ingId:14,qty:2,unit:'cup'},
+            {ingId:31,qty:1,unit:'cup'},
+            {ingId:15,qty:4,unit:'ea'},
+            {ingId:16,qty:0.25,unit:'cup'},
+            {ingId:17,qty:0.25,unit:'cup'},
+            {ingId:25,qty:1,unit:'tbsp'},
+            {ingId:18,qty:3,unit:'tbsp'},
+            {ingId:26,qty:1,unit:'pkg'},
+            {ingId:24,qty:1,unit:'jar'}
+        ],subRecs:[],photos:[],videos:[],archived:0},
+        {id:7,name:'Espinaca Mix',group:'Mix',catId:1,yield:95,shelfLife:'5 Days',notes:'Sauté spinach with vegetables, mix in cheeses at the end.',ings:[
+            {ingId:27,qty:4,unit:'pkg'},
+            {ingId:28,qty:1,unit:'jar'},
+            {ingId:29,qty:1,unit:'ea'},
+            {ingId:3,qty:1,unit:'ea'},
+            {ingId:4,qty:1,unit:'ea'},
+            {ingId:13,qty:2,unit:'cup'},
+            {ingId:14,qty:1,unit:'cup'},
+            {ingId:15,qty:4,unit:'ea'},
+            {ingId:16,qty:0.25,unit:'cup'},
+            {ingId:17,qty:0.25,unit:'cup'},
+            {ingId:18,qty:3,unit:'tbsp'},
+            {ingId:19,qty:2,unit:'tbsp'},
+            {ingId:22,qty:2,unit:'tbsp'}
+        ],subRecs:[],photos:[],videos:[],archived:0},
+        {id:8,name:'Imposter Mix (Broccoli)',group:'Mix',catId:1,yield:95,shelfLife:'5 Days',notes:'Cut broccoli into small pieces. Sauté with vegetables, mix in cheeses at the end.',ings:[
+            {ingId:30,qty:3,unit:'bag'},
+            {ingId:28,qty:1,unit:'jar'},
+            {ingId:29,qty:1,unit:'ea'},
+            {ingId:3,qty:1,unit:'ea'},
+            {ingId:4,qty:1,unit:'ea'},
+            {ingId:13,qty:2,unit:'cup'},
+            {ingId:14,qty:1,unit:'cup'},
+            {ingId:15,qty:4,unit:'ea'},
+            {ingId:16,qty:0.25,unit:'cup'},
+            {ingId:17,qty:0.25,unit:'cup'},
+            {ingId:18,qty:3,unit:'tbsp'},
+            {ingId:19,qty:2,unit:'tbsp'},
+            {ingId:22,qty:2,unit:'tbsp'}
+        ],subRecs:[],photos:[],videos:[],archived:0},
+        // Cocktail Recipes
+        {id:101,name:'Golden Cup',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'White wine, rum, lemon juice, syrup',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:102,name:'Que Miras Bobo?',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Rye, Fernet, fruit, Benedictine, syrup',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:103,name:'Argentina',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Gin, Dry Vermouth, Cointreau, bitters',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:104,name:'BA Old Fashioned',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Tequila, Vermouth, Amaro, syrup',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:105,name:'Fernet Sour',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Fernet, lemon juice, egg white, syrup',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:106,name:'Lagrima de Amor',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Vodka, Cointreau, lemon juice, fruit',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:107,name:'La Nieta',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Rose, rum, lime juice, Campari, syrup',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:108,name:'Espresso Martini',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Vodka, Baileys, espresso shot',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:109,name:'Mendoza',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Malbec, Brandy, juice, cinnamon',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:110,name:'Potion de Amor',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Vodka, raspberry liquor, fruit, syrup',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:111,name:'Beso de Frambuesa',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Red wine, raspberry liquor, fruit, syrup',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:112,name:'Sangre de Gaucho',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Vodka, Tomato juice, chimichurri, spice',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:113,name:'Red Wine Spritzer',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Choice of red wine, syrup, orange juice, soda',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:114,name:'White Wine Spritzer',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Choice of white wine, syrup, lemon juice, soda',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:115,name:'Hard Spritzer',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Choice of liquor, syrup, juice, soda',ings:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:116,name:'Mimosa',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Icon Sparkling with choice of juice (Apple, Orange, Cranberry, Grapefruit, Mango)',ings:[],subRecs:[],photos:[],videos:[],archived:0}
     ],
     preps:[
         {id:1,name:'Beef Filling',recId:1,onHand:2,areaId:1,subArea:''},
@@ -231,11 +341,88 @@ var D={
         {id:3,name:'Dough Discs',recId:3,onHand:50,areaId:4,subArea:''},
         {id:4,name:'Abuela Chona Mix',recId:4,onHand:0,areaId:1,subArea:''}
     ],
-    menus:[{id:1,name:'Beef Empanada',tgt:50,unitId:1,recIds:[1,3]},{id:2,name:'Chicken Empanada',tgt:30,unitId:1,recIds:[2,3]},{id:3,name:'Spinach Empanada',tgt:20,unitId:1,recIds:[3]}],
+    menus:[
+        // EMPANADAS
+        {id:1,name:'Abuela Chona',tgt:50,unitId:1,recIds:[4],archived:0,catId:1},
+        {id:2,name:'Criolla',tgt:30,unitId:1,recIds:[6],archived:0,catId:1},
+        {id:3,name:'Sweet Beef',tgt:20,unitId:1,recIds:[],archived:0,catId:1},
+        {id:4,name:'Chorizo',tgt:25,unitId:1,recIds:[],archived:0,catId:1},
+        {id:5,name:'Ham & Cheese',tgt:30,unitId:1,recIds:[],archived:0,catId:1},
+        {id:6,name:'Pollo Regular',tgt:25,unitId:1,recIds:[5],archived:0,catId:1},
+        {id:7,name:'Pollo Spicy',tgt:15,unitId:1,recIds:[5],archived:0,catId:1},
+        {id:8,name:'Espinaca',tgt:25,unitId:1,recIds:[7],archived:0,catId:1},
+        {id:9,name:'Humita',tgt:20,unitId:1,recIds:[],archived:0,catId:1},
+        {id:10,name:'Imposter',tgt:15,unitId:1,recIds:[8],archived:0,catId:1},
+        {id:11,name:'Gluten Free Arepa',tgt:10,unitId:1,recIds:[],archived:0,catId:1},
+        {id:12,name:'Empanada del Dia',tgt:10,unitId:1,recIds:[],archived:0,catId:1},
+        // ENSALADA
+        {id:13,name:'Ensalada Don Jose',tgt:10,unitId:1,recIds:[],archived:0,catId:2},
+        // TAPAS
+        {id:14,name:'Picadas',tgt:5,unitId:1,recIds:[],archived:0,catId:3},
+        {id:15,name:'Quesos y Frutas',tgt:5,unitId:1,recIds:[],archived:0,catId:3},
+        {id:16,name:'Chimichurri Dip',tgt:5,unitId:1,recIds:[],archived:0,catId:3},
+        {id:17,name:'Choricita',tgt:8,unitId:1,recIds:[],archived:0,catId:3},
+        {id:18,name:'Tapas del Dia',tgt:5,unitId:1,recIds:[],archived:0,catId:3},
+        {id:19,name:'Papas Rustica',tgt:15,unitId:1,recIds:[],archived:0,catId:3},
+        // SOUP
+        {id:20,name:'Soup of the Day',tgt:10,unitId:1,recIds:[],archived:0,catId:4},
+        // DESSERTS
+        {id:21,name:'Alfajor',tgt:20,unitId:1,recIds:[],archived:0,catId:5},
+        {id:22,name:'Pastelito',tgt:10,unitId:1,recIds:[],archived:0,catId:5},
+        {id:23,name:'Dessert del Dia',tgt:5,unitId:1,recIds:[],archived:0,catId:5},
+        // RED WINE
+        {id:24,name:'Maria Emilia Icon Blend 2020',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:25,name:'Gran Reserva Cabernet Franc 2020',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:26,name:'Gran Reserva Cabernet Franc 2021',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:27,name:'Gran Reserva Pinot Noir 2020',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:28,name:'Reserva Cabernet Sauvignon 2021',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:29,name:'Reserva Blend 2021',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:30,name:'Norte y Sur Malbec 2021',tgt:8,unitId:29,recIds:[],archived:0,catId:6},
+        {id:31,name:'Norte y Sur Bonarda 2021',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:32,name:'Norte y Sur Malbec 2020',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        {id:33,name:'Norte y Sur Cabernet Franc 2021',tgt:5,unitId:29,recIds:[],archived:0,catId:6},
+        // WHITE & SPARKLING WINE
+        {id:34,name:'Icon Sparkling 2020',tgt:8,unitId:29,recIds:[],archived:0,catId:7},
+        {id:35,name:'Chardonnay 2022',tgt:5,unitId:29,recIds:[],archived:0,catId:7},
+        {id:36,name:'White Malbec Rose 2021',tgt:5,unitId:29,recIds:[],archived:0,catId:7},
+        // COCKTAILS
+        {id:37,name:'Golden Cup',tgt:0,unitId:1,recIds:[101],archived:0,catId:8},
+        {id:38,name:'Que Miras Bobo?',tgt:0,unitId:1,recIds:[102],archived:0,catId:8},
+        {id:39,name:'Argentina',tgt:0,unitId:1,recIds:[103],archived:0,catId:8},
+        {id:40,name:'BA Old Fashioned',tgt:0,unitId:1,recIds:[104],archived:0,catId:8},
+        {id:41,name:'Fernet Sour',tgt:0,unitId:1,recIds:[105],archived:0,catId:8},
+        {id:42,name:'Lagrima de Amor',tgt:0,unitId:1,recIds:[106],archived:0,catId:8},
+        {id:43,name:'La Nieta',tgt:0,unitId:1,recIds:[107],archived:0,catId:8},
+        {id:44,name:'Espresso Martini',tgt:0,unitId:1,recIds:[108],archived:0,catId:8},
+        {id:45,name:'Mendoza',tgt:0,unitId:1,recIds:[109],archived:0,catId:8},
+        {id:46,name:'Potion de Amor',tgt:0,unitId:1,recIds:[110],archived:0,catId:8},
+        {id:47,name:'Beso de Frambuesa',tgt:0,unitId:1,recIds:[111],archived:0,catId:8},
+        {id:48,name:'Sangre de Gaucho',tgt:0,unitId:1,recIds:[112],archived:0,catId:8},
+        {id:49,name:'Red Wine Spritzer',tgt:0,unitId:1,recIds:[113],archived:0,catId:8},
+        {id:50,name:'White Wine Spritzer',tgt:0,unitId:1,recIds:[114],archived:0,catId:8},
+        {id:51,name:'Hard Spritzer',tgt:0,unitId:1,recIds:[115],archived:0,catId:8},
+        {id:52,name:'Mimosa',tgt:0,unitId:1,recIds:[116],archived:0,catId:8},
+        // BRUNCH
+        {id:53,name:'Breakfast Empanada',tgt:15,unitId:1,recIds:[],archived:0,catId:9},
+        {id:54,name:'Pancakes',tgt:10,unitId:1,recIds:[],archived:0,catId:9},
+        // BEVERAGES
+        {id:55,name:'Soda',tgt:0,unitId:1,recIds:[],archived:0,catId:10},
+        {id:56,name:'Juice',tgt:0,unitId:1,recIds:[],archived:0,catId:10},
+        {id:57,name:'Milk',tgt:0,unitId:1,recIds:[],archived:0,catId:10},
+        {id:58,name:'Portland Water',tgt:0,unitId:1,recIds:[],archived:0,catId:10},
+        // SIDES
+        {id:59,name:'Fresh Fruit',tgt:10,unitId:1,recIds:[],archived:0,catId:11},
+        {id:60,name:'Two Eggs',tgt:10,unitId:1,recIds:[],archived:0,catId:11},
+        {id:61,name:'Toast w/ Jam',tgt:10,unitId:1,recIds:[],archived:0,catId:11},
+        {id:62,name:'Avocado',tgt:10,unitId:1,recIds:[],archived:0,catId:11},
+        {id:63,name:'Bacon',tgt:10,unitId:1,recIds:[],archived:0,catId:11},
+        {id:64,name:'Papas Bravas',tgt:20,unitId:1,recIds:[],archived:0,catId:11},
+        {id:65,name:'Chimichurri',tgt:15,unitId:1,recIds:[],archived:0,catId:11}
+    ],
     shopping:[{id:1,ingId:1,qty:5,unit:'lb',checked:0,savedForLater:0,lastAreaId:1,lastSubArea:''},{id:2,ingId:2,qty:2,unit:'lb',checked:0,savedForLater:0,lastAreaId:2,lastSubArea:''}],
     users:[{id:1,name:'Owner',email:'owner@lachona.com',phone:'503-555-0100',type:'owner',password:'owner123'}]
 };
-var tab='inventory',nid=100,exp={},addOpen={},pendingPurchase=null;
+var tab='inventory',nid=200,exp={},addOpen={},pendingPurchase=null,archiveOpen={ings:0,recs:0,menus:0};
 var FC={inventory:'#a29bfe',shopping:'#e17055',prep:'#fd79a8',ingredients:'#00b894',recipes:'#fdcb6e',menu:'#74b9ff',admin:'#b2bec3'};
 var TT={inventory:{i:'📦',t:'Inventory'},shopping:{i:'🛒',t:'Shopping List'},prep:{i:'👨‍🍳',t:'Prep Status'},ingredients:{i:'🥬',t:'Ingredients'},recipes:{i:'📖',t:'Recipes'},menu:{i:'🍽️',t:'Menu'},admin:{i:'⚙️',t:'Admin'}};
 
@@ -285,7 +472,9 @@ function renderInv(c,s){
                         subItems.forEach(function(inv){
                             var ing=D.ings.find(function(x){return x.id===inv.ingId});
                             if(ing){
-                                html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><span style="font-size:10px;color:#a0aec0;margin-left:4px">'+inv.unit+'</span><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
+                                html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><select class="sm-input" onchange="updInvUnit('+inv.id+',this.value)" style="width:auto;padding:4px">';
+                                D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+                                html+='</select><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
                             }
                         });
                     }else{
@@ -299,7 +488,9 @@ function renderInv(c,s){
                     noSub.forEach(function(inv){
                         var ing=D.ings.find(function(x){return x.id===inv.ingId});
                         if(ing){
-                            html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><span style="font-size:10px;color:#a0aec0;margin-left:4px">'+inv.unit+'</span><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
+                            html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><select class="sm-input" onchange="updInvUnit('+inv.id+',this.value)" style="width:auto;padding:4px">';
+                            D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+                            html+='</select><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
                         }
                     });
                 }
@@ -310,7 +501,9 @@ function renderInv(c,s){
                     ai.forEach(function(inv){
                         var ing=D.ings.find(function(x){return x.id===inv.ingId});
                         if(ing){
-                            html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><span style="font-size:10px;color:#a0aec0;margin-left:4px">'+inv.unit+'</span><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
+                            html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><select class="sm-input" onchange="updInvUnit('+inv.id+',this.value)" style="width:auto;padding:4px">';
+                            D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+                            html+='</select><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
                         }
                     });
                 }else{
@@ -620,18 +813,32 @@ function calcReady(p){
 
 // ==================== INGREDIENTS ====================
 function renderIngs(c,s){
-    s.textContent=D.ings.length+' ingredients';
+    var activeIngs=D.ings.filter(function(i){return !i.archived});
+    var archivedIngs=D.ings.filter(function(i){return i.archived});
+    s.textContent=activeIngs.length+' ingredients';
     var html='';
     
     D.cats.forEach(function(cat){
-        var catIngs=D.ings.filter(function(i){return i.catId===cat.id});
+        var catIngs=activeIngs.filter(function(i){return i.catId===cat.id});
         if(!catIngs.length)return;
         
         html+='<div class="sec ing">'+cat.name+'</div>';
         catIngs.forEach(function(ing){
-            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="delItem(\'ings\','+ing.id+')">🗑️</button></div></div>';
+            var defUnitName=ing.defUnit||'ea';
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • Default: '+defUnitName+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'ings\','+ing.id+')" title="Archive">📥</button></div></div>';
         });
     });
+    
+    // Archive section
+    html+='<div class="archive-header" onclick="toggleArchive(\'ings\')" style="margin-top:24px;padding:12px;background:rgba(0,0,0,.3);border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span style="color:#636e72;font-size:12px;font-weight:600">📥 Archived ('+archivedIngs.length+')</span><span style="color:#636e72">'+(archiveOpen.ings?'▲':'▼')+'</span></div>';
+    if(archiveOpen.ings && archivedIngs.length){
+        html+='<div class="archive-content" style="margin-top:8px;opacity:.7">';
+        archivedIngs.forEach(function(ing){
+            var defUnitName=ing.defUnit||'ea';
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;border-left:3px solid #636e72"><div><div class="card-t" style="color:#a0aec0">'+ing.name+'</div><div class="card-s">Default: '+defUnitName+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="reviveItem(\'ings\','+ing.id+')" title="Restore">📤</button><button class="del-btn" onclick="delItem(\'ings\','+ing.id+')">🗑️</button></div></div>';
+        });
+        html+='</div>';
+    }
     
     c.innerHTML=html;
 }
@@ -645,6 +852,9 @@ function editIng(id){
     html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-ing-name" class="form-i" value="'+ing.name+'"></div>';
     html+='<div class="form-g"><label class="form-l">Category</label><select id="edit-ing-cat" class="form-i">';
     D.cats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===ing.catId?' selected':'')+'>'+cat.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="edit-ing-unit" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===ing.defUnit?' selected':'')+'>'+u.name+' ('+u.abbr+')</option>';});
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Default Storage Area</label><select id="edit-ing-area" class="form-i" onchange="updateEditIngSubSelect('+id+')">';
     D.areas.forEach(function(a){html+='<option value="'+a.id+'"'+(a.id===ing.areaId?' selected':'')+'>'+a.name+'</option>';});
@@ -686,6 +896,7 @@ function saveIng(id){
     
     ing.name=document.getElementById('edit-ing-name').value;
     ing.catId=parseInt(document.getElementById('edit-ing-cat').value);
+    ing.defUnit=document.getElementById('edit-ing-unit').value;
     ing.areaId=parseInt(document.getElementById('edit-ing-area').value);
     var subSel=document.getElementById('edit-ing-sub');
     ing.subArea=subSel?subSel.value:'';
@@ -704,76 +915,127 @@ function saveIng(id){
 
 // ==================== RECIPES ====================
 function renderRecs(c,s){
-    s.textContent=D.recs.length+' recipes';
+    var activeRecs=D.recs.filter(function(r){return !r.archived});
+    var archivedRecs=D.recs.filter(function(r){return r.archived});
+    s.textContent=activeRecs.length+' recipes';
     var html='';
     
-    D.recs.forEach(function(rec){
-        var ex=exp['rec-'+rec.id];
-        html+='<div class="card rec-card"><div class="card-h" onclick="tog(\'rec-\'+'+rec.id+')" style="cursor:pointer"><div><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+' • Yield: '+rec.yield+'% • Shelf: '+rec.shelfLife+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
+    // Group by menu category
+    D.menuCats.forEach(function(cat){
+        var catRecs=activeRecs.filter(function(r){return r.catId===cat.id});
+        if(!catRecs.length)return;
         
-        if(ex){
-            html+='<div class="rec-ings">';
+        html+='<div class="sec" style="color:#fdcb6e">'+cat.name+'</div>';
+        
+        catRecs.forEach(function(rec){
+            var ex=exp['rec-'+rec.id];
+            html+='<div class="card rec-card"><div class="card-h" onclick="tog(\'rec-\'+'+rec.id+')" style="cursor:pointer"><div><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+' • Yield: '+rec.yield+'% • Shelf: '+rec.shelfLife+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
             
-            // Ingredients section
-            html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec" style="color:#fdcb6e;margin-top:0">Ingredients</div><button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
-            if(rec.ings && rec.ings.length){
-                rec.ings.forEach(function(ri,idx){
-                    var ing=D.ings.find(function(x){return x.id===ri.ingId});
-                    if(ing){
-                        html+='<div class="rec-ing"><span class="rec-ing-name">'+ing.name+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" class="sm-input" value="'+ri.qty+'" onchange="updateRecIngQty('+rec.id+','+idx+',this.value)" style="width:50px" step="0.1"><input type="text" class="sm-input" value="'+ri.unit+'" onchange="updateRecIngUnit('+rec.id+','+idx+',this.value)" style="width:40px"><button class="del-btn" onclick="removeRecIng('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div></div>';
-                    }
-                });
-            }else{
-                html+='<div style="color:#636e72;font-size:11px;padding:8px">No ingredients added</div>';
-            }
-            
-            // Sub-recipes section
-            html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#fd79a8;margin-top:0">Sub-Recipes</div><button class="btn btn-s btn-sm" onclick="addSubRec('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
-            if(rec.subRecs && rec.subRecs.length){
-                rec.subRecs.forEach(function(sr,idx){
-                    var subRec=D.recs.find(function(r){return r.id===sr.recId});
-                    if(subRec){
-                        html+='<div class="rec-ing" style="border-left:2px solid #fd79a8"><span class="rec-ing-name">📖 '+subRec.name+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" class="sm-input" value="'+sr.qty+'" onchange="updateSubRecQty('+rec.id+','+idx+',this.value)" style="width:50px" step="0.1"><input type="text" class="sm-input" value="'+sr.unit+'" onchange="updateSubRecUnit('+rec.id+','+idx+',this.value)" style="width:40px"><button class="del-btn" onclick="removeSubRec('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div></div>';
-                    }
-                });
-            }else{
-                html+='<div style="color:#636e72;font-size:11px;padding:8px">No sub-recipes</div>';
-            }
-            
-            // Photos section
-            html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#74b9ff;margin-top:0">Photos</div><button class="btn btn-s btn-sm" onclick="addRecPhoto('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
-            if(rec.photos && rec.photos.length){
-                html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';
-                rec.photos.forEach(function(photo,idx){
-                    html+='<div style="position:relative;width:70px;height:70px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,.3)"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover" onerror="this.src=\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22>📷</text></svg>\'"><button onclick="removeRecPhoto('+rec.id+','+idx+')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:10px;cursor:pointer">×</button></div>';
-                });
+            if(ex){
+                html+='<div class="rec-ings">';
+                
+                // Ingredients section
+                html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec" style="color:#fdcb6e;margin-top:0">Ingredients</div><button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+                if(rec.ings && rec.ings.length){
+                    rec.ings.forEach(function(ri,idx){
+                        var ing=D.ings.find(function(x){return x.id===ri.ingId});
+                        if(ing){
+                            html+='<div class="rec-ing"><span class="rec-ing-name">'+ing.name+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" class="sm-input" value="'+ri.qty+'" onchange="updateRecIngQty('+rec.id+','+idx+',this.value)" style="width:50px" step="0.1"><input type="text" class="sm-input" value="'+ri.unit+'" onchange="updateRecIngUnit('+rec.id+','+idx+',this.value)" style="width:40px"><button class="del-btn" onclick="removeRecIng('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div></div>';
+                        }
+                    });
+                }else{
+                    html+='<div style="color:#636e72;font-size:11px;padding:8px">No ingredients added</div>';
+                }
+                
+                // Sub-recipes section
+                html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#fd79a8;margin-top:0">Sub-Recipes</div><button class="btn btn-s btn-sm" onclick="addSubRec('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+                if(rec.subRecs && rec.subRecs.length){
+                    rec.subRecs.forEach(function(sr,idx){
+                        var subRec=D.recs.find(function(r){return r.id===sr.recId});
+                        if(subRec){
+                            html+='<div class="rec-ing" style="border-left:2px solid #fd79a8"><span class="rec-ing-name">📖 '+subRec.name+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" class="sm-input" value="'+sr.qty+'" onchange="updateSubRecQty('+rec.id+','+idx+',this.value)" style="width:50px" step="0.1"><input type="text" class="sm-input" value="'+sr.unit+'" onchange="updateSubRecUnit('+rec.id+','+idx+',this.value)" style="width:40px"><button class="del-btn" onclick="removeSubRec('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div></div>';
+                        }
+                    });
+                }else{
+                    html+='<div style="color:#636e72;font-size:11px;padding:8px">No sub-recipes</div>';
+                }
+                
+                // Photos section
+                html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#74b9ff;margin-top:0">Photos</div><button class="btn btn-s btn-sm" onclick="addRecPhoto('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+                if(rec.photos && rec.photos.length){
+                    html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';
+                    rec.photos.forEach(function(photo,idx){
+                        html+='<div style="position:relative;width:70px;height:70px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,.3)"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover" onerror="this.src=\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22>📷</text></svg>\'"><button onclick="removeRecPhoto('+rec.id+','+idx+')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:10px;cursor:pointer">×</button></div>';
+                    });
+                    html+='</div>';
+                }else{
+                    html+='<div style="color:#636e72;font-size:11px;padding:8px">No photos</div>';
+                }
+                
+                // Videos section
+                html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#00b894;margin-top:0">Videos</div><button class="btn btn-s btn-sm" onclick="addRecVideo('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+                if(rec.videos && rec.videos.length){
+                    html+='<div style="margin-top:8px">';
+                    rec.videos.forEach(function(video,idx){
+                        html+='<div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px"><span style="font-size:20px">🎬</span><span style="flex:1;font-size:11px;color:#a0aec0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+video+'</span><button class="del-btn" onclick="removeRecVideo('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div>';
+                    });
+                    html+='</div>';
+                }else{
+                    html+='<div style="color:#636e72;font-size:11px;padding:8px">No videos</div>';
+                }
+                
+                // Notes
+                if(rec.notes){
+                    html+='<div class="sec" style="margin-top:12px;color:#a0aec0">Notes</div><p style="font-size:12px;color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px">'+rec.notes+'</p>';
+                }
+                
+                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="flex:1">✏️ Edit Details</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'recs\','+rec.id+')" style="padding:6px 10px">📥 Archive</button></div>';
                 html+='</div>';
-            }else{
-                html+='<div style="color:#636e72;font-size:11px;padding:8px">No photos</div>';
             }
-            
-            // Videos section
-            html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#00b894;margin-top:0">Videos</div><button class="btn btn-s btn-sm" onclick="addRecVideo('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
-            if(rec.videos && rec.videos.length){
-                html+='<div style="margin-top:8px">';
-                rec.videos.forEach(function(video,idx){
-                    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px"><span style="font-size:20px">🎬</span><span style="flex:1;font-size:11px;color:#a0aec0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+video+'</span><button class="del-btn" onclick="removeRecVideo('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div>';
-                });
-                html+='</div>';
-            }else{
-                html+='<div style="color:#636e72;font-size:11px;padding:8px">No videos</div>';
-            }
-            
-            // Notes
-            if(rec.notes){
-                html+='<div class="sec" style="margin-top:12px;color:#a0aec0">Notes</div><p style="font-size:12px;color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px">'+rec.notes+'</p>';
-            }
-            
-            html+='<button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="margin-top:12px">✏️ Edit Recipe Details</button>';
             html+='</div>';
-        }
-        html+='</div>';
+        });
     });
+    
+    // Uncategorized recipes
+    var uncatRecs=activeRecs.filter(function(r){return !r.catId});
+    if(uncatRecs.length){
+        html+='<div class="sec" style="color:#fdcb6e">Uncategorized</div>';
+        uncatRecs.forEach(function(rec){
+            var ex=exp['rec-'+rec.id];
+            html+='<div class="card rec-card"><div class="card-h" onclick="tog(\'rec-\'+'+rec.id+')" style="cursor:pointer"><div><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+' • Yield: '+rec.yield+'% • Shelf: '+rec.shelfLife+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
+            if(ex){
+                // Same expanded content as above
+                html+='<div class="rec-ings">';
+                html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec" style="color:#fdcb6e;margin-top:0">Ingredients</div><button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+                if(rec.ings && rec.ings.length){
+                    rec.ings.forEach(function(ri,idx){
+                        var ing=D.ings.find(function(x){return x.id===ri.ingId});
+                        if(ing){
+                            html+='<div class="rec-ing"><span class="rec-ing-name">'+ing.name+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" class="sm-input" value="'+ri.qty+'" onchange="updateRecIngQty('+rec.id+','+idx+',this.value)" style="width:50px" step="0.1"><input type="text" class="sm-input" value="'+ri.unit+'" onchange="updateRecIngUnit('+rec.id+','+idx+',this.value)" style="width:40px"><button class="del-btn" onclick="removeRecIng('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div></div>';
+                        }
+                    });
+                }else{
+                    html+='<div style="color:#636e72;font-size:11px;padding:8px">No ingredients added</div>';
+                }
+                if(rec.notes){
+                    html+='<div class="sec" style="margin-top:12px;color:#a0aec0">Notes</div><p style="font-size:12px;color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px">'+rec.notes+'</p>';
+                }
+                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="flex:1">✏️ Edit Details</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'recs\','+rec.id+')" style="padding:6px 10px">📥 Archive</button></div>';
+                html+='</div>';
+            }
+            html+='</div>';
+        });
+    }
+    
+    // Archive section
+    html+='<div class="archive-header" onclick="toggleArchive(\'recs\')" style="margin-top:24px;padding:12px;background:rgba(0,0,0,.3);border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span style="color:#636e72;font-size:12px;font-weight:600">📥 Archived ('+archivedRecs.length+')</span><span style="color:#636e72">'+(archiveOpen.recs?'▲':'▼')+'</span></div>';
+    if(archiveOpen.recs && archivedRecs.length){
+        html+='<div class="archive-content" style="margin-top:8px;opacity:.7">';
+        archivedRecs.forEach(function(rec){
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;border-left:3px solid #636e72"><div><div class="card-t" style="color:#a0aec0">'+rec.name+'</div><div class="card-s">'+rec.group+' • Yield: '+rec.yield+'%</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="reviveItem(\'recs\','+rec.id+')" title="Restore">📤</button><button class="del-btn" onclick="delItem(\'recs\','+rec.id+')">🗑️</button></div></div>';
+        });
+        html+='</div>';
+    }
     
     c.innerHTML=html;
 }
@@ -1020,52 +1282,73 @@ function saveRec(id){
 
 // ==================== MENU ====================
 function renderMenu(c,s){
-    s.textContent=D.menus.length+' items';
+    var activeMenus=D.menus.filter(function(m){return !m.archived});
+    var archivedMenus=D.menus.filter(function(m){return m.archived});
+    s.textContent=activeMenus.length+' items';
     var html='';
     
-    D.menus.forEach(function(m){
-        var unit=D.units.find(function(u){return u.id===m.unitId});
-        var ex=exp['menu-'+m.id];
+    // Group by category
+    D.menuCats.forEach(function(cat){
+        var catItems=activeMenus.filter(function(m){return m.catId===cat.id});
+        if(!catItems.length)return;
         
-        // Get associated recipes
-        var recNames=[];
-        if(m.recIds&&m.recIds.length){
-            m.recIds.forEach(function(rid){
-                var r=D.recs.find(function(x){return x.id===rid});
-                if(r)recNames.push(r.name);
-            });
-        }
+        html+='<div class="sec" style="color:#74b9ff">'+cat.name+'</div>';
         
-        html+='<div class="card"><div class="card-h" onclick="tog(\'menu-\'+'+m.id+')" style="cursor:pointer"><div><div class="card-t">'+m.name+'</div><div class="card-s">TGT: '+m.tgt+(unit?' '+unit.abbr:'')+' • '+(recNames.length?recNames.length+' recipe'+(recNames.length>1?'s':''):'No recipes')+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
-        
-        if(ex){
-            html+='<div style="margin-top:12px">';
+        catItems.forEach(function(m){
+            var unit=D.units.find(function(u){return u.id===m.unitId});
+            var ex=exp['menu-'+m.id];
             
-            // Target quantity edit
-            html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:12px;color:#a0aec0">Target:</span><input type="number" class="sm-input" value="'+m.tgt+'" onchange="updTgt('+m.id+',this.value)" style="width:60px"><select class="sm-input" onchange="updMenuUnit('+m.id+',this.value)" style="width:auto;padding:6px">';
-            D.units.forEach(function(u){
-                html+='<option value="'+u.id+'"'+(u.id===m.unitId?' selected':'')+'>'+u.abbr+'</option>';
-            });
-            html+='</select></div>';
-            
-            // Associated recipes
-            html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec" style="color:#fdcb6e;margin:0">Recipes Used</div><button class="btn btn-s btn-sm" onclick="addMenuRec('+m.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+            // Get associated recipes
+            var recNames=[];
             if(m.recIds&&m.recIds.length){
-                m.recIds.forEach(function(rid,idx){
+                m.recIds.forEach(function(rid){
                     var r=D.recs.find(function(x){return x.id===rid});
-                    if(r){
-                        html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+r.name+'</span><button class="del-btn" onclick="removeMenuRec('+m.id+','+idx+')" style="font-size:12px">🗑️</button></div>';
-                    }
+                    if(r)recNames.push(r.name);
                 });
-            }else{
-                html+='<div style="color:#636e72;font-size:11px;padding:8px">No recipes assigned</div>';
             }
             
-            html+='<button class="btn btn-s btn-sm" onclick="editMenu('+m.id+')" style="margin-top:12px">✏️ Edit Details</button>';
+            html+='<div class="card"><div class="card-h" onclick="tog(\'menu-\'+'+m.id+')" style="cursor:pointer"><div><div class="card-t">'+m.name+'</div><div class="card-s">TGT: '+m.tgt+(unit?' '+unit.abbr:'')+' • '+(recNames.length?recNames.length+' recipe'+(recNames.length>1?'s':''):'No recipes')+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
+            
+            if(ex){
+                html+='<div style="margin-top:12px">';
+                
+                // Target quantity edit
+                html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:12px;color:#a0aec0">Target:</span><input type="number" class="sm-input" value="'+m.tgt+'" onchange="updTgt('+m.id+',this.value)" style="width:60px"><select class="sm-input" onchange="updMenuUnit('+m.id+',this.value)" style="width:auto;padding:6px">';
+                D.units.forEach(function(u){
+                    html+='<option value="'+u.id+'"'+(u.id===m.unitId?' selected':'')+'>'+u.abbr+'</option>';
+                });
+                html+='</select></div>';
+                
+                // Associated recipes
+                html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec" style="color:#fdcb6e;margin:0">Recipes Used</div><button class="btn btn-s btn-sm" onclick="addMenuRec('+m.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+                if(m.recIds&&m.recIds.length){
+                    m.recIds.forEach(function(rid,idx){
+                        var r=D.recs.find(function(x){return x.id===rid});
+                        if(r){
+                            html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+r.name+'</span><button class="del-btn" onclick="removeMenuRec('+m.id+','+idx+')" style="font-size:12px">🗑️</button></div>';
+                        }
+                    });
+                }else{
+                    html+='<div style="color:#636e72;font-size:11px;padding:8px">No recipes assigned</div>';
+                }
+                
+                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editMenu('+m.id+')" style="flex:1">✏️ Edit Details</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'menus\','+m.id+')" style="padding:6px 10px">📥 Archive</button></div>';
+                html+='</div>';
+            }
             html+='</div>';
-        }
-        html+='</div>';
+        });
     });
+    
+    // Archive section
+    html+='<div class="archive-header" onclick="toggleArchive(\'menus\')" style="margin-top:24px;padding:12px;background:rgba(0,0,0,.3);border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span style="color:#636e72;font-size:12px;font-weight:600">📥 Archived ('+archivedMenus.length+')</span><span style="color:#636e72">'+(archiveOpen.menus?'▲':'▼')+'</span></div>';
+    if(archiveOpen.menus && archivedMenus.length){
+        html+='<div class="archive-content" style="margin-top:8px;opacity:.7">';
+        archivedMenus.forEach(function(m){
+            var unit=D.units.find(function(u){return u.id===m.unitId});
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;border-left:3px solid #636e72"><div><div class="card-t" style="color:#a0aec0">'+m.name+'</div><div class="card-s">TGT: '+m.tgt+(unit?' '+unit.abbr:'')+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="reviveItem(\'menus\','+m.id+')" title="Restore">📤</button><button class="del-btn" onclick="delItem(\'menus\','+m.id+')">🗑️</button></div></div>';
+        });
+        html+='</div>';
+    }
     
     c.innerHTML=html;
 }
@@ -1442,15 +1725,47 @@ function saveUser(id){
 // ==================== HELPERS ====================
 function tog(id){exp[id]=!exp[id];render();}
 function togAdd(id){addOpen[id]=!addOpen[id];render();}
+function toggleArchive(type){archiveOpen[type]=!archiveOpen[type];render();}
+
+function archiveItem(col,id){
+    if(col==='ings'){
+        var item=D.ings.find(function(x){return x.id===id});
+        if(item)item.archived=1;
+    }else if(col==='recs'){
+        var item=D.recs.find(function(x){return x.id===id});
+        if(item)item.archived=1;
+    }else if(col==='menus'){
+        var item=D.menus.find(function(x){return x.id===id});
+        if(item)item.archived=1;
+    }
+    render();
+}
+
+function reviveItem(col,id){
+    if(col==='ings'){
+        var item=D.ings.find(function(x){return x.id===id});
+        if(item)item.archived=0;
+    }else if(col==='recs'){
+        var item=D.recs.find(function(x){return x.id===id});
+        if(item)item.archived=0;
+    }else if(col==='menus'){
+        var item=D.menus.find(function(x){return x.id===id});
+        if(item)item.archived=0;
+    }
+    render();
+}
 
 function updInv(id,v){var i=D.inv.find(function(x){return x.id===id});if(i){i.qty=parseFloat(v)||0;}}
+function updInvUnit(id,v){var i=D.inv.find(function(x){return x.id===id});if(i){i.unit=v;}}
 function updPrep(id,v){var p=D.preps.find(function(x){return x.id===id});if(p){p.onHand=parseFloat(v)||0;render();}}
 function updTgt(id,v){var m=D.menus.find(function(x){return x.id===id});if(m){m.tgt=parseInt(v)||0;}}
 
 function delItem(col,id){
-    if(!confirm('Delete this item?'))return;
+    if(!confirm('Delete this item permanently?'))return;
     if(col==='inv')D.inv=D.inv.filter(function(x){return x.id!==id});
     else if(col==='ings')D.ings=D.ings.filter(function(x){return x.id!==id});
+    else if(col==='recs')D.recs=D.recs.filter(function(x){return x.id!==id});
+    else if(col==='menus')D.menus=D.menus.filter(function(x){return x.id!==id});
     else if(col==='shopping')D.shopping=D.shopping.filter(function(x){return x.id!==id});
     render();
 }
@@ -1466,13 +1781,22 @@ function openAdd(){
         html+='<div class="form-g"><label class="form-l">Category</label><select id="add-cat" class="form-i">';
         D.cats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
         html+='</select></div>';
+        html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="add-unit-def" class="form-i">';
+        D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr==='ea'?' selected':'')+'>'+u.name+' ('+u.abbr+')</option>';});
+        html+='</select></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addIng()" style="flex:1">Add</button></div>';
     }else if(tab==='recipes'){
         html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-name" class="form-i" placeholder="Recipe name"></div>';
-        html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="add-group" class="form-i" placeholder="e.g. Filling, Dough"></div>';
+        html+='<div class="form-g"><label class="form-l">Category</label><select id="add-rec-cat" class="form-i">';
+        D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
+        html+='</select></div>';
+        html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="add-group" class="form-i" placeholder="e.g. Mix, Dough, Cocktail"></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addRec()" style="flex:1">Add</button></div>';
     }else if(tab==='menu'){
         html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-name" class="form-i" placeholder="Menu item name"></div>';
+        html+='<div class="form-g"><label class="form-l">Category</label><select id="add-menu-cat" class="form-i">';
+        D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
+        html+='</select></div>';
         html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="add-tgt" class="form-i" placeholder="0"></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addMenuItem()" style="flex:1">Add</button></div>';
     }else if(tab==='shopping'){
@@ -1493,8 +1817,9 @@ function openAdd(){
 function addIng(){
     var name=document.getElementById('add-name').value;
     var catId=parseInt(document.getElementById('add-cat').value);
+    var defUnit=document.getElementById('add-unit-def')?document.getElementById('add-unit-def').value:'ea';
     if(!name){alert('Enter a name');return;}
-    D.ings.push({id:nid++,name:name,catId:catId,areaId:1,subArea:''});
+    D.ings.push({id:nid++,name:name,catId:catId,areaId:1,subArea:'',defUnit:defUnit,archived:0});
     closeModal();
     render();
 }
@@ -1502,8 +1827,9 @@ function addIng(){
 function addRec(){
     var name=document.getElementById('add-name').value;
     var group=document.getElementById('add-group').value||'General';
+    var catId=parseInt(document.getElementById('add-rec-cat').value)||1;
     if(!name){alert('Enter a name');return;}
-    D.recs.push({id:nid++,name:name,group:group,yield:100,shelfLife:'3 Days',notes:'',ings:[],subRecs:[],photos:[],videos:[]});
+    D.recs.push({id:nid++,name:name,group:group,catId:catId,yield:100,shelfLife:'3 Days',notes:'',ings:[],subRecs:[],photos:[],videos:[],archived:0});
     closeModal();
     render();
 }
@@ -1511,8 +1837,9 @@ function addRec(){
 function addMenuItem(){
     var name=document.getElementById('add-name').value;
     var tgt=parseInt(document.getElementById('add-tgt').value)||0;
+    var catId=parseInt(document.getElementById('add-menu-cat').value)||1;
     if(!name){alert('Enter a name');return;}
-    D.menus.push({id:nid++,name:name,tgt:tgt,unitId:1,recIds:[]});
+    D.menus.push({id:nid++,name:name,tgt:tgt,unitId:1,recIds:[],archived:0,catId:catId});
     closeModal();
     render();
 }
