@@ -196,7 +196,7 @@ var D={
         {id:12,name:'Left Wine Fridge',sections:[],prep:1},
         {id:13,name:'Right Wine Fridge',sections:[],prep:1}
     ],
-    cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'}],
+    cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'},{id:7,name:'Bar/Spirits'},{id:8,name:'Bar/Wine'},{id:9,name:'Bar/Mixers'}],
     menuCats:[{id:1,name:'Empanadas'},{id:2,name:'Ensalada'},{id:3,name:'Tapas'},{id:4,name:'Soup'},{id:5,name:'Desserts'},{id:6,name:'Red Wine'},{id:7,name:'White & Sparkling'},{id:8,name:'Cocktails'},{id:9,name:'Brunch'},{id:10,name:'Beverages'},{id:11,name:'Sides'}],
     units:[
         {id:1,name:'each',abbr:'ea'},{id:2,name:'pound',abbr:'lb'},{id:3,name:'ounce',abbr:'oz'},{id:4,name:'gram',abbr:'g'},{id:5,name:'kilogram',abbr:'kg'},
@@ -240,7 +240,46 @@ var D={
         {id:26,name:'Parmesan Cheese',catId:3,areaId:2,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0},
         {id:27,name:'Mozzarella Bar',catId:3,areaId:2,subArea:'',defUnit:'bar',archived:0,standalone:0,minQty:0},
         {id:28,name:'Broccoli',catId:2,areaId:3,subArea:'Right',defUnit:'bag',archived:0,standalone:0,minQty:0},
-        {id:29,name:'Water',catId:5,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0}
+        {id:29,name:'Water',catId:5,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
+        {id:30,name:'Gin',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:31,name:'Vermouth',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:32,name:'Cointreau',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:33,name:'DOM Benedictine',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:34,name:'Bitters',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:35,name:'Vodka',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:36,name:'Tequila',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:37,name:'Rum',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:38,name:'Fernet',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:39,name:'Rye Whiskey',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:40,name:'XO Brandy',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:41,name:'Amaro di Montenegro',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:42,name:'Campari',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:43,name:'Irish Cream',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:44,name:'Raspberry di Amore',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:45,name:'Simple Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:46,name:'Pancake Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:47,name:'Lemons',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:48,name:'Limes',catId:2,areaId:3,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0},
+        {id:49,name:'Strawberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:50,name:'Raspberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:51,name:'Blackberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:52,name:'Tomato Juice',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:53,name:'Worcestershire',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:54,name:'Hot Sauce',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:55,name:'Black Pepper',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:56,name:'Celery Salt',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:57,name:'Bacon',catId:1,areaId:1,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:58,name:'Tonic Water',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:59,name:'Club Soda',catId:9,areaId:10,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0},
+        {id:60,name:'Cinnamon',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:61,name:'Cinnamon Stick',catId:4,areaId:4,subArea:'',defUnit:'ea',archived:0,standalone:0,minQty:0},
+        {id:62,name:'Orange Juice',catId:9,areaId:3,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:63,name:'Concord Espresso',catId:9,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:64,name:'LaChona Reserva Blend 2021',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:65,name:'LaChona White Malbec Rose',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:66,name:'LaChona Chardonnay 2022',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:67,name:'LaChona Norte y Sur Malbec',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:68,name:'LaChona Norte y Sur Cabernet',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0}
     ],
     inv:[
         {id:1,areaId:1,ingId:1,qty:10,unit:'lb'},
@@ -256,7 +295,23 @@ var D={
     preps:[
         {id:1,name:'Abuela Chona Mix',recId:4,onHand:2,tgt:5,unit:'batch'},
         {id:2,name:'Pollo Mix',recId:5,onHand:1,tgt:3,unit:'batch'},
-        {id:3,name:'Dough Discs',recId:3,onHand:40,tgt:100,unit:'ea'}
+        {id:3,name:'Dough Discs',recId:3,onHand:40,tgt:100,unit:'ea'},
+        {id:10,name:'Golden Cup Batch',recId:201,onHand:0,tgt:1,unit:'batch'},
+        {id:11,name:'Que Miras Bobo Batch',recId:202,onHand:0,tgt:1,unit:'batch'},
+        {id:12,name:'Argentina Batch',recId:203,onHand:0,tgt:1,unit:'batch'},
+        {id:13,name:'BA Old Fashioned Batch',recId:204,onHand:0,tgt:1,unit:'batch'},
+        {id:14,name:'Fernet Sour Batch',recId:205,onHand:0,tgt:1,unit:'batch'},
+        {id:15,name:'Espresso Martini Batch',recId:206,onHand:0,tgt:1,unit:'batch'},
+        {id:16,name:'Lagrima de Amor Batch',recId:207,onHand:0,tgt:1,unit:'batch'},
+        {id:17,name:'La Nieta Batch',recId:208,onHand:0,tgt:1,unit:'batch'},
+        {id:18,name:'Mendoza Batch',recId:209,onHand:0,tgt:1,unit:'batch'},
+        {id:19,name:'Potion de Amor Batch',recId:210,onHand:0,tgt:1,unit:'batch'},
+        {id:20,name:'Red Wine Spritzer Batch',recId:211,onHand:0,tgt:1,unit:'batch'},
+        {id:21,name:'White Wine Spritzer Batch',recId:212,onHand:0,tgt:1,unit:'batch'},
+        {id:22,name:'Bloody Mary Batch',recId:213,onHand:0,tgt:1,unit:'batch'},
+        {id:23,name:'Asadors Julep Batch',recId:214,onHand:0,tgt:1,unit:'batch'},
+        {id:24,name:'Beso de Frambuesa Batch',recId:215,onHand:0,tgt:1,unit:'batch'},
+        {id:25,name:'Mategarita Batch',recId:216,onHand:0,tgt:1,unit:'batch'}
     ],
     recs:[
         {id:1,name:'Beef Filling',group:'Filling',catId:1,yield:95,shelfLife:'3 Days',notes:'Brown beef, add veggies',ings:[{ingId:1,qty:5,unit:'lb'},{ingId:3,qty:1,unit:'lb'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
@@ -267,12 +322,38 @@ var D={
         {id:6,name:'Beef Criolla Mix',group:'Mix',catId:1,yield:95,shelfLife:'7 Days',notes:'1 pack ground beef, green olives, 1 big sweet onion, 1 big sweet red pepper, 2 cups carrots, 2 cups Prego, 1 cup water, 4 cubes veg broth, 1/4 cup beef/chicken bouillon, 1 tbsp oregano, 3 tbsp paprika, 1 taco pkg (1/2 hot, 1/2 regular), 1 jar Spanish olives',ings:[{ingId:1,qty:1,unit:'pack'},{ingId:3,qty:1,unit:'ea'},{ingId:4,qty:1,unit:'ea'},{ingId:11,qty:2,unit:'cup'},{ingId:12,qty:2,unit:'cup'},{ingId:29,qty:1,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:23,qty:1,unit:'tbsp'},{ingId:16,qty:3,unit:'tbsp'},{ingId:24,qty:1,unit:'pkg'},{ingId:22,qty:1,unit:'jar'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
         {id:7,name:'Espinaca Mix',group:'Mix',catId:1,yield:90,shelfLife:'5 Days',notes:'4 spinach packages, 1 jar parmesan, 1 bar mozzarella, 1 big sweet onion, 1 big sweet red pepper, 2 cups carrots, 1 cup Prego, 4 cubes veg broth, 1/4 cup beef/chicken bouillon, 3 tbsp paprika, 2 tbsp cumin, 2 tbsp pizza mix',ings:[{ingId:25,qty:4,unit:'pkg'},{ingId:26,qty:1,unit:'jar'},{ingId:27,qty:1,unit:'bar'},{ingId:3,qty:1,unit:'ea'},{ingId:4,qty:1,unit:'ea'},{ingId:11,qty:2,unit:'cup'},{ingId:12,qty:1,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:16,qty:3,unit:'tbsp'},{ingId:17,qty:2,unit:'tbsp'},{ingId:20,qty:2,unit:'tbsp'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
         {id:8,name:'Imposter Mix',group:'Mix',catId:1,yield:90,shelfLife:'5 Days',notes:'Broccoli: 3 bags cut, 1 jar parmesan, 1 bar mozzarella, 1 big sweet onion, 1 big sweet red pepper, 2 cups carrots, 1 cup Prego, 4 cubes veg broth, 1/4 cup beef/chicken bouillon, 3 tbsp paprika, 2 tbsp cumin, 2 tbsp pizza mix',ings:[{ingId:28,qty:3,unit:'bag'},{ingId:26,qty:1,unit:'jar'},{ingId:27,qty:1,unit:'bar'},{ingId:3,qty:1,unit:'ea'},{ingId:4,qty:1,unit:'ea'},{ingId:11,qty:2,unit:'cup'},{ingId:12,qty:1,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:16,qty:3,unit:'tbsp'},{ingId:17,qty:2,unit:'tbsp'},{ingId:20,qty:2,unit:'tbsp'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:101,name:'Golden Cup',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'White wine, rum, lemon juice, syrup',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:102,name:'Que Miras Bobo?',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Rye, Fernet, fruit, Benedictine, syrup',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:103,name:'Argentina',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Gin, Dry Vermouth, Cointreau, bitters',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:104,name:'BA Old Fashioned',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Tequila, Vermouth, Amaro, syrup',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:105,name:'Fernet Sour',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Fernet, lemon juice, egg white, syrup',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:106,name:'Espresso Martini',group:'Cocktail',catId:8,yield:100,shelfLife:'N/A',notes:'Vodka, Baileys, espresso shot',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0}
+        {id:101,name:'Golden Cup',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Special glass. Shake all but tonic w/ ice, add to glass, add tonic, add 2 cubes, top with whip cream and cinnamon stick garnish. Cost: $1.24, Margin: 92.73%',ings:[{ingId:65,qty:3,unit:'fl oz'},{ingId:37,qty:1,unit:'fl oz'},{ingId:58,qty:2,unit:'fl oz'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'},{ingId:60,qty:1,unit:'oz'},{ingId:61,qty:1,unit:'ea'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:102,name:'Que Miras Bobo',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Coupe. Cherry garnish, mash w/ 6 cherries and pour through strainer into glass after shaking with ice. Cost: $4.24, Margin: 75.05%',ings:[{ingId:39,qty:2,unit:'fl oz'},{ingId:38,qty:1,unit:'fl oz'},{ingId:33,qty:0.25,unit:'fl oz'},{ingId:51,qty:1,unit:'oz'},{ingId:45,qty:0.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:103,name:'Argentina',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Garnish: Orange Peel. Ice: Sphere. Glass: Serrated Whiskey. Cost: $3.15, Margin: 81.45%',ings:[{ingId:30,qty:1,unit:'fl oz'},{ingId:31,qty:1,unit:'fl oz'},{ingId:32,qty:0.25,unit:'fl oz'},{ingId:33,qty:0.25,unit:'fl oz'},{ingId:34,qty:0.2,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:104,name:'Buenos Aires Old Fashioned',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Garnish: Orange wedge. Ice: Square. Glass: Serrated Whiskey. Cost: $4.06, Margin: 76.13%',ings:[{ingId:36,qty:2,unit:'fl oz'},{ingId:31,qty:1,unit:'fl oz'},{ingId:41,qty:1,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'},{ingId:45,qty:0.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:105,name:'Fernet Sour',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Coupe. Lemon curl garnish. No ice in glass. Shake w/ ice and egg white, pour into glass with nice foam layer. Cost: $4.23, Margin: 75.09%',ings:[{ingId:38,qty:2,unit:'fl oz'},{ingId:7,qty:1,unit:'ea'},{ingId:47,qty:3.5,unit:'oz'},{ingId:34,qty:0.1,unit:'fl oz'},{ingId:45,qty:1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:106,name:'Espresso Martini',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Large V-shaped. Shaker for all with ice, pour, garnish with bean. Prep: 3 min. Cost: $1.96, Margin: 88.46%',ings:[{ingId:35,qty:1.5,unit:'fl oz'},{ingId:63,qty:0.5,unit:'oz'},{ingId:43,qty:0.5,unit:'fl oz'},{ingId:45,qty:0.25,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:107,name:'Lagrima de Amor',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Cost: $3.29, Margin: 80.63%',ings:[{ingId:35,qty:2,unit:'fl oz'},{ingId:32,qty:0.5,unit:'fl oz'},{ingId:47,qty:3.5,unit:'oz'},{ingId:45,qty:0.75,unit:'fl oz'},{ingId:49,qty:1.75,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:108,name:'La Nieta',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Collins tall and skinny. Shake with ice, strain on cube. Cost: $2.62, Margin: 84.62%',ings:[{ingId:66,qty:2,unit:'fl oz'},{ingId:37,qty:1.5,unit:'fl oz'},{ingId:42,qty:0.5,unit:'fl oz'},{ingId:48,qty:1,unit:'ea'},{ingId:45,qty:0.75,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:109,name:'Mendoza',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Cost: $1.08, Margin: 93.65%',ings:[{ingId:67,qty:2,unit:'fl oz'},{ingId:40,qty:2,unit:'fl oz'},{ingId:62,qty:0.5,unit:'fl oz'},{ingId:46,qty:0.25,unit:'fl oz'},{ingId:60,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:110,name:'Potion de Amor',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Large v-shape. Shake in ice, serve with berry garnish. Cost: $3.82, Margin: 77.55%',ings:[{ingId:35,qty:2,unit:'fl oz'},{ingId:32,qty:0.5,unit:'fl oz'},{ingId:44,qty:1,unit:'fl oz'},{ingId:45,qty:0.75,unit:'fl oz'},{ingId:50,qty:2,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:111,name:'Red Wine Spritzer',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Fill with ice, pour wine, then club soda, add slices of orange to inside of glass, top with 2 berries. Cost: $0.93, Margin: 93.81%',ings:[{ingId:67,qty:3,unit:'fl oz'},{ingId:59,qty:0.5,unit:'ea'},{ingId:50,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:112,name:'White Wine Spritzer',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Fill with ice, pour wine, then club soda, add slices of lemon to inside of glass, top with mint. Cost: $0.74, Margin: 95.04%',ings:[{ingId:66,qty:3,unit:'fl oz'},{ingId:59,qty:0.5,unit:'ea'},{ingId:47,qty:3,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:113,name:'Bloody Mary',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Cost: $1.43, Margin: 91.61%',ings:[{ingId:35,qty:1.5,unit:'fl oz'},{ingId:52,qty:3,unit:'fl oz'},{ingId:47,qty:1.5,unit:'oz'},{ingId:53,qty:0.5,unit:'fl oz'},{ingId:54,qty:0.5,unit:'fl oz'},{ingId:55,qty:0.1,unit:'oz'},{ingId:56,qty:0.1,unit:'oz'},{ingId:57,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:114,name:'Asadors Julep',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Mash berries, shake in ice, strain into coupe, garnish with berry. Cost: $0.72, Margin: 95.74%',ings:[{ingId:64,qty:2,unit:'fl oz'},{ingId:48,qty:0.5,unit:'ea'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:115,name:'Beso de Frambuesa',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Mash berries, shake in ice, strain into coupe, garnish with berry. Cost: $1.24',ings:[{ingId:64,qty:2,unit:'fl oz'},{ingId:44,qty:2,unit:'fl oz'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:49,qty:0.75,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:116,name:'Mategarita',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Glass: Coupe. Sugar rim. Shaker all but wine together in ice, pour (no ice in glass). Float red wine on top. Cost: $2.44',ings:[{ingId:36,qty:1.75,unit:'fl oz'},{ingId:68,qty:0.5,unit:'fl oz'},{ingId:32,qty:0.75,unit:'fl oz'},{ingId:48,qty:0.5,unit:'ea'},{ingId:45,qty:0.75,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:201,name:'Golden Cup Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.5oz mix, add 2oz tonic, ice, top w/ whip cream & cinnamon stick. DO NOT add tonic to batch.',ings:[{ingId:65,qty:30,unit:'fl oz'},{ingId:37,qty:10,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'},{ingId:60,qty:10,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:202,name:'Que Miras Bobo Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.75oz mix, mash w/ 6 cherries, shake w/ ice, strain into coupe. Add fresh blackberries per drink.',ings:[{ingId:39,qty:20,unit:'fl oz'},{ingId:38,qty:10,unit:'fl oz'},{ingId:33,qty:2.5,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:203,name:'Argentina Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.7oz mix over sphere ice in serrated whiskey glass, garnish orange peel.',ings:[{ingId:30,qty:10,unit:'fl oz'},{ingId:31,qty:10,unit:'fl oz'},{ingId:32,qty:2.5,unit:'fl oz'},{ingId:33,qty:2.5,unit:'fl oz'},{ingId:34,qty:2,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:204,name:'BA Old Fashioned Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.6oz mix over square ice in serrated whiskey glass, garnish orange wedge.',ings:[{ingId:36,qty:20,unit:'fl oz'},{ingId:31,qty:10,unit:'fl oz'},{ingId:41,qty:10,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:205,name:'Fernet Sour Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.6oz mix, ADD 1 EGG WHITE fresh, shake hard w/ ice, strain into coupe for foam layer, lemon curl garnish.',ings:[{ingId:38,qty:20,unit:'fl oz'},{ingId:47,qty:35,unit:'oz'},{ingId:34,qty:1,unit:'fl oz'},{ingId:45,qty:10,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:206,name:'Espresso Martini Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.75oz mix, shake w/ ice, strain into large V glass, garnish w/ bean. Make espresso fresh daily.',ings:[{ingId:35,qty:15,unit:'fl oz'},{ingId:63,qty:5,unit:'oz'},{ingId:43,qty:5,unit:'fl oz'},{ingId:45,qty:2.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:207,name:'Lagrima de Amor Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.75oz mix, shake w/ ice, strain. Add fresh strawberries per drink for garnish.',ings:[{ingId:35,qty:20,unit:'fl oz'},{ingId:32,qty:5,unit:'fl oz'},{ingId:47,qty:35,unit:'oz'},{ingId:45,qty:7.5,unit:'fl oz'},{ingId:49,qty:17.5,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:208,name:'La Nieta Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.85oz mix, shake w/ ice, strain over cube in Collins glass. Squeeze fresh lime per drink.',ings:[{ingId:66,qty:20,unit:'fl oz'},{ingId:37,qty:15,unit:'fl oz'},{ingId:42,qty:5,unit:'fl oz'},{ingId:45,qty:7.5,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:209,name:'Mendoza Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.75oz mix, stir, serve. Add fresh cinnamon garnish.',ings:[{ingId:67,qty:20,unit:'fl oz'},{ingId:40,qty:20,unit:'fl oz'},{ingId:62,qty:5,unit:'fl oz'},{ingId:46,qty:2.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:210,name:'Potion de Amor Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.25oz mix, shake w/ ice, strain into large V glass. Add fresh raspberries per drink.',ings:[{ingId:35,qty:20,unit:'fl oz'},{ingId:32,qty:5,unit:'fl oz'},{ingId:44,qty:10,unit:'fl oz'},{ingId:45,qty:7.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:211,name:'Red Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, orange slices, top w/ 2 berries. DO NOT batch soda.',ings:[{ingId:67,qty:30,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:212,name:'White Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, lemon slices, top w/ mint. DO NOT batch soda.',ings:[{ingId:66,qty:30,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:213,name:'Bloody Mary Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.5oz mix over ice, garnish w/ celery, bacon, olives. Shake before pouring.',ings:[{ingId:35,qty:15,unit:'fl oz'},{ingId:52,qty:30,unit:'fl oz'},{ingId:47,qty:15,unit:'oz'},{ingId:53,qty:5,unit:'fl oz'},{ingId:54,qty:5,unit:'fl oz'},{ingId:55,qty:1,unit:'oz'},{ingId:56,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:214,name:'Asadors Julep Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.1oz mix, shake w/ ice, strain into coupe, garnish w/ berry. Squeeze fresh lime per drink.',ings:[{ingId:64,qty:20,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:215,name:'Beso de Frambuesa Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 5oz mix, mash w/ berries, shake w/ ice, strain into coupe, garnish w/ berry.',ings:[{ingId:64,qty:20,unit:'fl oz'},{ingId:44,qty:20,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'},{ingId:49,qty:7.5,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:216,name:'Mategarita Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.25oz mix, shake w/ ice, strain into sugar-rimmed coupe (no ice), float 0.5oz red wine on top. Squeeze fresh lime per drink.',ings:[{ingId:36,qty:17.5,unit:'fl oz'},{ingId:32,qty:7.5,unit:'fl oz'},{ingId:45,qty:7.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0}
     ],
     menus:[
         {id:1,name:'Abuela Chona',catId:1,tgt:50,unitId:1,ings:[],preps:[{prepId:4,qty:1}],recIds:[],archived:0},
@@ -299,10 +380,21 @@ var D={
         {id:23,name:'Icon Sparkling 2020',catId:7,tgt:8,unitId:29,ings:[],preps:[],recIds:[],archived:0},
         {id:24,name:'Chardonnay 2022',catId:7,tgt:5,unitId:29,ings:[],preps:[],recIds:[],archived:0},
         {id:25,name:'Golden Cup',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[101],archived:0},
-        {id:26,name:'Que Miras Bobo?',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[102],archived:0},
+        {id:26,name:'Que Miras Bobo',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[102],archived:0},
         {id:27,name:'Argentina',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[103],archived:0},
-        {id:28,name:'BA Old Fashioned',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[104],archived:0},
+        {id:28,name:'Buenos Aires Old Fashioned',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[104],archived:0},
         {id:29,name:'Espresso Martini',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[106],archived:0},
+        {id:34,name:'Fernet Sour',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[105],archived:0},
+        {id:35,name:'Lagrima de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[107],archived:0},
+        {id:36,name:'La Nieta',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[108],archived:0},
+        {id:37,name:'Mendoza',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[109],archived:0},
+        {id:38,name:'Potion de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[110],archived:0},
+        {id:39,name:'Red Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[111],archived:0},
+        {id:40,name:'White Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[112],archived:0},
+        {id:41,name:'Bloody Mary',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[113],archived:0},
+        {id:42,name:'Asadors Julep',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[114],archived:0},
+        {id:43,name:'Beso de Frambuesa',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[115],archived:0},
+        {id:44,name:'Mategarita',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[116],archived:0},
         {id:30,name:'Breakfast Empanada',catId:9,tgt:15,unitId:1,ings:[],preps:[],recIds:[],archived:0},
         {id:31,name:'Pancakes',catId:9,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0},
         {id:32,name:'Fresh Fruit',catId:11,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0},
@@ -1287,37 +1379,44 @@ function renderAdmin(c,s){
     s.textContent='Settings';
     var html='';
     
+    // Data Management Section
+    html+='<div class="sec">💾 Data Management</div>';
+    html+='<div class="card" style="padding:12px"><div style="display:flex;gap:8px;flex-wrap:wrap">';
+    html+='<button class="btn btn-p btn-sm" onclick="exportData()">📤 Export Data</button>';
+    html+='<button class="btn btn-s btn-sm" onclick="importData()">📥 Import Data</button>';
+    html+='<button class="btn btn-sm" style="background:#e74c3c;color:#fff" onclick="resetData()">🗑️ Reset All</button>';
+    html+='</div><div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#a0aec0">Data auto-saves to browser. Export for backup.</div></div>';
+    
     // Users
-    html+='<div class="sec">👥 Users ('+D.users.length+')</div>';
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">👥 Users ('+D.users.length+')<button class="btn btn-p btn-sm" onclick="addUser()">+ Add</button></div>';
     D.users.forEach(function(u){
         html+='<div class="card user-card'+(u.role==='employee'?' employee':'')+'"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+u.name+'</div><div class="card-s">'+u.role+' • '+u.email+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editUser('+u.id+')">✏️</button>'+(u.id!==1?'<button class="del-btn" onclick="delUser('+u.id+')">🗑️</button>':'')+'</div></div></div>';
     });
     
     // Storage Locations
-    html+='<div class="sec">📍 Storage Locations ('+D.areas.length+')</div>';
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📍 Storage Locations ('+D.areas.length+')<button class="btn btn-p btn-sm" onclick="addArea()">+ Add</button></div>';
     D.areas.forEach(function(a){
-        html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+a.name+'</div><div class="card-s">'+(a.sections.length?a.sections.join(', '):'No sections')+' • '+(a.prep?'🧊 Prep':'📦 Storage')+'</div></div><button class="btn btn-s btn-sm" onclick="editArea('+a.id+')">✏️</button></div></div>';
+        html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+a.name+'</div><div class="card-s">'+(a.sections.length?a.sections.join(', '):'No sections')+' • '+(a.prep?'🧊 Prep':'📦 Storage')+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editArea('+a.id+')">✏️</button><button class="del-btn" onclick="delArea('+a.id+')">🗑️</button></div></div></div>';
     });
     
     // Ingredient Categories
-    html+='<div class="sec">🏷️ Ingredient Categories ('+D.cats.length+')</div>';
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">🏷️ Ingredient Categories ('+D.cats.length+')<button class="btn btn-p btn-sm" onclick="addCat()">+ Add</button></div>';
     D.cats.forEach(function(cat){
-        html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><button class="btn btn-s btn-sm" onclick="editCat('+cat.id+')">✏️</button></div></div>';
+        html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delCat('+cat.id+')">🗑️</button></div></div></div>';
     });
     
     // Menu Categories
-    html+='<div class="sec">🍽️ Menu Categories ('+D.menuCats.length+')</div>';
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">🍽️ Menu Categories ('+D.menuCats.length+')<button class="btn btn-p btn-sm" onclick="addMenuCat()">+ Add</button></div>';
     D.menuCats.forEach(function(cat){
-        html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><button class="btn btn-s btn-sm" onclick="editMenuCat('+cat.id+')">✏️</button></div></div>';
+        html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editMenuCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delMenuCat('+cat.id+')">🗑️</button></div></div></div>';
     });
     
     // Units
-    html+='<div class="sec">📏 Recipe Units ('+D.units.length+')</div>';
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📏 Recipe Units ('+D.units.length+')<button class="btn btn-p btn-sm" onclick="addUnit()">+ Add</button></div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
-    D.units.slice(0,20).forEach(function(u){
-        html+='<span style="background:rgba(255,255,255,.1);padding:4px 8px;border-radius:6px;font-size:calc(11px * var(--font-scale));color:#a0aec0">'+u.abbr+'</span>';
+    D.units.forEach(function(u){
+        html+='<span style="background:rgba(255,255,255,.1);padding:4px 8px;border-radius:6px;font-size:calc(11px * var(--font-scale));color:#a0aec0;display:flex;align-items:center;gap:4px">'+u.abbr+' <button style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:10px;padding:0" onclick="delUnit('+u.id+')">✕</button></span>';
     });
-    if(D.units.length>20)html+='<span style="color:#636e72;font-size:calc(11px * var(--font-scale))">+'+( D.units.length-20)+' more</span>';
     html+='</div>';
     
     c.innerHTML=html;
@@ -1413,6 +1512,237 @@ function saveMenuCatEdit(id){
     cat.name=document.getElementById('ed-mcat-name').value;
     closeModal();
     render();
+}
+
+// ==================== ADD FUNCTIONS ====================
+function addUser(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add User</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-user-name" class="form-i" placeholder="Enter name"></div>';
+    html+='<div class="form-g"><label class="form-l">Email</label><input type="email" id="new-user-email" class="form-i" placeholder="email@lachona.com"></div>';
+    html+='<div class="form-g"><label class="form-l">Role</label><select id="new-user-role" class="form-i"><option value="employee">Employee</option><option value="owner">Owner</option></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewUser()" style="flex:1">Add User</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewUser(){
+    var name=document.getElementById('new-user-name').value.trim();
+    var email=document.getElementById('new-user-email').value.trim();
+    var role=document.getElementById('new-user-role').value;
+    if(!name){alert('Enter a name');return;}
+    var maxId=Math.max.apply(null,D.users.map(function(u){return u.id;}))||0;
+    D.users.push({id:maxId+1,name:name,role:role,email:email,phone:''});
+    closeModal();
+    render();
+}
+
+function addArea(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Storage Location</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-area-name" class="form-i" placeholder="e.g. Walk-in Cooler"></div>';
+    html+='<div class="form-g"><label class="form-l">Sections (comma separated, optional)</label><input type="text" id="new-area-sec" class="form-i" placeholder="e.g. Left, Middle, Right"></div>';
+    html+='<div class="form-g"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="new-area-prep" checked><span class="form-l" style="margin:0">Prep Area (shows in prep tracker)</span></label></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewArea()" style="flex:1">Add Location</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewArea(){
+    var name=document.getElementById('new-area-name').value.trim();
+    if(!name){alert('Enter a name');return;}
+    var secStr=document.getElementById('new-area-sec').value;
+    var sections=secStr?secStr.split(',').map(function(s){return s.trim();}).filter(function(s){return s;}):[];
+    var prep=document.getElementById('new-area-prep').checked?1:0;
+    var maxId=Math.max.apply(null,D.areas.map(function(a){return a.id;}))||0;
+    D.areas.push({id:maxId+1,name:name,sections:sections,prep:prep});
+    closeModal();
+    render();
+}
+
+function addCat(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Ingredient Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-cat-name" class="form-i" placeholder="e.g. Seafood"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewCat()" style="flex:1">Add Category</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewCat(){
+    var name=document.getElementById('new-cat-name').value.trim();
+    if(!name){alert('Enter a name');return;}
+    var maxId=Math.max.apply(null,D.cats.map(function(c){return c.id;}))||0;
+    D.cats.push({id:maxId+1,name:name});
+    closeModal();
+    render();
+}
+
+function addMenuCat(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Menu Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-mcat-name" class="form-i" placeholder="e.g. Specials"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewMenuCat()" style="flex:1">Add Category</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewMenuCat(){
+    var name=document.getElementById('new-mcat-name').value.trim();
+    if(!name){alert('Enter a name');return;}
+    var maxId=Math.max.apply(null,D.menuCats.map(function(c){return c.id;}))||0;
+    D.menuCats.push({id:maxId+1,name:name});
+    closeModal();
+    render();
+}
+
+function addUnit(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Recipe Unit</div>';
+    html+='<div class="form-g"><label class="form-l">Full Name</label><input type="text" id="new-unit-name" class="form-i" placeholder="e.g. milliliter"></div>';
+    html+='<div class="form-g"><label class="form-l">Abbreviation</label><input type="text" id="new-unit-abbr" class="form-i" placeholder="e.g. ml"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewUnit()" style="flex:1">Add Unit</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewUnit(){
+    var name=document.getElementById('new-unit-name').value.trim();
+    var abbr=document.getElementById('new-unit-abbr').value.trim();
+    if(!name||!abbr){alert('Enter both name and abbreviation');return;}
+    var maxId=Math.max.apply(null,D.units.map(function(u){return u.id;}))||0;
+    D.units.push({id:maxId+1,name:name,abbr:abbr});
+    closeModal();
+    render();
+}
+
+// ==================== DELETE FUNCTIONS ====================
+function delArea(id){
+    // Check if area is in use
+    var inUse=D.ings.some(function(i){return i.areaId===id;})||D.inv.some(function(i){return i.areaId===id;});
+    if(inUse){
+        alert('Cannot delete: This location is used by ingredients or inventory items.');
+        return;
+    }
+    if(confirm('Delete this storage location?')){
+        D.areas=D.areas.filter(function(a){return a.id!==id;});
+        render();
+    }
+}
+
+function delCat(id){
+    var inUse=D.ings.some(function(i){return i.catId===id;});
+    if(inUse){
+        alert('Cannot delete: This category is used by ingredients.');
+        return;
+    }
+    if(confirm('Delete this ingredient category?')){
+        D.cats=D.cats.filter(function(c){return c.id!==id;});
+        render();
+    }
+}
+
+function delMenuCat(id){
+    var inUse=D.menus.some(function(m){return m.catId===id;});
+    if(inUse){
+        alert('Cannot delete: This category is used by menu items.');
+        return;
+    }
+    if(confirm('Delete this menu category?')){
+        D.menuCats=D.menuCats.filter(function(c){return c.id!==id;});
+        render();
+    }
+}
+
+function delUnit(id){
+    // Check if unit is in use in recipes
+    var inUse=D.recs.some(function(r){
+        return r.ings.some(function(i){return i.unit===D.units.find(function(u){return u.id===id;})?.abbr;});
+    });
+    if(inUse){
+        alert('Cannot delete: This unit is used in recipes.');
+        return;
+    }
+    if(confirm('Delete this unit?')){
+        D.units=D.units.filter(function(u){return u.id!==id;});
+        render();
+    }
+}
+
+// ==================== DATA MANAGEMENT ====================
+function exportData(){
+    var dataToExport={
+        version:DATA_VERSION,
+        exportDate:new Date().toISOString(),
+        data:{
+            users:D.users,
+            areas:D.areas,
+            cats:D.cats,
+            menuCats:D.menuCats,
+            units:D.units,
+            ings:D.ings,
+            inv:D.inv,
+            shopping:D.shopping,
+            preps:D.preps,
+            recs:D.recs,
+            menus:D.menus,
+            log:D.log
+        }
+    };
+    var json=JSON.stringify(dataToExport,null,2);
+    var blob=new Blob([json],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='restaurant-oracle-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function importData(){
+    var input=document.createElement('input');
+    input.type='file';
+    input.accept='.json';
+    input.onchange=function(e){
+        var file=e.target.files[0];
+        if(!file)return;
+        var reader=new FileReader();
+        reader.onload=function(evt){
+            try{
+                var imported=JSON.parse(evt.target.result);
+                if(!imported.data){
+                    alert('Invalid backup file format');
+                    return;
+                }
+                if(confirm('This will replace ALL your current data with the imported backup. Continue?')){
+                    Object.keys(imported.data).forEach(function(key){
+                        if(D.hasOwnProperty(key)){
+                            D[key]=imported.data[key];
+                        }
+                    });
+                    saveAllData();
+                    render();
+                    alert('Data imported successfully!');
+                }
+            }catch(err){
+                alert('Error reading backup file: '+err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function resetData(){
+    if(confirm('⚠️ WARNING: This will DELETE ALL your data and restore defaults.\n\nThis cannot be undone!\n\nAre you sure?')){
+        if(confirm('Final confirmation: Delete everything and reset to defaults?')){
+            localStorage.removeItem('ro_allData');
+            localStorage.removeItem('ro_dataVersion');
+            location.reload();
+        }
+    }
 }
 
 // ==================== COMMON FUNCTIONS ====================
@@ -1573,16 +1903,126 @@ function addMenuItem(){
 }
 
 // Initialize
+var DATA_VERSION=3; // Increment when default data structure changes
 document.addEventListener('DOMContentLoaded',function(){
-    // Load saved font scale from localStorage
-    try{
-        var savedScale=localStorage.getItem('ro_fontScale');
-        if(savedScale){D.fontScale=+savedScale;}
-    }catch(e){}
+    loadAllData();
     render();
     updateScrollHints();
     document.getElementById('tabs-wrap').addEventListener('scroll',updateScrollHints);
+    // Auto-save on any data change
+    setInterval(saveAllData,30000); // Auto-save every 30 seconds
 });
+
+function loadAllData(){
+    try{
+        var savedData=localStorage.getItem('ro_allData');
+        var savedVersion=localStorage.getItem('ro_dataVersion');
+        if(savedData){
+            var parsed=JSON.parse(savedData);
+            // Merge saved data with defaults (keeps new items from app updates)
+            mergeData(parsed);
+        }
+        var savedScale=localStorage.getItem('ro_fontScale');
+        if(savedScale){D.fontScale=+savedScale;}
+    }catch(e){console.error('Load error:',e);}
+}
+
+function mergeData(saved){
+    // For arrays that user modifies (inv, shopping, preps changes), use saved
+    if(saved.inv)D.inv=saved.inv;
+    if(saved.shopping)D.shopping=saved.shopping;
+    if(saved.log)D.log=saved.log;
+    
+    // For preps, merge: keep saved onHand values but add new default preps
+    if(saved.preps){
+        var savedPrepIds=saved.preps.map(function(p){return p.id;});
+        var defaultPreps=D.preps.filter(function(p){return savedPrepIds.indexOf(p.id)===-1;});
+        saved.preps.forEach(function(sp){
+            var existing=D.preps.find(function(p){return p.id===sp.id;});
+            if(existing){
+                existing.onHand=sp.onHand;
+                existing.tgt=sp.tgt;
+            }
+        });
+        defaultPreps.forEach(function(p){D.preps.push(p);});
+    }
+    
+    // For config arrays (users, areas, cats, menuCats, units), merge new defaults with saved edits
+    ['users','areas','cats','menuCats','units'].forEach(function(key){
+        if(saved[key]){
+            var savedIds=saved[key].map(function(x){return x.id;});
+            // Keep all saved items
+            D[key]=saved[key];
+            // Add any new default items not in saved
+            var defaultItems=getDefaultData()[key]||[];
+            defaultItems.forEach(function(item){
+                if(savedIds.indexOf(item.id)===-1){
+                    D[key].push(item);
+                }
+            });
+        }
+    });
+    
+    // For ings, recs, menus - merge: saved user additions + default items
+    ['ings','recs','menus'].forEach(function(key){
+        if(saved[key]){
+            var savedIds=saved[key].map(function(x){return x.id;});
+            var defaultItems=getDefaultData()[key]||[];
+            // Start with saved data
+            D[key]=saved[key];
+            // Add any new default items
+            defaultItems.forEach(function(item){
+                if(savedIds.indexOf(item.id)===-1){
+                    D[key].push(item);
+                }
+            });
+        }
+    });
+}
+
+function getDefaultData(){
+    // Returns fresh copy of default data for merging
+    return {
+        users:[{id:1,name:'Owner',role:'owner',email:'owner@lachona.com',phone:''},{id:2,name:'Maria',role:'employee',email:'maria@lachona.com',phone:''}],
+        areas:[{id:1,name:'Oven Fridge',sections:[],prep:1},{id:2,name:'Dairy Fridge',sections:[],prep:1},{id:3,name:'Prep Fridge',sections:['Left','Middle','Right'],prep:1},{id:4,name:'Main Prep Table',sections:[],prep:1},{id:5,name:'Oven Prep Table',sections:[],prep:1},{id:6,name:'Dishwasher',sections:[],prep:0},{id:7,name:'Sheeter',sections:[],prep:0},{id:8,name:'Freezer',sections:[],prep:1},{id:9,name:'Hallway Fridge',sections:[],prep:1},{id:10,name:'Stairs',sections:[],prep:0},{id:11,name:'Wine Display',sections:['Left Column','Top Row','Right Column'],prep:0},{id:12,name:'Left Wine Fridge',sections:[],prep:1},{id:13,name:'Right Wine Fridge',sections:[],prep:1}],
+        cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'},{id:7,name:'Bar/Spirits'},{id:8,name:'Bar/Wine'},{id:9,name:'Bar/Mixers'}],
+        menuCats:[{id:1,name:'Empanadas'},{id:2,name:'Ensalada'},{id:3,name:'Tapas'},{id:4,name:'Soup'},{id:5,name:'Desserts'},{id:6,name:'Red Wine'},{id:7,name:'White & Sparkling'},{id:8,name:'Cocktails'},{id:9,name:'Brunch'},{id:10,name:'Beverages'},{id:11,name:'Sides'}],
+        units:D.units,
+        ings:[], // Will be populated from current D.ings
+        recs:[],
+        menus:[],
+        preps:[]
+    };
+}
+
+function saveAllData(){
+    try{
+        var dataToSave={
+            users:D.users,
+            areas:D.areas,
+            cats:D.cats,
+            menuCats:D.menuCats,
+            units:D.units,
+            ings:D.ings,
+            inv:D.inv,
+            shopping:D.shopping,
+            preps:D.preps,
+            recs:D.recs,
+            menus:D.menus,
+            log:D.log
+        };
+        localStorage.setItem('ro_allData',JSON.stringify(dataToSave));
+        localStorage.setItem('ro_dataVersion',DATA_VERSION);
+    }catch(e){console.error('Save error:',e);}
+}
+
+// Call saveAllData after any data modification
+var origRender=render;
+render=function(){
+    origRender();
+    saveAllData();
+};
+
 document.getElementById('modal-o').addEventListener('click',function(e){if(e.target.id==='modal-o')closeModal();});
 
 function scrollTabs(dir){
