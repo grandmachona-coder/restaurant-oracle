@@ -318,12 +318,9 @@ function showLoginSuccess(msg){
 }
 
 async function signIn(){
-    console.log('signIn called');
     hideLoginMessages();
     var email=document.getElementById('signin-email').value.trim();
     var password=document.getElementById('signin-password').value;
-    
-    console.log('Email:', email, 'Password length:', password.length);
     
     if(!email||!password){
         showLoginError('Please enter email and password');
@@ -333,16 +330,11 @@ async function signIn(){
     document.getElementById('signin-btn').disabled=true;
     document.getElementById('signin-btn').textContent='Signing in...';
     
-    console.log('Supabase available:', !!supabase);
-    
     try{
-        console.log('Attempting sign in...');
         var result=await supabase.auth.signInWithPassword({email:email,password:password});
-        console.log('Sign in result:', result);
         if(result.error)throw result.error;
         // Auth state change will handle the rest
     }catch(err){
-        console.error('Sign in error:', err);
         showLoginError(err.message||'Sign in failed');
         document.getElementById('signin-btn').disabled=false;
         document.getElementById('signin-btn').textContent='Sign In';
@@ -605,6 +597,13 @@ async function syncNow(){
 }
 
 function setupRealtimeSync(){
+    // Disabled for now - causes performance issues with reload loops
+    // Users can manually sync with "Sync Now" button or refresh the page
+    // Real-time sync will be re-enabled in a future update with smarter merging
+    console.log('Real-time sync disabled for performance');
+    return;
+    
+    /*
     if(!supabase||realtimeChannel)return;
     
     realtimeChannel=supabase.channel('db-changes')
@@ -614,6 +613,7 @@ function setupRealtimeSync(){
             loadFromSupabase().then(render);
         })
         .subscribe();
+    */
 }
 
 function showSyncStatus(status){
@@ -887,6 +887,9 @@ function saveState(actionName){
     // Keep only last 5 states
     if(undoHistory.length>5)undoHistory.shift();
     updateUndoButton();
+    
+    // Queue cloud save (debounced)
+    queueSupabaseSave();
 }
 
 function undoAction(){
@@ -2619,13 +2622,8 @@ function getDefaultData(){
 }
 
 function saveAllData(){
-    // Always save to localStorage as backup
+    // Always save to localStorage as backup (fast)
     saveAllDataLocal();
-    
-    // Also save to Supabase if connected
-    if(supabase&&currentAuthUser){
-        saveAllDataToSupabase();
-    }
 }
 
 function saveAllDataLocal(){
@@ -2651,13 +2649,22 @@ function saveAllDataLocal(){
 }
 
 var saveDebounceTimer=null;
-async function saveAllDataToSupabase(){
-    // Debounce to avoid too many saves
+var pendingSupabaseSave=false;
+
+// Only call this when data actually changes (from saveState)
+function queueSupabaseSave(){
+    if(!supabase||!currentAuthUser)return;
+    pendingSupabaseSave=true;
+    
+    // Debounce - wait 3 seconds of inactivity before saving to cloud
     if(saveDebounceTimer)clearTimeout(saveDebounceTimer);
     saveDebounceTimer=setTimeout(async function(){
+        if(!pendingSupabaseSave)return;
+        pendingSupabaseSave=false;
+        
         showSyncStatus('syncing');
         try{
-            // Save all tables
+            // Save all tables in parallel
             await Promise.all([
                 supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
                 supabase.from('cats').upsert(D.cats),
@@ -2676,14 +2683,14 @@ async function saveAllDataToSupabase(){
             console.error('Supabase save error:',err);
             showSyncStatus('offline');
         }
-    },1000); // Wait 1 second before saving
+    },3000); // Wait 3 seconds of inactivity before cloud save
 }
 
-// Call saveAllData after any data modification
+// Save to localStorage after render (fast), queue cloud save only on data changes
 var origRender=render;
 render=function(){
     origRender();
-    saveAllData();
+    saveAllDataLocal(); // Fast local save only
 };
 
 document.getElementById('modal-o').addEventListener('click',function(e){if(e.target.id==='modal-o')closeModal();});
