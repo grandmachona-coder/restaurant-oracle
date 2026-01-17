@@ -179,6 +179,7 @@
 // ==================== DATA ====================
 var D={
     fontScale:1,
+    autoAddToInv:0,
     currentUser:{id:1,name:'Owner',role:'owner'},
     users:[{id:1,name:'Owner',role:'owner',email:'owner@lachona.com',phone:''},{id:2,name:'Maria',role:'employee',email:'maria@lachona.com',phone:''}],
     areas:[
@@ -338,22 +339,22 @@ var D={
         {id:114,name:'Asadors Julep',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Mash berries, shake in ice, strain into coupe, garnish with berry. Cost: $0.72, Margin: 95.74%',ings:[{ingId:64,qty:2,unit:'fl oz'},{ingId:48,qty:0.5,unit:'ea'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
         {id:115,name:'Beso de Frambuesa',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Mash berries, shake in ice, strain into coupe, garnish with berry. Cost: $1.24',ings:[{ingId:64,qty:2,unit:'fl oz'},{ingId:44,qty:2,unit:'fl oz'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:49,qty:0.75,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
         {id:116,name:'Mategarita',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Glass: Coupe. Sugar rim. Shaker all but wine together in ice, pour (no ice in glass). Float red wine on top. Cost: $2.44',ings:[{ingId:36,qty:1.75,unit:'fl oz'},{ingId:68,qty:0.5,unit:'fl oz'},{ingId:32,qty:0.75,unit:'fl oz'},{ingId:48,qty:0.5,unit:'ea'},{ingId:45,qty:0.75,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:201,name:'Golden Cup Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.5oz mix, add 2oz tonic, ice, top w/ whip cream & cinnamon stick. DO NOT add tonic to batch.',ings:[{ingId:65,qty:30,unit:'fl oz'},{ingId:37,qty:10,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'},{ingId:60,qty:10,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:202,name:'Que Miras Bobo Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.75oz mix, mash w/ 6 cherries, shake w/ ice, strain into coupe. Add fresh blackberries per drink.',ings:[{ingId:39,qty:20,unit:'fl oz'},{ingId:38,qty:10,unit:'fl oz'},{ingId:33,qty:2.5,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:203,name:'Argentina Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.7oz mix over sphere ice in serrated whiskey glass, garnish orange peel.',ings:[{ingId:30,qty:10,unit:'fl oz'},{ingId:31,qty:10,unit:'fl oz'},{ingId:32,qty:2.5,unit:'fl oz'},{ingId:33,qty:2.5,unit:'fl oz'},{ingId:34,qty:2,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:204,name:'BA Old Fashioned Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.6oz mix over square ice in serrated whiskey glass, garnish orange wedge.',ings:[{ingId:36,qty:20,unit:'fl oz'},{ingId:31,qty:10,unit:'fl oz'},{ingId:41,qty:10,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:205,name:'Fernet Sour Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.6oz mix, ADD 1 EGG WHITE fresh, shake hard w/ ice, strain into coupe for foam layer, lemon curl garnish.',ings:[{ingId:38,qty:20,unit:'fl oz'},{ingId:47,qty:35,unit:'oz'},{ingId:34,qty:1,unit:'fl oz'},{ingId:45,qty:10,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:206,name:'Espresso Martini Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.75oz mix, shake w/ ice, strain into large V glass, garnish w/ bean. Make espresso fresh daily.',ings:[{ingId:35,qty:15,unit:'fl oz'},{ingId:63,qty:5,unit:'oz'},{ingId:43,qty:5,unit:'fl oz'},{ingId:45,qty:2.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:207,name:'Lagrima de Amor Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.75oz mix, shake w/ ice, strain. Add fresh strawberries per drink for garnish.',ings:[{ingId:35,qty:20,unit:'fl oz'},{ingId:32,qty:5,unit:'fl oz'},{ingId:47,qty:35,unit:'oz'},{ingId:45,qty:7.5,unit:'fl oz'},{ingId:49,qty:17.5,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:208,name:'La Nieta Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.85oz mix, shake w/ ice, strain over cube in Collins glass. Squeeze fresh lime per drink.',ings:[{ingId:66,qty:20,unit:'fl oz'},{ingId:37,qty:15,unit:'fl oz'},{ingId:42,qty:5,unit:'fl oz'},{ingId:45,qty:7.5,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:209,name:'Mendoza Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.75oz mix, stir, serve. Add fresh cinnamon garnish.',ings:[{ingId:67,qty:20,unit:'fl oz'},{ingId:40,qty:20,unit:'fl oz'},{ingId:62,qty:5,unit:'fl oz'},{ingId:46,qty:2.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:210,name:'Potion de Amor Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.25oz mix, shake w/ ice, strain into large V glass. Add fresh raspberries per drink.',ings:[{ingId:35,qty:20,unit:'fl oz'},{ingId:32,qty:5,unit:'fl oz'},{ingId:44,qty:10,unit:'fl oz'},{ingId:45,qty:7.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:211,name:'Red Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, orange slices, top w/ 2 berries. DO NOT batch soda.',ings:[{ingId:67,qty:30,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:212,name:'White Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, lemon slices, top w/ mint. DO NOT batch soda.',ings:[{ingId:66,qty:30,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:213,name:'Bloody Mary Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.5oz mix over ice, garnish w/ celery, bacon, olives. Shake before pouring.',ings:[{ingId:35,qty:15,unit:'fl oz'},{ingId:52,qty:30,unit:'fl oz'},{ingId:47,qty:15,unit:'oz'},{ingId:53,qty:5,unit:'fl oz'},{ingId:54,qty:5,unit:'fl oz'},{ingId:55,qty:1,unit:'oz'},{ingId:56,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:214,name:'Asadors Julep Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.1oz mix, shake w/ ice, strain into coupe, garnish w/ berry. Squeeze fresh lime per drink.',ings:[{ingId:64,qty:20,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'},{ingId:34,qty:1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:215,name:'Beso de Frambuesa Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 5oz mix, mash w/ berries, shake w/ ice, strain into coupe, garnish w/ berry.',ings:[{ingId:64,qty:20,unit:'fl oz'},{ingId:44,qty:20,unit:'fl oz'},{ingId:45,qty:5,unit:'fl oz'},{ingId:49,qty:7.5,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
-        {id:216,name:'Mategarita Batch',group:'Batch Cocktail',catId:8,yield:10,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.25oz mix, shake w/ ice, strain into sugar-rimmed coupe (no ice), float 0.5oz red wine on top. Squeeze fresh lime per drink.',ings:[{ingId:36,qty:17.5,unit:'fl oz'},{ingId:32,qty:7.5,unit:'fl oz'},{ingId:45,qty:7.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0}
+        {id:201,name:'Golden Cup Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.5oz mix, add 2oz tonic, ice, whip cream & cinnamon stick. DO NOT add tonic to batch.',ings:[],preps:[],subRecs:[{recId:101,qty:5}],photos:[],videos:[],archived:0},
+        {id:202,name:'Que Miras Bobo Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.75oz mix, mash w/ 6 cherries, shake w/ ice, strain into coupe. Add fresh blackberries.',ings:[],preps:[],subRecs:[{recId:102,qty:5}],photos:[],videos:[],archived:0},
+        {id:203,name:'Argentina Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.7oz mix over sphere ice in serrated whiskey glass, garnish orange peel.',ings:[],preps:[],subRecs:[{recId:103,qty:5}],photos:[],videos:[],archived:0},
+        {id:204,name:'BA Old Fashioned Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.6oz mix over square ice in serrated whiskey glass, garnish orange wedge.',ings:[],preps:[],subRecs:[{recId:104,qty:5}],photos:[],videos:[],archived:0},
+        {id:205,name:'Fernet Sour Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.6oz mix, ADD 1 EGG WHITE fresh, shake hard w/ ice, strain into coupe, lemon curl garnish.',ings:[],preps:[],subRecs:[{recId:105,qty:5}],photos:[],videos:[],archived:0},
+        {id:206,name:'Espresso Martini Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.75oz mix, shake w/ ice, strain into large V glass, garnish w/ bean. Make espresso fresh.',ings:[],preps:[],subRecs:[{recId:106,qty:5}],photos:[],videos:[],archived:0},
+        {id:207,name:'Lagrima de Amor Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.75oz mix, shake w/ ice, strain. Add fresh strawberries per drink.',ings:[],preps:[],subRecs:[{recId:107,qty:5}],photos:[],videos:[],archived:0},
+        {id:208,name:'La Nieta Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.85oz mix, shake w/ ice, strain over cube in Collins glass. Squeeze fresh lime.',ings:[],preps:[],subRecs:[{recId:108,qty:5}],photos:[],videos:[],archived:0},
+        {id:209,name:'Mendoza Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.75oz mix, stir, serve. Add fresh cinnamon garnish.',ings:[],preps:[],subRecs:[{recId:109,qty:5}],photos:[],videos:[],archived:0},
+        {id:210,name:'Potion de Amor Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.25oz mix, shake w/ ice, strain into large V glass. Add fresh raspberries.',ings:[],preps:[],subRecs:[{recId:110,qty:5}],photos:[],videos:[],archived:0},
+        {id:211,name:'Red Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, orange slices, 2 berries. DO NOT batch soda.',ings:[],preps:[],subRecs:[{recId:111,qty:5}],photos:[],videos:[],archived:0},
+        {id:212,name:'White Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, lemon slices, mint. DO NOT batch soda.',ings:[],preps:[],subRecs:[{recId:112,qty:5}],photos:[],videos:[],archived:0},
+        {id:213,name:'Bloody Mary Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.5oz mix over ice, garnish w/ celery, bacon, olives. Shake before pouring.',ings:[],preps:[],subRecs:[{recId:113,qty:5}],photos:[],videos:[],archived:0},
+        {id:214,name:'Asadors Julep Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.1oz mix, shake w/ ice, strain into coupe, berry garnish. Squeeze fresh lime.',ings:[],preps:[],subRecs:[{recId:114,qty:5}],photos:[],videos:[],archived:0},
+        {id:215,name:'Beso de Frambuesa Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 5oz mix, mash w/ berries, shake w/ ice, strain into coupe, berry garnish.',ings:[],preps:[],subRecs:[{recId:115,qty:5}],photos:[],videos:[],archived:0},
+        {id:216,name:'Mategarita Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.25oz mix, shake w/ ice, strain into sugar-rimmed coupe, float 0.5oz red wine. Fresh lime.',ings:[],preps:[],subRecs:[{recId:116,qty:5}],photos:[],videos:[],archived:0}
     ],
     menus:[
         {id:1,name:'Abuela Chona',catId:1,tgt:50,unitId:1,ings:[],preps:[{prepId:4,qty:1}],recIds:[],archived:0},
@@ -697,7 +698,15 @@ function renderShop(c,s){
     var saved=D.shopping.filter(function(x){return x.savedForLater;});
     s.textContent=toBuy.length+' to buy';
     
-    var html='<div class="sec" style="color:#e17055">To Buy ('+toBuy.length+')</div>';
+    // Auto-add toggle
+    var html='<div class="card" style="padding:10px;margin-bottom:12px;background:'+(D.autoAddToInv?'rgba(0,184,148,.15)':'rgba(255,255,255,.05)')+'">';
+    html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer">';
+    html+='<input type="checkbox" id="auto-add-toggle" '+(D.autoAddToInv?'checked':'')+' onchange="toggleAutoAdd()">';
+    html+='<div><div style="font-weight:600;font-size:calc(12px * var(--font-scale));color:'+(D.autoAddToInv?'#00b894':'#a0aec0')+'">⚡ Auto-Add to Inventory</div>';
+    html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72">When checked, purchased items go directly to their designated locations</div></div>';
+    html+='</label></div>';
+    
+    html+='<div class="sec" style="color:#e17055">To Buy ('+toBuy.length+')</div>';
     if(toBuy.length){
         toBuy.forEach(function(item){
             var ing=D.ings.find(function(x){return x.id===item.ingId;});
@@ -709,12 +718,25 @@ function renderShop(c,s){
         html+='<div style="color:#636e72;font-size:calc(12px * var(--font-scale));padding:16px;text-align:center">Nothing to buy!</div>';
     }
     
-    html+='<div class="sec" style="color:#00b894;margin-top:20px">Purchased ('+purchased.length+')</div>';
+    html+='<div class="sec" style="color:#00b894;margin-top:20px;display:flex;justify-content:space-between;align-items:center">Purchased ('+purchased.length+')';
+    if(purchased.length){
+        // Count how many can be auto-added (have designated locations)
+        var canAutoAdd=purchased.filter(function(item){
+            var ing=D.ings.find(function(x){return x.id===item.ingId;});
+            return ing&&ing.areaId;
+        }).length;
+        if(canAutoAdd>0){
+            html+='<button class="btn btn-p btn-sm" onclick="addAllPurchasedToInv()" style="font-size:calc(10px * var(--font-scale))">📦 Add All to Inventory ('+canAutoAdd+')</button>';
+        }
+    }
+    html+='</div>';
     if(purchased.length){
         purchased.forEach(function(item){
             var ing=D.ings.find(function(x){return x.id===item.ingId;});
             if(ing){
-                html+='<div class="shop-item checked"><div class="shop-check checked" onclick="togShop('+item.id+')">✓</div><div class="shop-info"><div class="shop-name" style="text-decoration:line-through">'+ing.name+'</div><div class="shop-meta">Tap checkmark to undo</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="shop-undo" onclick="undoShopCheck('+item.id+')">↩ Undo</button><button class="btn btn-p btn-sm" onclick="addToInv('+item.id+')">→ Inv</button></div>';
+                var hasLocation=ing.areaId?'✓':'⚠️';
+                var locationName=ing.areaId?getAreaName(ing.areaId,ing.subArea):'No location set';
+                html+='<div class="shop-item checked"><div class="shop-check checked" onclick="togShop('+item.id+')">✓</div><div class="shop-info"><div class="shop-name" style="text-decoration:line-through">'+ing.name+'</div><div class="shop-meta">'+hasLocation+' '+locationName+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="shop-undo" onclick="undoShopCheck('+item.id+')">↩</button><button class="btn btn-p btn-sm" onclick="addToInv('+item.id+')"'+(ing.areaId?'':' style="background:#fdcb6e"')+'>→ Inv</button></div>';
             }
         });
     }
@@ -739,9 +761,23 @@ function togShop(id){
         s.checked=s.checked?0:1;
         if(s.checked){
             logAction('Marked as purchased','Shopping List',getIngName(s.ingId));
+            // Auto-add to inventory if enabled and ingredient has a location
+            if(D.autoAddToInv){
+                var ing=D.ings.find(function(x){return x.id===s.ingId;});
+                if(ing&&ing.areaId){
+                    D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
+                    logAction('Auto-added to inventory',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+                    D.shopping=D.shopping.filter(function(x){return x.id!==id;});
+                }
+            }
         }
         render();
     }
+}
+
+function toggleAutoAdd(){
+    D.autoAddToInv=D.autoAddToInv?0:1;
+    render();
 }
 
 function undoShopCheck(id){
@@ -789,6 +825,36 @@ function addToInv(shopId){
         pendingPurchase=shopId;
         openLocationPicker(s);
     }
+}
+
+function addAllPurchasedToInv(){
+    var purchased=D.shopping.filter(function(x){return x.checked&&!x.savedForLater;});
+    var added=0;
+    var skipped=0;
+    var skippedItems=[];
+    
+    saveState('Add all purchased to inventory');
+    
+    purchased.forEach(function(s){
+        var ing=D.ings.find(function(x){return x.id===s.ingId;});
+        if(ing&&ing.areaId){
+            D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
+            logAction('Added from shopping',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+            D.shopping=D.shopping.filter(function(x){return x.id!==s.id;});
+            added++;
+        }else{
+            skipped++;
+            if(ing)skippedItems.push(ing.name);
+        }
+    });
+    
+    render();
+    
+    var msg='Added '+added+' item'+(added!==1?'s':'')+' to inventory.';
+    if(skipped>0){
+        msg+='\n\n'+skipped+' item'+(skipped!==1?'s':'')+' skipped (no location set):\n• '+skippedItems.join('\n• ');
+    }
+    alert(msg);
 }
 
 function openLocationPicker(shopItem){
@@ -985,9 +1051,19 @@ function renderRecs(c,s){
                 
                 // Sub-recipes
                 if(rec.subRecs&&rec.subRecs.length){
-                    html+='<div class="sec" style="font-size:calc(11px * var(--font-scale));color:#fdcb6e;margin-top:12px">Sub-Recipes</div>';
+                    html+='<div class="sec" style="font-size:calc(11px * var(--font-scale));color:#fdcb6e;margin-top:12px">Sub-Recipes (×'+rec.subRecs[0].qty+' servings)</div>';
                     rec.subRecs.forEach(function(sr,idx){
-                        html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+getRecName(sr.recId)+'</span><button class="del-btn" onclick="delRecSubRec('+rec.id+','+idx+')">×</button></div>';
+                        var subRec=D.recs.find(function(r){return r.id===sr.recId;});
+                        html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+getRecName(sr.recId)+' ×'+sr.qty+'</span><button class="del-btn" onclick="delRecSubRec('+rec.id+','+idx+')">×</button></div>';
+                        // Show expanded ingredients from sub-recipe
+                        if(subRec&&subRec.ings&&subRec.ings.length){
+                            html+='<div style="margin-left:16px;border-left:1px solid rgba(253,203,110,.3);padding-left:8px">';
+                            subRec.ings.forEach(function(ing){
+                                var scaledQty=(ing.qty*sr.qty).toFixed(2).replace(/\.?0+$/,'');
+                                html+='<div style="font-size:calc(10px * var(--font-scale));color:#a0aec0;padding:2px 0">• '+getIngName(ing.ingId)+': <b style="color:#fdcb6e">'+scaledQty+' '+ing.unit+'</b></div>';
+                            });
+                            html+='</div>';
+                        }
                     });
                 }
                 html+='<button class="btn btn-s btn-sm" onclick="addRecSubRec('+rec.id+')" style="margin-top:4px">+ Add Sub-Recipe</button>';
@@ -1928,6 +2004,9 @@ function loadAllData(){
 }
 
 function mergeData(saved){
+    // For simple settings, use saved values
+    if(saved.autoAddToInv!==undefined)D.autoAddToInv=saved.autoAddToInv;
+    
     // For arrays that user modifies (inv, shopping, preps changes), use saved
     if(saved.inv)D.inv=saved.inv;
     if(saved.shopping)D.shopping=saved.shopping;
@@ -2009,7 +2088,8 @@ function saveAllData(){
             preps:D.preps,
             recs:D.recs,
             menus:D.menus,
-            log:D.log
+            log:D.log,
+            autoAddToInv:D.autoAddToInv
         };
         localStorage.setItem('ro_allData',JSON.stringify(dataToSave));
         localStorage.setItem('ro_dataVersion',DATA_VERSION);
