@@ -200,6 +200,19 @@
             <input type="email" class="login-input" id="signin-email" placeholder="Email address">
             <input type="password" class="login-input" id="signin-password" placeholder="Password">
             <button class="login-btn" onclick="signIn()" id="signin-btn">Sign In</button>
+            <div style="text-align:center;margin-top:12px">
+                <a href="#" onclick="showResetPassword();return false;" style="color:#f5a76c;font-size:13px;text-decoration:none">Forgot Password?</a>
+            </div>
+        </div>
+        
+        <!-- Reset Password Form -->
+        <div class="login-form" id="reset-form">
+            <p style="color:#a0aec0;font-size:13px;margin-bottom:16px;text-align:center">Enter your email and we'll send you a link to reset your password.</p>
+            <input type="email" class="login-input" id="reset-email" placeholder="Email address">
+            <button class="login-btn" onclick="sendResetEmail()" id="reset-btn">Send Reset Link</button>
+            <div style="text-align:center;margin-top:12px">
+                <a href="#" onclick="switchLoginTab('signin');return false;" style="color:#a0aec0;font-size:13px;text-decoration:none">← Back to Sign In</a>
+            </div>
         </div>
         
         <!-- Sign Up Form -->
@@ -295,9 +308,52 @@ async function initSupabase(){
 function switchLoginTab(tab){
     document.querySelectorAll('.login-tab').forEach(function(t){t.classList.remove('active');});
     document.querySelectorAll('.login-form').forEach(function(f){f.classList.remove('active');});
-    document.querySelector('.login-tab:nth-child('+(tab==='signin'?'1':'2')+')').classList.add('active');
+    if(tab==='signin'||tab==='signup'){
+        document.querySelector('.login-tab:nth-child('+(tab==='signin'?'1':'2')+')').classList.add('active');
+    }
     document.getElementById(tab+'-form').classList.add('active');
     hideLoginMessages();
+}
+
+function showResetPassword(){
+    document.querySelectorAll('.login-tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.login-form').forEach(function(f){f.classList.remove('active');});
+    document.getElementById('reset-form').classList.add('active');
+    // Pre-fill email if already entered
+    var signinEmail=document.getElementById('signin-email').value.trim();
+    if(signinEmail){
+        document.getElementById('reset-email').value=signinEmail;
+    }
+    hideLoginMessages();
+}
+
+async function sendResetEmail(){
+    hideLoginMessages();
+    var email=document.getElementById('reset-email').value.trim();
+    
+    if(!email){
+        showLoginError('Please enter your email address');
+        return;
+    }
+    
+    document.getElementById('reset-btn').disabled=true;
+    document.getElementById('reset-btn').textContent='Sending...';
+    
+    try{
+        var result=await supabase.auth.resetPasswordForEmail(email,{
+            redirectTo:window.location.origin+window.location.pathname
+        });
+        if(result.error)throw result.error;
+        showLoginSuccess('Password reset link sent! Check your email.');
+        setTimeout(function(){
+            switchLoginTab('signin');
+        },3000);
+    }catch(err){
+        showLoginError(err.message||'Failed to send reset email');
+    }
+    
+    document.getElementById('reset-btn').disabled=false;
+    document.getElementById('reset-btn').textContent='Send Reset Link';
 }
 
 function hideLoginMessages(){
