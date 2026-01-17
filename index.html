@@ -42,7 +42,7 @@
         .scroll-hint.scroll-left{border-right:1px solid rgba(255,255,255,.1)}
         .scroll-hint.scroll-right{border-left:1px solid rgba(255,255,255,.1)}
         .tab:hover{background:rgba(255,255,255,.05)}
-        .tab span:first-child{font-size:calc(28px * var(--font-scale));opacity:.5;transition:all .2s}
+        .tab span:first-child{font-size:calc(28px * var(--font-scale));opacity:.85;transition:all .2s}
         .tab span:last-child{font-size:calc(10px * var(--font-scale));font-weight:600;color:#a0aec0;white-space:nowrap}
         .tab.active span:first-child{opacity:1;transform:scale(1.1)}
         .tab.active span:last-child{font-weight:700}
@@ -78,6 +78,8 @@
         .form-i:focus{outline:none;border-color:#a29bfe}
         .form-i::placeholder{color:#636e72}
         select.form-i{cursor:pointer}
+        select.form-i optgroup{background:#2d2d4a;color:#a29bfe;font-weight:700;padding:4px 0}
+        select.form-i option{background:#1a1a2e;color:#e0e6ed;padding:8px}
         .header-add{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6c5ce7,#a29bfe);border:none;color:#fff;font-size:22px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(108,92,231,.4);display:flex;align-items:center;justify-content:center;transition:all .2s}
         .header-add:hover{transform:scale(1.1);box-shadow:0 4px 12px rgba(108,92,231,.5)}
         .header-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#a0aec0;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
@@ -135,7 +137,7 @@
 </head>
 <body>
 <div class="phone">
-    <div class="status"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="status"><span>Restaurant Oracle</span><span></span></div>
     <div class="header">
         <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
@@ -471,7 +473,21 @@ function renderInv(c,s){
             html+='<div class="add-toggle" onclick="togAdd(\'area-'+area.id+'\')"><span class="add-toggle-t">+ Add Ingredient</span></div>';
             html+='<div class="add-form'+(addOpen['area-'+area.id]?' open':'')+'">';
             html+='<select id="sel-'+area.id+'" class="form-i" style="margin-bottom:8px"><option value="">Select ingredient...</option>';
-            D.ings.filter(function(i){return !i.archived;}).forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+            D.cats.forEach(function(cat){
+                var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+                if(catIngs.length){
+                    html+='<optgroup label="'+cat.name+'">';
+                    catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                    html+='</optgroup>';
+                }
+            });
+            // Uncategorized ingredients
+            var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+            if(uncatIngs.length){
+                html+='<optgroup label="Other">';
+                uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                html+='</optgroup>';
+            }
             html+='</select>';
             if(area.sections.length){
                 html+='<select id="sub-'+area.id+'" class="form-i" style="margin-bottom:8px"><option value="">Main Area</option>';
@@ -949,7 +965,21 @@ function addRecIng(recId){
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Add Ingredient to Recipe</div>';
     html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="new-ri-ing" class="form-i">';
-    D.ings.filter(function(i){return !i.archived;}).forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+    html+='<option value="">Select ingredient...</option>';
+    D.cats.forEach(function(cat){
+        var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+        if(catIngs.length){
+            html+='<optgroup label="'+cat.name+'">';
+            catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+            html+='</optgroup>';
+        }
+    });
+    var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+    if(uncatIngs.length){
+        html+='<optgroup label="Other">';
+        uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+        html+='</optgroup>';
+    }
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-ri-qty" class="form-i" placeholder="0"></div>';
     html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-ri-unit" class="form-i">';
@@ -1100,7 +1130,21 @@ function addMenuIng(menuId){
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Add Ingredient to Menu Item</div>';
     html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="new-mi-ing" class="form-i">';
-    D.ings.filter(function(i){return !i.archived;}).forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+    html+='<option value="">Select ingredient...</option>';
+    D.cats.forEach(function(cat){
+        var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+        if(catIngs.length){
+            html+='<optgroup label="'+cat.name+'">';
+            catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+            html+='</optgroup>';
+        }
+    });
+    var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+    if(uncatIngs.length){
+        html+='<optgroup label="Other">';
+        uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+        html+='</optgroup>';
+    }
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-mi-qty" class="form-i" placeholder="0"></div>';
     html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-mi-unit" class="form-i">';
@@ -1412,7 +1456,21 @@ function openAdd(){
         html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:12px">Got it</button>';
     }else if(tab==='shopping'){
         html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="add-shop-ing" class="form-i">';
-        D.ings.filter(function(i){return !i.archived;}).forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+        html+='<option value="">Select ingredient...</option>';
+        D.cats.forEach(function(cat){
+            var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+            if(catIngs.length){
+                html+='<optgroup label="'+cat.name+'">';
+                catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                html+='</optgroup>';
+            }
+        });
+        var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+        if(uncatIngs.length){
+            html+='<optgroup label="Other">';
+            uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+            html+='</optgroup>';
+        }
         html+='</select></div>';
         html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="add-shop-qty" class="form-i" placeholder="0"></div>';
         html+='<div class="form-g"><label class="form-l">Unit</label><select id="add-shop-unit" class="form-i">';
@@ -1516,6 +1574,11 @@ function addMenuItem(){
 
 // Initialize
 document.addEventListener('DOMContentLoaded',function(){
+    // Load saved font scale from localStorage
+    try{
+        var savedScale=localStorage.getItem('ro_fontScale');
+        if(savedScale){D.fontScale=+savedScale;}
+    }catch(e){}
     render();
     updateScrollHints();
     document.getElementById('tabs-wrap').addEventListener('scroll',updateScrollHints);
@@ -1545,6 +1608,7 @@ function setFontScale(val){
     D.fontScale=+val;
     document.getElementById('font-scale-val').textContent=(D.fontScale*100).toFixed(0)+'%';
     document.getElementById('font-slider').value=val;
+    try{localStorage.setItem('ro_fontScale',val);}catch(e){}
     render();
 }
 </script>
