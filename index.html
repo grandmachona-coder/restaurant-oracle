@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Restaurant Oracle</title>
     
+    <!-- Supabase setup will be done inline in main script using dynamic import -->
+    
     <!-- Web App Icons -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
@@ -24,7 +26,50 @@
         :root{--font-size:14px;--font-scale:1}
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a3a);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+        
+        /* Login Screen - Warm Coral/Peach Theme with Dark Mode inputs */
+        .login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:40px 20px;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#f5c97a 0%,#f5a76c 25%,#e8846b 50%,#e07b65 75%,#d4725f 100%)}
+        .login-screen.hidden{display:none}
+        .login-logo{width:180px;height:auto;margin-bottom:16px;border-radius:20px}
+        .login-title{font-size:28px;font-weight:700;color:#2d3436;margin-bottom:8px;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+        .login-subtitle{font-size:14px;color:#4a3f3a;margin-bottom:32px;text-align:center}
+        .login-box{width:100%;max-width:340px;background:rgba(30,30,50,.95);border:1px solid rgba(232,132,107,.3);border-radius:20px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+        .login-tabs{display:flex;margin-bottom:20px;background:rgba(0,0,0,.3);border-radius:10px;padding:4px}
+        .login-tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;color:#a0aec0;cursor:pointer;border-radius:8px;transition:all .2s}
+        .login-tab.active{background:linear-gradient(135deg,#e8846b,#f5a76c);color:#fff}
+        .login-form{display:none}
+        .login-form.active{display:block}
+        .login-input{width:100%;padding:14px 16px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e0e6ed;font-size:14px;margin-bottom:12px}
+        .login-input:focus{outline:none;border-color:#e8846b;box-shadow:0 0 0 3px rgba(232,132,107,.3)}
+        .login-input::placeholder{color:#636e72}
+        .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#e8846b,#f5a76c);border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
+        .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(232,132,107,.4)}
+        .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .login-error{background:rgba(214,48,49,.2);color:#ff7675;padding:12px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
+        .login-error.show{display:block}
+        .login-success{background:rgba(0,184,148,.2);color:#00b894;padding:12px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
+        .login-success.show{display:block}
+        .login-divider{text-align:center;color:#636e72;font-size:12px;margin:20px 0;position:relative}
+        .login-divider::before,.login-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:rgba(255,255,255,.1)}
+        .login-divider::before{left:0}
+        .login-divider::after{right:0}
+        .sync-status{position:fixed;bottom:20px;right:20px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:none;z-index:1000}
+        .sync-status.syncing{display:block;background:rgba(253,203,110,.2);color:#fdcb6e}
+        .sync-status.synced{display:block;background:rgba(0,184,148,.2);color:#00b894}
+        .sync-status.offline{display:block;background:rgba(214,48,49,.2);color:#ff7675}
+        .user-menu{position:relative}
+        .user-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00b894,#00cec9);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+        .user-dropdown{position:absolute;top:44px;right:0;background:#2d2d4a;border-radius:12px;padding:8px;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:none;z-index:50}
+        .user-dropdown.open{display:block}
+        .user-dropdown-item{padding:10px 12px;border-radius:8px;font-size:13px;color:#e0e6ed;cursor:pointer;display:flex;align-items:center;gap:8px}
+        .user-dropdown-item:hover{background:rgba(255,255,255,.1)}
+        .user-dropdown-item.logout{color:#ff7675}
+        .user-dropdown-header{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:4px}
+        .user-dropdown-name{font-weight:600;color:#e0e6ed;font-size:14px}
+        .user-dropdown-email{font-size:11px;color:#a0aec0;margin-top:2px}
+        
         .phone{width:390px;height:844px;background:#1a1a2e;border-radius:44px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.5),0 0 0 12px #2a2a3e;display:flex;flex-direction:column;position:relative}
+        .phone.hidden{display:none}
         .status{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 8px;font-size:calc(14px * var(--font-scale));font-weight:600;color:#e0e6ed}
         .header{padding:12px 20px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
         .header h1{font-size:calc(20px * var(--font-scale));color:#e0e6ed}
@@ -136,8 +181,43 @@
     </style>
 </head>
 <body>
-<div class="phone">
-    <div class="status"><span>Restaurant Oracle</span><span></span></div>
+
+<!-- Login Screen -->
+<div class="login-screen" id="login-screen">
+    <img src="icon.png" alt="Restaurant Oracle" class="login-logo">
+    <div class="login-title">Restaurant Oracle</div>
+    <div class="login-subtitle">Smart Kitchen Management for LaChona</div>
+    <div class="login-box">
+        <div class="login-tabs">
+            <div class="login-tab active" onclick="switchLoginTab('signin')">Sign In</div>
+            <div class="login-tab" onclick="switchLoginTab('signup')">Sign Up</div>
+        </div>
+        <div class="login-error" id="login-error"></div>
+        <div class="login-success" id="login-success"></div>
+        
+        <!-- Sign In Form -->
+        <div class="login-form active" id="signin-form">
+            <input type="email" class="login-input" id="signin-email" placeholder="Email address">
+            <input type="password" class="login-input" id="signin-password" placeholder="Password">
+            <button class="login-btn" onclick="signIn()" id="signin-btn">Sign In</button>
+        </div>
+        
+        <!-- Sign Up Form -->
+        <div class="login-form" id="signup-form">
+            <input type="text" class="login-input" id="signup-name" placeholder="Your name">
+            <input type="email" class="login-input" id="signup-email" placeholder="Email address">
+            <input type="password" class="login-input" id="signup-password" placeholder="Password (min 6 characters)">
+            <button class="login-btn" onclick="signUp()" id="signup-btn">Create Account</button>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Status Indicator -->
+<div class="sync-status" id="sync-status"></div>
+
+<!-- Main App -->
+<div class="phone hidden" id="app-container">
+    <div class="status"><span>Restaurant Oracle</span><span id="connection-status"></span></div>
     <div class="header">
         <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
@@ -147,6 +227,18 @@
             <div style="display:flex;gap:8px;align-items:center">
                 <button class="header-btn" id="undo-btn" onclick="undoAction()" title="Undo" disabled>↩</button>
                 <button class="header-btn" id="font-btn" onclick="toggleFontControl()" title="Text Size">🔤</button>
+                <div class="user-menu">
+                    <button class="user-btn" id="user-btn" onclick="toggleUserMenu()">?</button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-dropdown-header">
+                            <div class="user-dropdown-name" id="user-name">User</div>
+                            <div class="user-dropdown-email" id="user-email">email@example.com</div>
+                        </div>
+                        <div class="user-dropdown-item" onclick="syncNow()">🔄 Sync Now</div>
+                        <div class="user-dropdown-item" onclick="exportData()">📤 Export Backup</div>
+                        <div class="user-dropdown-item logout" onclick="signOut()">🚪 Sign Out</div>
+                    </div>
+                </div>
                 <button class="header-add" id="fab" onclick="openAdd()">+</button>
             </div>
         </div>
@@ -176,6 +268,365 @@
     <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
 </div>
 <script>
+// ==================== SUPABASE CONFIG ====================
+var SUPABASE_URL='https://quoqhfbibsmsdicrddym.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1b3FoZmJpYnNtc2RpY3JkZHltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2Njc5MDUsImV4cCI6MjA4NDI0MzkwNX0.DaqF9ToMtgqdNZJfpj-nueGJBeQSq_Gutkl2bXhqhpo';
+var supabase=null;
+var currentAuthUser=null;
+var isOnline=navigator.onLine;
+var syncQueue=[];
+var realtimeChannel=null;
+
+// Initialize Supabase using dynamic import
+async function initSupabase(){
+    try{
+        console.log('Loading Supabase library...');
+        var module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        supabase = module.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase initialized successfully');
+        return true;
+    }catch(e){
+        console.error('Supabase init error:', e);
+        return false;
+    }
+}
+
+// ==================== AUTH FUNCTIONS ====================
+function switchLoginTab(tab){
+    document.querySelectorAll('.login-tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.login-form').forEach(function(f){f.classList.remove('active');});
+    document.querySelector('.login-tab:nth-child('+(tab==='signin'?'1':'2')+')').classList.add('active');
+    document.getElementById(tab+'-form').classList.add('active');
+    hideLoginMessages();
+}
+
+function hideLoginMessages(){
+    document.getElementById('login-error').classList.remove('show');
+    document.getElementById('login-success').classList.remove('show');
+}
+
+function showLoginError(msg){
+    var el=document.getElementById('login-error');
+    el.textContent=msg;
+    el.classList.add('show');
+}
+
+function showLoginSuccess(msg){
+    var el=document.getElementById('login-success');
+    el.textContent=msg;
+    el.classList.add('show');
+}
+
+async function signIn(){
+    hideLoginMessages();
+    var email=document.getElementById('signin-email').value.trim();
+    var password=document.getElementById('signin-password').value;
+    
+    if(!email||!password){
+        showLoginError('Please enter email and password');
+        return;
+    }
+    
+    document.getElementById('signin-btn').disabled=true;
+    document.getElementById('signin-btn').textContent='Signing in...';
+    
+    try{
+        var result=await supabase.auth.signInWithPassword({email:email,password:password});
+        if(result.error)throw result.error;
+        // Auth state change will handle the rest
+    }catch(err){
+        showLoginError(err.message||'Sign in failed');
+        document.getElementById('signin-btn').disabled=false;
+        document.getElementById('signin-btn').textContent='Sign In';
+    }
+}
+
+async function signUp(){
+    hideLoginMessages();
+    var name=document.getElementById('signup-name').value.trim();
+    var email=document.getElementById('signup-email').value.trim();
+    var password=document.getElementById('signup-password').value;
+    
+    if(!name||!email||!password){
+        showLoginError('Please fill in all fields');
+        return;
+    }
+    if(password.length<6){
+        showLoginError('Password must be at least 6 characters');
+        return;
+    }
+    
+    document.getElementById('signup-btn').disabled=true;
+    document.getElementById('signup-btn').textContent='Creating account...';
+    
+    try{
+        var result=await supabase.auth.signUp({
+            email:email,
+            password:password,
+            options:{data:{name:name}}
+        });
+        if(result.error)throw result.error;
+        
+        // Add to team_members table
+        if(result.data.user){
+            await supabase.from('team_members').insert({
+                user_id:result.data.user.id,
+                name:name,
+                email:email,
+                role:'employee'
+            });
+        }
+        
+        showLoginSuccess('Account created! Check your email to confirm, then sign in.');
+        switchLoginTab('signin');
+    }catch(err){
+        showLoginError(err.message||'Sign up failed');
+    }
+    
+    document.getElementById('signup-btn').disabled=false;
+    document.getElementById('signup-btn').textContent='Create Account';
+}
+
+async function signOut(){
+    try{
+        await supabase.auth.signOut();
+        currentAuthUser=null;
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
+        document.getElementById('user-dropdown').classList.remove('open');
+    }catch(err){
+        console.error('Sign out error:',err);
+    }
+}
+
+function toggleUserMenu(){
+    document.getElementById('user-dropdown').classList.toggle('open');
+}
+
+// Close user menu when clicking outside
+document.addEventListener('click',function(e){
+    if(!e.target.closest('.user-menu')){
+        document.getElementById('user-dropdown').classList.remove('open');
+    }
+});
+
+async function onAuthStateChange(event,session){
+    if(session&&session.user){
+        currentAuthUser=session.user;
+        
+        // Update UI
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        
+        var userName=session.user.user_metadata?.name||session.user.email.split('@')[0];
+        document.getElementById('user-name').textContent=userName;
+        document.getElementById('user-email').textContent=session.user.email;
+        document.getElementById('user-btn').textContent=userName.charAt(0).toUpperCase();
+        
+        // Load data from Supabase
+        await loadFromSupabase();
+        
+        // Setup real-time sync
+        setupRealtimeSync();
+        
+        render();
+    }else{
+        currentAuthUser=null;
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
+        
+        // Cleanup realtime
+        if(realtimeChannel){
+            supabase.removeChannel(realtimeChannel);
+            realtimeChannel=null;
+        }
+    }
+}
+
+// ==================== SUPABASE DATA FUNCTIONS ====================
+async function loadFromSupabase(){
+    showSyncStatus('syncing');
+    try{
+        // Load all tables
+        var [areas,cats,menuCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
+            supabase.from('areas').select('*').order('id'),
+            supabase.from('cats').select('*').order('id'),
+            supabase.from('menu_cats').select('*').order('id'),
+            supabase.from('units').select('*').order('id'),
+            supabase.from('ings').select('*').order('id'),
+            supabase.from('inv').select('*').order('id'),
+            supabase.from('shopping').select('*').order('id'),
+            supabase.from('preps').select('*').order('id'),
+            supabase.from('recs').select('*').order('id'),
+            supabase.from('menus').select('*').order('id'),
+            supabase.from('log').select('*').order('created_at',{ascending:false}).limit(100)
+        ]);
+        
+        // Check if database has data, if not, migrate from localStorage/defaults
+        if(!areas.data||areas.data.length===0){
+            console.log('Database empty, migrating initial data...');
+            await migrateToSupabase();
+            return loadFromSupabase(); // Reload after migration
+        }
+        
+        // Map database fields to local format
+        D.areas=areas.data.map(mapAreaFromDb);
+        D.cats=cats.data||[];
+        D.menuCats=(menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
+        D.units=units.data||[];
+        D.ings=(ings.data||[]).map(mapIngFromDb);
+        D.inv=(inv.data||[]).map(mapInvFromDb);
+        D.shopping=(shopping.data||[]).map(mapShoppingFromDb);
+        D.preps=(preps.data||[]).map(mapPrepFromDb);
+        D.recs=(recs.data||[]).map(mapRecFromDb);
+        D.menus=(menus.data||[]).map(mapMenuFromDb);
+        D.log=(log.data||[]).map(mapLogFromDb);
+        
+        // Load settings
+        var settings=await supabase.from('settings').select('*');
+        if(settings.data){
+            settings.data.forEach(function(s){
+                if(s.key==='autoAddToInv')D.autoAddToInv=s.value?1:0;
+            });
+        }
+        
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Load from Supabase error:',err);
+        showSyncStatus('offline');
+        // Fall back to localStorage
+        loadAllDataLocal();
+    }
+}
+
+// Field mapping functions (database snake_case to local camelCase)
+function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0};}
+function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:0,minQty:i.par||0,cost:i.cost||0};}
+function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id,qty:i.qty||0,unit:i.unit||'ea'};}
+function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
+function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id};}
+function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||1,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0};}
+function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],preps:m.preps||[],recIds:m.rec_ids||[],archived:m.archived||0};}
+function mapLogFromDb(l){return{id:l.id,action:l.action,location:l.location||'',detail:l.detail||'',user:l.user_name||'',time:l.created_at};}
+
+// Mapping functions for saving (local camelCase to database snake_case)
+function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep};}
+function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,par:i.minQty,cost:i.cost||0};}
+function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId,qty:i.qty,unit:i.unit};}
+function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
+function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId};}
+function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived};}
+function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,preps:m.preps,rec_ids:m.recIds,archived:m.archived};}
+
+async function migrateToSupabase(){
+    console.log('Migrating data to Supabase...');
+    showSyncStatus('syncing');
+    
+    try{
+        // Insert default/localStorage data into Supabase
+        if(D.areas.length)await supabase.from('areas').upsert(D.areas.map(mapAreaToDb));
+        if(D.cats.length)await supabase.from('cats').upsert(D.cats);
+        if(D.menuCats.length)await supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};}));
+        if(D.units.length)await supabase.from('units').upsert(D.units);
+        if(D.ings.length)await supabase.from('ings').upsert(D.ings.map(mapIngToDb));
+        if(D.inv.length)await supabase.from('inv').upsert(D.inv.map(mapInvToDb));
+        if(D.shopping.length)await supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb));
+        if(D.preps.length)await supabase.from('preps').upsert(D.preps.map(mapPrepToDb));
+        if(D.recs.length)await supabase.from('recs').upsert(D.recs.map(mapRecToDb));
+        if(D.menus.length)await supabase.from('menus').upsert(D.menus.map(mapMenuToDb));
+        
+        console.log('Migration complete!');
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Migration error:',err);
+        showSyncStatus('offline');
+    }
+}
+
+async function saveToSupabase(table,data,isDelete){
+    if(!supabase||!currentAuthUser){
+        saveAllDataLocal();
+        return;
+    }
+    
+    showSyncStatus('syncing');
+    
+    try{
+        if(isDelete){
+            await supabase.from(table).delete().eq('id',data.id);
+        }else{
+            await supabase.from(table).upsert(data);
+        }
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Save to Supabase error:',err);
+        showSyncStatus('offline');
+        // Queue for later
+        syncQueue.push({table:table,data:data,isDelete:isDelete});
+        saveAllDataLocal();
+    }
+}
+
+async function syncNow(){
+    if(!supabase||!currentAuthUser)return;
+    
+    showSyncStatus('syncing');
+    
+    // Process sync queue
+    while(syncQueue.length>0){
+        var item=syncQueue.shift();
+        try{
+            if(item.isDelete){
+                await supabase.from(item.table).delete().eq('id',item.data.id);
+            }else{
+                await supabase.from(item.table).upsert(item.data);
+            }
+        }catch(err){
+            syncQueue.unshift(item);
+            break;
+        }
+    }
+    
+    // Full reload
+    await loadFromSupabase();
+    render();
+}
+
+function setupRealtimeSync(){
+    if(!supabase||realtimeChannel)return;
+    
+    realtimeChannel=supabase.channel('db-changes')
+        .on('postgres_changes',{event:'*',schema:'public'},function(payload){
+            console.log('Realtime update:',payload);
+            // Reload data on any change
+            loadFromSupabase().then(render);
+        })
+        .subscribe();
+}
+
+function showSyncStatus(status){
+    var el=document.getElementById('sync-status');
+    el.className='sync-status '+status;
+    if(status==='syncing')el.textContent='⏳ Syncing...';
+    else if(status==='synced')el.textContent='✓ Synced';
+    else if(status==='offline')el.textContent='⚠ Offline';
+    
+    // Hide after 2 seconds if synced
+    if(status==='synced'){
+        setTimeout(function(){el.className='sync-status';},2000);
+    }
+}
+
+// Online/offline handling
+window.addEventListener('online',function(){
+    isOnline=true;
+    syncNow();
+});
+window.addEventListener('offline',function(){
+    isOnline=false;
+    showSyncStatus('offline');
+});
+
 // ==================== DATA ====================
 var D={
     fontScale:1,
@@ -1980,16 +2431,45 @@ function addMenuItem(){
 
 // Initialize
 var DATA_VERSION=3; // Increment when default data structure changes
-document.addEventListener('DOMContentLoaded',function(){
-    loadAllData();
-    render();
+
+document.addEventListener('DOMContentLoaded',async function(){
+    // Load font scale from localStorage
+    try{
+        var savedScale=localStorage.getItem('ro_fontScale');
+        if(savedScale){D.fontScale=+savedScale;}
+    }catch(e){}
+    
+    // Initialize Supabase (uses dynamic import)
+    var supabaseReady = await initSupabase();
+    
+    // Check for existing Supabase session
+    if(supabaseReady && supabase){
+        // Listen for auth state changes
+        supabase.auth.onAuthStateChange(onAuthStateChange);
+        
+        // Check current session
+        var session = await supabase.auth.getSession();
+        if(session.data.session){
+            onAuthStateChange('SIGNED_IN', session.data.session);
+        }else{
+            // No session - show login screen
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+        }
+    }else{
+        // Supabase not available - use local mode
+        console.log('Supabase not available, using local mode');
+        loadAllDataLocal();
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        render();
+    }
+    
     updateScrollHints();
     document.getElementById('tabs-wrap').addEventListener('scroll',updateScrollHints);
-    // Auto-save on any data change
-    setInterval(saveAllData,30000); // Auto-save every 30 seconds
 });
 
-function loadAllData(){
+function loadAllDataLocal(){
     try{
         var savedData=localStorage.getItem('ro_allData');
         var savedVersion=localStorage.getItem('ro_dataVersion');
@@ -2075,6 +2555,16 @@ function getDefaultData(){
 }
 
 function saveAllData(){
+    // Always save to localStorage as backup
+    saveAllDataLocal();
+    
+    // Also save to Supabase if connected
+    if(supabase&&currentAuthUser){
+        saveAllDataToSupabase();
+    }
+}
+
+function saveAllDataLocal(){
     try{
         var dataToSave={
             users:D.users,
@@ -2093,7 +2583,36 @@ function saveAllData(){
         };
         localStorage.setItem('ro_allData',JSON.stringify(dataToSave));
         localStorage.setItem('ro_dataVersion',DATA_VERSION);
-    }catch(e){console.error('Save error:',e);}
+    }catch(e){console.error('Local save error:',e);}
+}
+
+var saveDebounceTimer=null;
+async function saveAllDataToSupabase(){
+    // Debounce to avoid too many saves
+    if(saveDebounceTimer)clearTimeout(saveDebounceTimer);
+    saveDebounceTimer=setTimeout(async function(){
+        showSyncStatus('syncing');
+        try{
+            // Save all tables
+            await Promise.all([
+                supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
+                supabase.from('cats').upsert(D.cats),
+                supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+                supabase.from('units').upsert(D.units),
+                supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
+                supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
+                supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
+                supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
+                supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
+                supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
+                supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
+            ]);
+            showSyncStatus('synced');
+        }catch(err){
+            console.error('Supabase save error:',err);
+            showSyncStatus('offline');
+        }
+    },1000); // Wait 1 second before saving
 }
 
 // Call saveAllData after any data modification

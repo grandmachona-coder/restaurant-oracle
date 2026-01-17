@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background gradient - deep space purple -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#2d2d5a"/>
+      <stop offset="100%" style="stop-color:#0f0f1e"/>
+    </radialGradient>
+    
+    <!-- Vivid purple accent -->
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#b8a9ff"/>
+      <stop offset="50%" style="stop-color:#8b7cf7"/>
+      <stop offset="100%" style="stop-color:#6c5ce7"/>
+    </linearGradient>
+    
+    <!-- Bright gold -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff3b0"/>
+      <stop offset="50%" style="stop-color:#ffd93d"/>
+      <stop offset="100%" style="stop-color:#f9a825"/>
+    </linearGradient>
+    
+    <!-- Vivid emerald green -->
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#69f0ae"/>
+      <stop offset="50%" style="stop-color:#00e676"/>
+      <stop offset="100%" style="stop-color:#00c853"/>
+    </linearGradient>
+    
+    <!-- Electric cyan -->
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#84ffff"/>
+      <stop offset="50%" style="stop-color:#18ffff"/>
+      <stop offset="100%" style="stop-color:#00e5ff"/>
+    </linearGradient>
+    
+    <!-- Hot coral red -->
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff8a80"/>
+      <stop offset="50%" style="stop-color:#ff5252"/>
+      <stop offset="100%" style="stop-color:#f44336"/>
+    </linearGradient>
+    
+    <!-- Plate shine -->
+    <linearGradient id="plateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a4a7a"/>
+      <stop offset="50%" style="stop-color:#3a3a5e"/>
+      <stop offset="100%" style="stop-color:#2a2a4a"/>
+    </linearGradient>
+    
+    <!-- Glow effects -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="500" fill="url(#bgGrad)"/>
+  
+  <!-- Outer ring -->
+  <circle cx="512" cy="512" r="480" fill="none" stroke="url(#purpleGrad)" stroke-width="8" opacity="0.6"/>
+  
+  <!-- Inner decorative ring -->
+  <circle cx="512" cy="512" r="440" fill="none" stroke="url(#purpleGrad)" stroke-width="2" opacity="0.3"/>
+  
+  <!-- Central plate base shadow -->
+  <ellipse cx="512" cy="620" rx="280" ry="70" fill="#000" opacity="0.3"/>
+  
+  <!-- Central plate -->
+  <g filter="url(#shadow)">
+    <ellipse cx="512" cy="590" rx="260" ry="65" fill="url(#plateGrad)"/>
+    <ellipse cx="512" cy="580" rx="230" ry="55" fill="none" stroke="url(#purpleGrad)" stroke-width="4"/>
+    <ellipse cx="512" cy="575" rx="200" ry="45" fill="none" stroke="url(#purpleGrad)" stroke-width="2" opacity="0.5"/>
+  </g>
+  
+  <!-- Fork (left side) -->
+  <g filter="url(#shadow)" transform="translate(180, 280)">
+    <!-- Fork head -->
+    <rect x="0" y="0" width="12" height="100" rx="2" fill="url(#cyanGrad)"/>
+    <rect x="20" y="0" width="12" height="100" rx="2" fill="url(#cyanGrad)"/>
+    <rect x="40" y="0" width="12" height="100" rx="2" fill="url(#cyanGrad)"/>
+    <rect x="60" y="0" width="12" height="100" rx="2" fill="url(#cyanGrad)"/>
+    <!-- Fork connector -->
+    <rect x="0" y="95" width="72" height="25" rx="4" fill="url(#cyanGrad)"/>
+    <!-- Fork handle -->
+    <rect x="24" y="115" width="24" height="180" rx="6" fill="url(#cyanGrad)"/>
+    <!-- Handle detail -->
+    <rect x="30" y="220" width="12" height="40" rx="2" fill="#fff" opacity="0.3"/>
+  </g>
+  
+  <!-- Knife (right side) -->
+  <g filter="url(#shadow)" transform="translate(760, 280)">
+    <!-- Knife blade -->
+    <path d="M0 0 L0 100 Q0 120 20 120 L50 120 L50 0 Q30 10 0 0 Z" fill="url(#goldGrad)"/>
+    <!-- Blade edge highlight -->
+    <path d="M2 5 L2 95" stroke="#fff" stroke-width="3" opacity="0.4"/>
+    <!-- Knife handle -->
+    <rect x="10" y="120" width="30" height="175" rx="6" fill="url(#goldGrad)"/>
+    <!-- Handle details -->
+    <rect x="16" y="140" width="18" height="8" rx="2" fill="#fff" opacity="0.3"/>
+    <rect x="16" y="160" width="18" height="8" rx="2" fill="#fff" opacity="0.3"/>
+    <rect x="16" y="180" width="18" height="8" rx="2" fill="#fff" opacity="0.3"/>
+  </g>
+  
+  <!-- Central Oracle crystal/eye -->
+  <g filter="url(#glow)" transform="translate(512, 380)">
+    <!-- Outer crystal ring -->
+    <circle cx="0" cy="0" r="140" fill="none" stroke="url(#purpleGrad)" stroke-width="6"/>
+    
+    <!-- Crystal body -->
+    <circle cx="0" cy="0" r="120" fill="url(#bgGrad)" stroke="url(#purpleGrad)" stroke-width="4"/>
+    
+    <!-- Inner glow ring -->
+    <circle cx="0" cy="0" r="100" fill="none" stroke="url(#greenGrad)" stroke-width="3" opacity="0.6"/>
+    
+    <!-- Eye shape -->
+    <ellipse cx="0" cy="0" rx="80" ry="50" fill="none" stroke="url(#greenGrad)" stroke-width="5"/>
+    
+    <!-- Iris -->
+    <circle cx="0" cy="0" r="35" fill="url(#greenGrad)"/>
+    
+    <!-- Pupil -->
+    <circle cx="0" cy="0" r="18" fill="#0f0f1e"/>
+    
+    <!-- Eye highlights -->
+    <circle cx="12" cy="-12" r="10" fill="#fff" opacity="0.9"/>
+    <circle cx="-8" cy="8" r="5" fill="#fff" opacity="0.5"/>
+  </g>
+  
+  <!-- Floating icons around the oracle -->
+  
+  <!-- Recipe book (top left) -->
+  <g filter="url(#softGlow)" transform="translate(160, 350)">
+    <rect x="0" y="0" width="80" height="100" rx="6" fill="url(#redGrad)"/>
+    <rect x="75" y="8" width="10" height="84" rx="2" fill="#c62828"/>
+    <rect x="12" y="18" width="55" height="6" rx="2" fill="#fff" opacity="0.9"/>
+    <rect x="12" y="32" width="45" height="5" rx="2" fill="#fff" opacity="0.6"/>
+    <rect x="12" y="44" width="50" height="5" rx="2" fill="#fff" opacity="0.6"/>
+    <rect x="12" y="56" width="40" height="5" rx="2" fill="#fff" opacity="0.6"/>
+  </g>
+  
+  <!-- Dollar sign badge (top right) -->
+  <g filter="url(#softGlow)" transform="translate(740, 320)">
+    <rect x="0" y="0" width="90" height="90" rx="16" fill="url(#greenGrad)"/>
+    <text x="45" y="68" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="#fff" text-anchor="middle">$</text>
+  </g>
+  
+  <!-- Inventory badge (top right corner) -->
+  <g filter="url(#softGlow)" transform="translate(820, 240)">
+    <rect x="0" y="0" width="70" height="70" rx="12" fill="url(#redGrad)"/>
+    <text x="35" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#fff" text-anchor="middle">x25</text>
+  </g>
+  
+  <!-- Box/package (bottom left) -->
+  <g filter="url(#softGlow)" transform="translate(190, 620)">
+    <!-- Box top flap -->
+    <rect x="5" y="0" width="80" height="25" rx="4" fill="url(#goldGrad)" opacity="0.9"/>
+    <line x1="45" y1="5" x2="45" y2="20" stroke="#1a1a2e" stroke-width="3" stroke-linecap="round"/>
+    <!-- Box body -->
+    <rect x="0" y="20" width="90" height="80" rx="6" fill="url(#goldGrad)"/>
+    <!-- Box label -->
+    <rect x="15" y="40" width="60" height="20" rx="3" fill="#1a1a2e" opacity="0.3"/>
+    <text x="45" y="56" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">ITEM</text>
+  </g>
+  
+  <!-- Checklist/clipboard (bottom right) -->
+  <g filter="url(#softGlow)" transform="translate(720, 620)">
+    <!-- Clipboard body -->
+    <rect x="0" y="15" width="90" height="110" rx="6" fill="#f5f6fa"/>
+    <!-- Clipboard clip -->
+    <rect x="25" y="0" width="40" height="25" rx="4" fill="url(#cyanGrad)"/>
+    <rect x="35" y="8" width="20" height="8" rx="2" fill="#1a1a2e"/>
+    <!-- Checklist lines -->
+    <rect x="12" y="40" width="12" height="12" rx="2" fill="url(#greenGrad)"/>
+    <line x1="30" y1="46" x2="75" y2="46" stroke="#1a1a2e" stroke-width="4" stroke-linecap="round"/>
+    <rect x="12" y="62" width="12" height="12" rx="2" fill="url(#greenGrad)"/>
+    <line x1="30" y1="68" x2="65" y2="68" stroke="#1a1a2e" stroke-width="4" stroke-linecap="round"/>
+    <rect x="12" y="84" width="12" height="12" rx="2" fill="none" stroke="url(#purpleGrad)" stroke-width="2"/>
+    <line x1="30" y1="90" x2="70" y2="90" stroke="#a0a0a0" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Decorative orbital dots -->
+  <g fill="url(#purpleGrad)">
+    <circle cx="512" cy="100" r="12" filter="url(#softGlow)"/>
+    <circle cx="800" cy="200" r="10" opacity="0.8"/>
+    <circle cx="900" cy="450" r="8" opacity="0.6"/>
+    <circle cx="850" cy="700" r="10" opacity="0.7"/>
+    <circle cx="170" cy="700" r="10" opacity="0.7"/>
+    <circle cx="120" cy="450" r="8" opacity="0.6"/>
+    <circle cx="220" cy="200" r="10" opacity="0.8"/>
+  </g>
+  
+  <!-- Connection arrows/flow indicators -->
+  <g stroke="url(#purpleGrad)" stroke-width="3" fill="none" opacity="0.5">
+    <!-- Arrow from book to oracle -->
+    <path d="M240 400 Q300 350 370 380" marker-end="url(#arrowhead)"/>
+    <!-- Arrow from dollar to oracle -->
+    <path d="M740 380 Q680 350 650 380"/>
+    <!-- Arrow from oracle down to plate -->
+    <path d="M512 520 L512 560"/>
+  </g>
+  
+  <!-- Sparkle stars -->
+  <g fill="url(#goldGrad)" filter="url(#softGlow)">
+    <polygon points="140,150 145,165 160,165 148,175 153,190 140,180 127,190 132,175 120,165 135,165"/>
+    <polygon points="880,150 883,160 893,160 885,167 888,177 880,170 872,177 875,167 867,160 877,160" transform="scale(0.8) translate(110, 30)"/>
+    <polygon points="900,800 903,810 913,810 905,817 908,827 900,820 892,827 895,817 887,810 897,810" transform="scale(0.7) translate(140, 180)"/>
+  </g>
+</svg>
