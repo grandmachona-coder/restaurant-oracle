@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Oracle</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a3a);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+        .phone{width:390px;height:844px;background:#1a1a2e;border-radius:44px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.5),0 0 0 12px #2a2a3e;display:flex;flex-direction:column;position:relative}
+        .status{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 8px;font-size:14px;font-weight:600;color:#e0e6ed}
+        .header{padding:12px 20px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
+        .header h1{font-size:20px;color:#e0e6ed}
+        .header p{font-size:11px;color:#a0aec0;margin-top:2px}
+        .content{flex:1;overflow-y:auto;padding:16px}
+        .tabs{display:flex;border-top:1px solid rgba(255,255,255,.1);padding:6px 2px 28px}
+        .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 1px;cursor:pointer;border-radius:8px}
+        .tab:hover{background:rgba(255,255,255,.05)}
+        .tab span:first-child{font-size:18px;opacity:.5}
+        .tab span:last-child{font-size:8px;font-weight:600;color:#a0aec0}
+        .tab.active span:first-child{opacity:1}
+        .tab.active span:last-child{font-weight:700}
+        .tab[data-t="inventory"].active span:last-child{color:#a29bfe}
+        .tab[data-t="shopping"].active span:last-child{color:#e17055}
+        .tab[data-t="prep"].active span:last-child{color:#fd79a8}
+        .tab[data-t="ingredients"].active span:last-child{color:#00b894}
+        .tab[data-t="recipes"].active span:last-child{color:#fdcb6e}
+        .tab[data-t="menu"].active span:last-child{color:#74b9ff}
+        .tab[data-t="admin"].active span:last-child{color:#b2bec3}
+        .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;margin-bottom:10px}
+        .card:hover{border-color:rgba(255,255,255,.2)}
+        .card-h{display:flex;justify-content:space-between;align-items:center}
+        .card-t{font-size:15px;font-weight:600;color:#e0e6ed}
+        .card-s{font-size:11px;color:#a0aec0;margin-top:2px}
+        .badge{padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700}
+        .bg-green{background:rgba(0,184,148,.2);color:#00b894}
+        .bg-yellow{background:rgba(253,203,110,.2);color:#fdcb6e}
+        .bg-red{background:rgba(231,76,60,.2);color:#e74c3c}
+        .stats{display:flex;margin-top:12px;background:rgba(0,0,0,.2);border-radius:10px;padding:10px}
+        .stat{text-align:center;flex:1}
+        .stat-l{font-size:9px;color:#a0aec0;text-transform:uppercase;margin-bottom:4px;font-weight:600}
+        .stat-v{font-size:18px;font-weight:700;color:#e0e6ed}
+        .stat-v.green{color:#00b894}.stat-v.yellow{color:#fdcb6e}.stat-v.red{color:#e74c3c}
+        .prep-card{border-left:4px solid}
+        .prep-card.green{border-left-color:#00b894}
+        .prep-card.yellow{border-left-color:#fdcb6e}
+        .prep-card.red{border-left-color:#e74c3c}
+        .info{display:flex;gap:10px;background:rgba(116,185,255,.1);border:1px solid rgba(116,185,255,.3);border-radius:12px;padding:12px;margin-bottom:16px;font-size:12px;color:#a0aec0;line-height:1.5}
+        .legend{display:flex;justify-content:center;gap:14px;padding:10px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:16px}
+        .legend-i{display:flex;align-items:center;gap:5px}
+        .legend-d{width:8px;height:8px;border-radius:50%}
+        .legend-d.green{background:#00b894}.legend-d.yellow{background:#fdcb6e}.legend-d.red{background:#e74c3c}
+        .legend-t{font-size:10px;color:#a0aec0}
+        .sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;padding-left:4px;color:#a0aec0}
+        .sec.shop{color:#e17055}
+        .sec.ing{color:#00b894}
+        .sec.prep{color:#fd79a8}
+        .shop-item{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;margin-bottom:8px}
+        .shop-check{width:24px;height:24px;border:2px solid #e17055;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:#e17055;flex-shrink:0}
+        .shop-check.checked{background:#e17055;color:#fff}
+        .shop-info{flex:1;min-width:0}
+        .shop-name{font-size:14px;font-weight:600;color:#e0e6ed}
+        .shop-meta{font-size:11px;color:#a0aec0;margin-top:2px}
+        .shop-qty{font-size:13px;font-weight:600;color:#e17055;white-space:nowrap}
+        .inv-item{display:flex;align-items:center;gap:10px;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:6px}
+        .inv-item-name{font-size:13px;color:#e0e6ed;flex:1}
+        .inv-item-sub{font-size:10px;color:#a0aec0;margin-left:4px}
+        .inv-item-qty{display:flex;align-items:center;gap:6px}
+        .move-btn{background:rgba(162,155,254,.2);border:none;color:#a29bfe;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer}
+        .move-btn:hover{background:rgba(162,155,254,.3)}
+        .del-btn{background:none;border:none;color:#636e72;cursor:pointer;font-size:14px;padding:4px}
+        .del-btn:hover{color:#e74c3c}
+        .sm-input{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;padding:6px 8px;font-size:12px;width:50px;text-align:center}
+        .sm-input:focus{outline:none;border-color:#6c5ce7}
+        .add-toggle{display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:8px;border-top:1px solid rgba(255,255,255,.1);cursor:pointer}
+        .add-toggle-t{font-size:12px;color:#a29bfe;font-weight:500}
+        .add-form{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+        .add-form.open{display:block}
+        .form-g{margin-bottom:12px}
+        .form-l{display:block;font-size:11px;color:#a0aec0;margin-bottom:4px}
+        .form-i{width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 12px;color:#e0e6ed;font-size:13px}
+        .form-i:focus{outline:none;border-color:#6c5ce7}
+        select.form-i{cursor:pointer}
+        .form-r{display:flex;gap:8px}
+        .form-r .form-g{flex:1}
+        .btn{padding:10px 16px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+        .btn-p{background:#6c5ce7;color:#fff}
+        .btn-p:hover{background:#5b4cdb}
+        .btn-s{background:rgba(255,255,255,.1);color:#e0e6ed}
+        .btn-s:hover{background:rgba(255,255,255,.15)}
+        .btn-sm{padding:6px 10px;font-size:11px}
+        .fab{position:absolute;bottom:100px;right:20px;width:50px;height:50px;border-radius:50%;background:#a29bfe;border:none;font-size:24px;color:#fff;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,.3);z-index:10}
+        .fab:hover{transform:scale(1.05)}
+        .modal-o{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;justify-content:center;align-items:center;z-index:100}
+        .modal-o.open{display:flex}
+        .modal{background:#1a1a2e;border-radius:16px;padding:20px;width:90%;max-width:340px;max-height:80vh;overflow-y:auto}
+        .modal h3{color:#e0e6ed;margin-bottom:16px;font-size:16px}
+        .rec-card{margin-bottom:10px}
+        .rec-ings{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+        .rec-ing{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px}
+        .rec-ing-name{font-size:12px;color:#e0e6ed}
+        .rec-ing-qty{font-size:12px;color:#fdcb6e}
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="status"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="header"><h1 id="hdr-t">📦 Inventory</h1><p id="hdr-s">13 items</p></div>
+    <div class="content" id="content"></div>
+    <div class="tabs">
+        <div class="tab active" data-t="inventory" onclick="go('inventory')"><span>📦</span><span>Inventory</span></div>
+        <div class="tab" data-t="shopping" onclick="go('shopping')"><span>🛒</span><span>Shopping</span></div>
+        <div class="tab" data-t="prep" onclick="go('prep')"><span>👨‍🍳</span><span>Prep</span></div>
+        <div class="tab" data-t="ingredients" onclick="go('ingredients')"><span>🥬</span><span>Ingredients</span></div>
+        <div class="tab" data-t="recipes" onclick="go('recipes')"><span>📖</span><span>Recipes</span></div>
+        <div class="tab" data-t="menu" onclick="go('menu')"><span>🍽️</span><span>Menu</span></div>
+        <div class="tab" data-t="admin" onclick="go('admin')"><span>⚙️</span><span>Admin</span></div>
+    </div>
+    <button class="fab" id="fab" onclick="openAdd()">+</button>
+    <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
+</div>
+<script>
+var D={
+    areas:[
+        {id:1,name:'Oven Fridge',prep:1,subs:[]},
+        {id:2,name:'Dairy Fridge',prep:1,subs:[]},
+        {id:3,name:'Prep Fridge',prep:1,subs:['Left','Middle','Right']},
+        {id:4,name:'Main Prep Table',prep:1,subs:[]},
+        {id:5,name:'Oven Prep Table',prep:1,subs:[]},
+        {id:6,name:'Dishwasher',prep:0,subs:[]},
+        {id:7,name:'Sheeter',prep:0,subs:[]},
+        {id:8,name:'Freezer',prep:1,subs:[]},
+        {id:9,name:'Hallway Fridge',prep:1,subs:[]},
+        {id:10,name:'Stairs',prep:0,subs:[]},
+        {id:11,name:'Wine Display',prep:0,subs:['Left Column','Top Row','Right Column']},
+        {id:12,name:'Left Wine Fridge',prep:0,subs:[]},
+        {id:13,name:'Right Wine Fridge',prep:0,subs:[]}
+    ],
+    cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'}],
+    menuCats:[{id:1,name:'Mix'},{id:2,name:'Empanada'},{id:3,name:'Salad'},{id:4,name:'Soup'},{id:5,name:'Tapas'},{id:6,name:'Cocktails'},{id:7,name:'N/A Beverages'},{id:8,name:'Sides'},{id:9,name:'Brunch'}],
+    units:[
+        {id:1,name:'each',abbr:'ea'},
+        {id:2,name:'pound',abbr:'lb'},
+        {id:3,name:'ounce',abbr:'oz'},
+        {id:4,name:'gram',abbr:'g'},
+        {id:5,name:'kilogram',abbr:'kg'},
+        {id:6,name:'milligram',abbr:'mg'},
+        {id:7,name:'cup',abbr:'cup'},
+        {id:8,name:'tablespoon',abbr:'tbsp'},
+        {id:9,name:'teaspoon',abbr:'tsp'},
+        {id:10,name:'fluid ounce',abbr:'fl oz'},
+        {id:11,name:'milliliter',abbr:'ml'},
+        {id:12,name:'liter',abbr:'L'},
+        {id:13,name:'gallon',abbr:'gal'},
+        {id:14,name:'quart',abbr:'qt'},
+        {id:15,name:'pint',abbr:'pt'},
+        {id:16,name:'batch',abbr:'batch'},
+        {id:17,name:'portion',abbr:'portion'},
+        {id:18,name:'serving',abbr:'srv'},
+        {id:19,name:'piece',abbr:'pc'},
+        {id:20,name:'slice',abbr:'slice'},
+        {id:21,name:'bunch',abbr:'bunch'},
+        {id:22,name:'head',abbr:'head'},
+        {id:23,name:'clove',abbr:'clove'},
+        {id:24,name:'sprig',abbr:'sprig'},
+        {id:25,name:'pinch',abbr:'pinch'},
+        {id:26,name:'dash',abbr:'dash'},
+        {id:27,name:'drop',abbr:'drop'},
+        {id:28,name:'can',abbr:'can'},
+        {id:29,name:'bottle',abbr:'btl'},
+        {id:30,name:'jar',abbr:'jar'},
+        {id:31,name:'bag',abbr:'bag'},
+        {id:32,name:'box',abbr:'box'},
+        {id:33,name:'package',abbr:'pkg'},
+        {id:34,name:'case',abbr:'case'},
+        {id:35,name:'dozen',abbr:'doz'},
+        {id:36,name:'half dozen',abbr:'½ doz'},
+        {id:37,name:'sheet',abbr:'sheet'},
+        {id:38,name:'rack',abbr:'rack'},
+        {id:39,name:'pan',abbr:'pan'},
+        {id:40,name:'tray',abbr:'tray'},
+        {id:41,name:'hotel pan',abbr:'htl pan'},
+        {id:42,name:'sixth pan',abbr:'⅙ pan'},
+        {id:43,name:'third pan',abbr:'⅓ pan'},
+        {id:44,name:'half pan',abbr:'½ pan'},
+        {id:45,name:'full pan',abbr:'full pan'},
+        {id:46,name:'quart container',abbr:'qt cont'},
+        {id:47,name:'pint container',abbr:'pt cont'},
+        {id:48,name:'deli container',abbr:'deli'},
+        {id:49,name:'cambro',abbr:'cambro'},
+        {id:50,name:'lexan',abbr:'lexan'}
+    ],
+    ings:[
+        {id:1,name:'Ground Beef',catId:1,areaId:1,subArea:''},
+        {id:2,name:'Chicken Breast',catId:1,areaId:1,subArea:''},
+        {id:3,name:'Onions',catId:2,areaId:3,subArea:'Left'},
+        {id:4,name:'Bell Peppers',catId:2,areaId:3,subArea:'Middle'},
+        {id:5,name:'Potatoes',catId:2,areaId:3,subArea:'Right'},
+        {id:6,name:'Cheese',catId:3,areaId:2,subArea:''},
+        {id:7,name:'Eggs',catId:3,areaId:2,subArea:''},
+        {id:8,name:'Flour',catId:4,areaId:10,subArea:''},
+        {id:9,name:'Salt',catId:4,areaId:4,subArea:''},
+        {id:10,name:'Olive Oil',catId:5,areaId:10,subArea:''},
+        {id:11,name:'Red Wine',catId:5,areaId:11,subArea:'Left Column'},
+        {id:12,name:'White Wine',catId:5,areaId:12,subArea:''}
+    ],
+    inv:[
+        {id:1,areaId:1,subArea:'',ingId:1,qty:10,unit:'lb'},
+        {id:2,areaId:1,subArea:'',ingId:2,qty:8,unit:'lb'},
+        {id:3,areaId:3,subArea:'Left',ingId:3,qty:5,unit:'lb'},
+        {id:4,areaId:3,subArea:'Middle',ingId:4,qty:3,unit:'each'},
+        {id:5,areaId:3,subArea:'Right',ingId:5,qty:10,unit:'lb'},
+        {id:6,areaId:2,subArea:'',ingId:6,qty:4,unit:'lb'},
+        {id:7,areaId:2,subArea:'',ingId:7,qty:24,unit:'each'},
+        {id:8,areaId:10,subArea:'',ingId:8,qty:25,unit:'lb'},
+        {id:9,areaId:4,subArea:'',ingId:9,qty:2,unit:'lb'},
+        {id:10,areaId:10,subArea:'',ingId:10,qty:2,unit:'gal'},
+        {id:11,areaId:11,subArea:'Left Column',ingId:11,qty:12,unit:'btl'},
+        {id:12,areaId:12,subArea:'',ingId:12,qty:6,unit:'btl'}
+    ],
+    recs:[
+        {id:1,name:'Beef Filling',group:'Filling',yield:95,shelfLife:'3 Days',notes:'Brown beef, add veggies',ings:[{ingId:1,qty:5,unit:'lb'},{ingId:3,qty:1,unit:'lb'},{ingId:4,qty:2,unit:'each'}],subRecs:[],photos:[],videos:[]},
+        {id:2,name:'Chicken Filling',group:'Filling',yield:90,shelfLife:'3 Days',notes:'Poach chicken, shred',ings:[{ingId:2,qty:4,unit:'lb'},{ingId:3,qty:0.5,unit:'lb'}],subRecs:[],photos:[],videos:[]},
+        {id:3,name:'Dough Discs',group:'Dough',yield:100,shelfLife:'2 Days',notes:'Mix, rest, roll',ings:[{ingId:8,qty:10,unit:'lb'},{ingId:7,qty:4,unit:'each'},{ingId:9,qty:0.25,unit:'lb'}],subRecs:[],photos:[],videos:[]},
+        {id:4,name:'Abuela Chona Mix',group:'Mix',yield:95,shelfLife:'7 Days',notes:'Brown ground beef first, then add vegetables.',ings:[{ingId:1,qty:6,unit:'lb'},{ingId:4,qty:3,unit:'each'},{ingId:5,qty:40,unit:'oz'},{ingId:3,qty:1,unit:'lb'},{ingId:7,qty:4,unit:'each'}],subRecs:[],photos:[],videos:[]}
+    ],
+    preps:[
+        {id:1,name:'Beef Filling',recId:1,onHand:2,areaId:1,subArea:''},
+        {id:2,name:'Chicken Filling',recId:2,onHand:3,areaId:1,subArea:''},
+        {id:3,name:'Dough Discs',recId:3,onHand:50,areaId:4,subArea:''},
+        {id:4,name:'Abuela Chona Mix',recId:4,onHand:0,areaId:1,subArea:''}
+    ],
+    menus:[{id:1,name:'Beef Empanada',tgt:50,unitId:1,recIds:[1,3]},{id:2,name:'Chicken Empanada',tgt:30,unitId:1,recIds:[2,3]},{id:3,name:'Spinach Empanada',tgt:20,unitId:1,recIds:[3]}],
+    shopping:[{id:1,ingId:1,qty:5,unit:'lb',checked:0,savedForLater:0,lastAreaId:1,lastSubArea:''},{id:2,ingId:2,qty:2,unit:'lb',checked:0,savedForLater:0,lastAreaId:2,lastSubArea:''}],
+    users:[{id:1,name:'Owner',email:'owner@lachona.com',phone:'503-555-0100',type:'owner',password:'owner123'}]
+};
+var tab='inventory',nid=100,exp={},addOpen={},pendingPurchase=null;
+var FC={inventory:'#a29bfe',shopping:'#e17055',prep:'#fd79a8',ingredients:'#00b894',recipes:'#fdcb6e',menu:'#74b9ff',admin:'#b2bec3'};
+var TT={inventory:{i:'📦',t:'Inventory'},shopping:{i:'🛒',t:'Shopping List'},prep:{i:'👨‍🍳',t:'Prep Status'},ingredients:{i:'🥬',t:'Ingredients'},recipes:{i:'📖',t:'Recipes'},menu:{i:'🍽️',t:'Menu'},admin:{i:'⚙️',t:'Admin'}};
+
+function go(t){tab=t;document.querySelectorAll('.tab').forEach(function(e){e.classList.remove('active')});document.querySelector('.tab[data-t="'+t+'"]').classList.add('active');document.getElementById('fab').style.background=FC[t];render();}
+
+function render(){
+    var c=document.getElementById('content'),h=document.getElementById('hdr-t'),s=document.getElementById('hdr-s');
+    h.textContent=TT[tab].i+' '+TT[tab].t;
+    if(tab==='inventory')renderInv(c,s);
+    else if(tab==='shopping')renderShop(c,s);
+    else if(tab==='prep')renderPrep(c,s);
+    else if(tab==='ingredients')renderIngs(c,s);
+    else if(tab==='recipes')renderRecs(c,s);
+    else if(tab==='menu')renderMenu(c,s);
+    else renderAdmin(c,s);
+}
+
+function getAreaName(areaId,subArea){
+    var area=D.areas.find(function(a){return a.id===areaId});
+    if(!area)return 'Unknown';
+    return subArea ? area.name+' ('+subArea+')' : area.name;
+}
+
+// ==================== INVENTORY ====================
+function renderInv(c,s){
+    s.textContent=D.inv.length+' items';
+    var html='<div class="info"><span>ℹ️</span><span>Tap location to expand. Use 📍 Move button to relocate items.</span></div>';
+    
+    D.areas.forEach(function(a){
+        var ai=D.inv.filter(function(i){return i.areaId===a.id});
+        var ap=D.preps.filter(function(p){return p.areaId===a.id});
+        var ex=exp[a.id];
+        var ao=addOpen[a.id];
+        var cnt=ai.length+(a.prep?ap.length:0);
+        
+        html+='<div class="card"><div class="card-h" onclick="tog('+a.id+')" style="cursor:pointer"><div><div class="card-t">📍 '+a.name+'</div><div class="card-s">'+ai.length+' items'+(a.prep&&ap.length?' • '+ap.length+' prep':'')+(a.subs.length?' • '+a.subs.length+' sections':'')+(cnt===0?' • <span style="color:#636e72">Empty</span>':'')+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
+        
+        if(ex){
+            html+='<div style="margin-top:12px">';
+            
+            // Show items grouped by subsection if applicable
+            if(a.subs.length){
+                a.subs.forEach(function(sub){
+                    var subItems=ai.filter(function(i){return i.subArea===sub});
+                    html+='<div class="sec" style="color:#a29bfe;margin-top:8px">'+sub+'</div>';
+                    if(subItems.length){
+                        subItems.forEach(function(inv){
+                            var ing=D.ings.find(function(x){return x.id===inv.ingId});
+                            if(ing){
+                                html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><span style="font-size:10px;color:#a0aec0;margin-left:4px">'+inv.unit+'</span><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
+                            }
+                        });
+                    }else{
+                        html+='<div style="color:#636e72;font-size:11px;padding:6px 10px">Empty</div>';
+                    }
+                });
+                // Items without subsection
+                var noSub=ai.filter(function(i){return !i.subArea});
+                if(noSub.length){
+                    html+='<div class="sec" style="color:#a29bfe;margin-top:8px">General</div>';
+                    noSub.forEach(function(inv){
+                        var ing=D.ings.find(function(x){return x.id===inv.ingId});
+                        if(ing){
+                            html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><span style="font-size:10px;color:#a0aec0;margin-left:4px">'+inv.unit+'</span><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
+                        }
+                    });
+                }
+            }else{
+                // No subsections
+                if(ai.length){
+                    html+='<div class="sec ing">Ingredients</div>';
+                    ai.forEach(function(inv){
+                        var ing=D.ings.find(function(x){return x.id===inv.ingId});
+                        if(ing){
+                            html+='<div class="inv-item"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)"><span style="font-size:10px;color:#a0aec0;margin-left:4px">'+inv.unit+'</span><button class="move-btn" onclick="openMoveModal('+inv.id+')">📍 Move</button><button class="del-btn" onclick="delItem(\'inv\','+inv.id+')">🗑️</button></div></div>';
+                        }
+                    });
+                }else{
+                    html+='<div style="color:#636e72;font-size:11px;padding:6px">No ingredients</div>';
+                }
+            }
+            
+            // Prep items
+            if(a.prep&&ap.length){
+                html+='<div class="sec prep" style="margin-top:12px">Prep Items</div>';
+                ap.forEach(function(p){
+                    html+='<div class="inv-item" style="border-left:3px solid #fd79a8"><span class="inv-item-name">'+p.name+(p.subArea?' <span class="inv-item-sub">('+p.subArea+')</span>':'')+'</span><div class="inv-item-qty"><input type="number" class="sm-input" value="'+p.onHand+'" onchange="updPrep('+p.id+',this.value)"><span style="font-size:10px;color:#a0aec0;margin-left:4px">qty</span></div></div>';
+                });
+            }
+            
+            // Add item form
+            html+='<div class="add-toggle" onclick="togAdd('+a.id+')"><span class="add-toggle-t">+ Add Item</span><span style="color:#a29bfe">'+(ao?'▲':'▼')+'</span></div>';
+            if(ao){
+                html+='<div class="add-form open"><div class="form-g"><label class="form-l">Ingredient</label><select id="sel-'+a.id+'" class="form-i"><option value="">Select...</option>';
+                D.cats.forEach(function(cat){
+                    var ci=D.ings.filter(function(i){return i.catId===cat.id});
+                    if(ci.length){
+                        html+='<optgroup label="'+cat.name+'">';
+                        ci.forEach(function(i){html+='<option value="'+i.id+'">'+i.name+'</option>';});
+                        html+='</optgroup>';
+                    }
+                });
+                html+='</select></div>';
+                if(a.subs.length){
+                    html+='<div class="form-g"><label class="form-l">Section</label><select id="sub-'+a.id+'" class="form-i"><option value="">None</option>';
+                    a.subs.forEach(function(sub){html+='<option value="'+sub+'">'+sub+'</option>';});
+                    html+='</select></div>';
+                }
+                html+='<div class="form-r"><div class="form-g"><label class="form-l">Qty</label><input type="number" id="qty-'+a.id+'" class="form-i" placeholder="0" step="0.1"></div><div class="form-g"><label class="form-l">Unit</label><input type="text" id="unit-'+a.id+'" class="form-i" placeholder="lb"></div></div><button class="btn btn-p" onclick="addToArea('+a.id+')" style="width:100%;margin-top:8px">Add</button></div>';
+            }
+            html+='</div>';
+        }
+        html+='</div>';
+    });
+    c.innerHTML=html;
+}
+
+function openMoveModal(invId){
+    var inv=D.inv.find(function(x){return x.id===invId});
+    if(!inv)return;
+    var ing=D.ings.find(function(x){return x.id===inv.ingId});
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Move '+ing.name+'</h3>';
+    html+='<p style="font-size:12px;color:#a0aec0;margin-bottom:16px">Currently in: <strong style="color:#e0e6ed">'+getAreaName(inv.areaId,inv.subArea)+'</strong></p>';
+    html+='<div class="form-g"><label class="form-l">New Storage Area</label><select id="move-area" class="form-i" onchange="updateMoveSubSelect('+invId+')">';
+    D.areas.forEach(function(a){
+        html+='<option value="'+a.id+'"'+(a.id===inv.areaId?' selected':'')+'>'+a.name+'</option>';
+    });
+    html+='</select></div>';
+    html+='<div class="form-g" id="move-sub-wrap" style="display:none"><label class="form-l">Section</label><select id="move-sub" class="form-i"></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmMove('+invId+')" style="flex:1">Move Item</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+    updateMoveSubSelect(invId);
+}
+
+function updateMoveSubSelect(invId){
+    var inv=D.inv.find(function(x){return x.id===invId});
+    var areaId=parseInt(document.getElementById('move-area').value);
+    var area=D.areas.find(function(a){return a.id===areaId});
+    var wrap=document.getElementById('move-sub-wrap');
+    var sel=document.getElementById('move-sub');
+    
+    if(area && area.subs && area.subs.length){
+        wrap.style.display='block';
+        var opts='<option value="">None</option>';
+        area.subs.forEach(function(s){
+            var selected=(inv && inv.areaId===areaId && inv.subArea===s)?' selected':'';
+            opts+='<option value="'+s+'"'+selected+'>'+s+'</option>';
+        });
+        sel.innerHTML=opts;
+    }else{
+        wrap.style.display='none';
+        sel.innerHTML='';
+    }
+}
+
+function confirmMove(invId){
+    var inv=D.inv.find(function(x){return x.id===invId});
+    if(!inv)return;
+    
+    var newAreaId=parseInt(document.getElementById('move-area').value);
+    var subSel=document.getElementById('move-sub');
+    var newSubArea=(subSel && subSel.value)?subSel.value:'';
+    
+    // Update inventory item location
+    inv.areaId=newAreaId;
+    inv.subArea=newSubArea;
+    
+    // Also update ingredient's default location
+    var ing=D.ings.find(function(x){return x.id===inv.ingId});
+    if(ing){
+        ing.areaId=newAreaId;
+        ing.subArea=newSubArea;
+    }
+    
+    closeModal();
+    render();
+}
+
+function addToArea(areaId){
+    var ingId=parseInt(document.getElementById('sel-'+areaId).value);
+    var qty=parseFloat(document.getElementById('qty-'+areaId).value);
+    var unit=document.getElementById('unit-'+areaId).value;
+    var subSel=document.getElementById('sub-'+areaId);
+    var subArea=subSel?subSel.value:'';
+    
+    if(!ingId||!qty||!unit){alert('Please fill all fields');return;}
+    
+    var existing=D.inv.find(function(i){return i.areaId===areaId && i.ingId===ingId && i.subArea===subArea});
+    if(existing){
+        existing.qty+=qty;
+    }else{
+        D.inv.push({id:nid++,areaId:areaId,subArea:subArea,ingId:ingId,qty:qty,unit:unit});
+    }
+    
+    var ing=D.ings.find(function(x){return x.id===ingId});
+    if(ing){
+        ing.areaId=areaId;
+        ing.subArea=subArea;
+    }
+    
+    addOpen[areaId]=false;
+    render();
+}
+
+// ==================== SHOPPING ====================
+function renderShop(c,s){
+    var toBuy=D.shopping.filter(function(x){return !x.checked && !x.savedForLater});
+    var savedForLater=D.shopping.filter(function(x){return !x.checked && x.savedForLater});
+    var purchased=D.shopping.filter(function(x){return x.checked});
+    
+    s.textContent=toBuy.length+' items to buy';
+    var html='<div class="info"><span>🛒</span><span>Tap ✓ to mark purchased. Tap 🕐 to save for later.</span></div>';
+    
+    // To Buy section
+    if(toBuy.length){
+        html+='<div class="sec shop">To Buy</div>';
+        toBuy.forEach(function(item){
+            var ing=D.ings.find(function(i){return i.id===item.ingId});
+            var loc=item.lastAreaId?getAreaName(item.lastAreaId,item.lastSubArea):'No location';
+            if(ing)html+='<div class="shop-item"><div class="shop-check" onclick="purchaseItem('+item.id+')"></div><div class="shop-info"><div class="shop-name">'+ing.name+'</div><div class="shop-meta">📍 '+loc+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="del-btn" onclick="saveForLater('+item.id+')" title="Save for later" style="font-size:14px">🕐</button><button class="del-btn" onclick="delItem(\'shopping\','+item.id+')">🗑️</button></div>';
+        });
+    }
+    
+    // Saved for Later section
+    if(savedForLater.length){
+        html+='<div class="sec" style="margin-top:20px;color:#a29bfe">Saved for Later</div>';
+        savedForLater.forEach(function(item){
+            var ing=D.ings.find(function(i){return i.id===item.ingId});
+            var loc=item.lastAreaId?getAreaName(item.lastAreaId,item.lastSubArea):'No location';
+            if(ing)html+='<div class="shop-item" style="opacity:.7;border-left:3px solid #a29bfe"><div class="shop-info" style="flex:1"><div class="shop-name">'+ing.name+'</div><div class="shop-meta">📍 '+loc+'</div></div><div class="shop-qty" style="color:#a29bfe">'+item.qty+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="moveToList('+item.id+')" style="padding:4px 8px;font-size:10px">Move to List</button><button class="del-btn" onclick="delItem(\'shopping\','+item.id+')">🗑️</button></div>';
+        });
+    }
+    
+    // Recently Purchased section
+    if(purchased.length){
+        html+='<div class="sec shop" style="margin-top:20px;opacity:.6">Recently Purchased</div>';
+        purchased.forEach(function(item){
+            var ing=D.ings.find(function(i){return i.id===item.ingId});
+            if(ing)html+='<div class="shop-item" style="opacity:.5"><div class="shop-check checked">✓</div><div class="shop-info"><div class="shop-name" style="text-decoration:line-through">'+ing.name+'</div><div class="shop-meta">Added to inventory</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div></div>';
+        });
+    }
+    
+    // Empty state
+    if(!toBuy.length && !savedForLater.length && !purchased.length){
+        html+='<div style="text-align:center;padding:40px;color:#636e72"><div style="font-size:48px;margin-bottom:12px">🛒</div><div style="font-size:16px;font-weight:600;color:#a0aec0">Shopping list empty</div></div>';
+    }
+    
+    c.innerHTML=html;
+}
+
+function saveForLater(id){
+    var item=D.shopping.find(function(x){return x.id===id});
+    if(item){
+        item.savedForLater=1;
+        render();
+    }
+}
+
+function moveToList(id){
+    var item=D.shopping.find(function(x){return x.id===id});
+    if(item){
+        item.savedForLater=0;
+        render();
+    }
+}
+
+function purchaseItem(id){
+    var item=D.shopping.find(function(x){return x.id===id});
+    if(!item)return;
+    if(!item.lastAreaId){
+        pendingPurchase=id;
+        showLocationModal(id);
+        return;
+    }
+    completePurchase(id);
+}
+
+function showLocationModal(id){
+    var item=D.shopping.find(function(x){return x.id===id});
+    var ing=D.ings.find(function(x){return x.id===item.ingId});
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Select Location</h3>';
+    html+='<p style="font-size:12px;color:#a0aec0;margin-bottom:16px">Where should <strong style="color:#e0e6ed">'+ing.name+'</strong> be stored?</p>';
+    html+='<div class="form-g"><label class="form-l">Storage Area</label><select id="loc-area" class="form-i" onchange="updateLocSubSelect()">';
+    D.areas.forEach(function(a){html+='<option value="'+a.id+'">'+a.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g" id="loc-sub-wrap" style="display:none"><label class="form-l">Section</label><select id="loc-sub" class="form-i"></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal();pendingPurchase=null;" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmLocation()" style="flex:1">Add to Inventory</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+    updateLocSubSelect();
+}
+
+function updateLocSubSelect(){
+    var areaId=parseInt(document.getElementById('loc-area').value);
+    var area=D.areas.find(function(a){return a.id===areaId});
+    var wrap=document.getElementById('loc-sub-wrap');
+    var sel=document.getElementById('loc-sub');
+    
+    if(area && area.subs && area.subs.length){
+        wrap.style.display='block';
+        sel.innerHTML='<option value="">None</option>'+area.subs.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
+    }else{
+        wrap.style.display='none';
+    }
+}
+
+function confirmLocation(){
+    var item=D.shopping.find(function(x){return x.id===pendingPurchase});
+    if(!item)return;
+    
+    item.lastAreaId=parseInt(document.getElementById('loc-area').value);
+    var subSel=document.getElementById('loc-sub');
+    item.lastSubArea=subSel?subSel.value:'';
+    
+    var ing=D.ings.find(function(x){return x.id===item.ingId});
+    if(ing){
+        ing.areaId=item.lastAreaId;
+        ing.subArea=item.lastSubArea;
+    }
+    
+    closeModal();
+    completePurchase(pendingPurchase);
+    pendingPurchase=null;
+}
+
+function completePurchase(id){
+    var item=D.shopping.find(function(x){return x.id===id});
+    if(!item)return;
+    
+    var existing=D.inv.find(function(i){return i.ingId===item.ingId && i.areaId===item.lastAreaId && i.subArea===(item.lastSubArea||'')});
+    if(existing){
+        existing.qty+=item.qty;
+    }else{
+        D.inv.push({id:nid++,areaId:item.lastAreaId,subArea:item.lastSubArea||'',ingId:item.ingId,qty:item.qty,unit:item.unit});
+    }
+    item.checked=1;
+    render();
+}
+
+// ==================== PREP STATUS ====================
+function renderPrep(c,s){
+    s.textContent=D.preps.length+' prep items';
+    
+    var sorted=D.preps.slice().sort(function(a,b){
+        var tgt=5;
+        return getStatusNum(a.onHand,tgt)-getStatusNum(b.onHand,tgt);
+    });
+    
+    var html='<div class="legend"><div class="legend-i"><div class="legend-d red"></div><span class="legend-t">Critical</span></div><div class="legend-i"><div class="legend-d yellow"></div><span class="legend-t">Low</span></div><div class="legend-i"><div class="legend-d green"></div><span class="legend-t">Stocked</span></div></div>';
+    
+    sorted.forEach(function(p){
+        var tgt=5;
+        var st=getStatus(p.onHand,tgt);
+        var diff=p.onHand-tgt;
+        var ready=calcReady(p);
+        html+='<div class="card prep-card '+st+'"><div class="card-h"><div class="card-t">'+p.name+'</div><span class="badge bg-'+st+'">'+getStatusTxt(p.onHand,tgt)+'</span></div><div class="stats"><div class="stat"><div class="stat-l">On Hand</div><div class="stat-v">'+p.onHand+'</div></div><div class="stat"><div class="stat-l">TGT</div><div class="stat-v">'+tgt+'</div></div><div class="stat"><div class="stat-l">Diff</div><div class="stat-v '+st+'">'+(diff>=0?'+':'')+diff+'</div></div><div class="stat"><div class="stat-l">Ready</div><div class="stat-v" style="color:#00b894">'+ready+'</div></div></div></div>';
+    });
+    c.innerHTML=html;
+}
+
+function getStatus(oh,tgt){return oh>=tgt?'green':oh>=tgt-2?'yellow':'red';}
+function getStatusNum(oh,tgt){return oh>=tgt?2:oh>=tgt-2?1:0;}
+function getStatusTxt(oh,tgt){return oh>=tgt?'STOCKED':oh>=tgt-2?'LOW':'CRITICAL';}
+
+function calcReady(p){
+    var r=D.recs.find(function(x){return x.id===p.recId});
+    if(!r||!r.ings)return 0;
+    var min=999;
+    r.ings.forEach(function(ri){
+        var tot=D.inv.filter(function(i){return i.ingId===ri.ingId}).reduce(function(s,i){return s+i.qty},0);
+        if(ri.qty>0)min=Math.min(min,Math.floor(tot/ri.qty));
+    });
+    return min===999?0:min;
+}
+
+// ==================== INGREDIENTS ====================
+function renderIngs(c,s){
+    s.textContent=D.ings.length+' ingredients';
+    var html='';
+    
+    D.cats.forEach(function(cat){
+        var catIngs=D.ings.filter(function(i){return i.catId===cat.id});
+        if(!catIngs.length)return;
+        
+        html+='<div class="sec ing">'+cat.name+'</div>';
+        catIngs.forEach(function(ing){
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="delItem(\'ings\','+ing.id+')">🗑️</button></div></div>';
+        });
+    });
+    
+    c.innerHTML=html;
+}
+
+function editIng(id){
+    var ing=D.ings.find(function(x){return x.id===id});
+    if(!ing)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Edit Ingredient</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-ing-name" class="form-i" value="'+ing.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Category</label><select id="edit-ing-cat" class="form-i">';
+    D.cats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===ing.catId?' selected':'')+'>'+cat.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Default Storage Area</label><select id="edit-ing-area" class="form-i" onchange="updateEditIngSubSelect('+id+')">';
+    D.areas.forEach(function(a){html+='<option value="'+a.id+'"'+(a.id===ing.areaId?' selected':'')+'>'+a.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g" id="edit-ing-sub-wrap"><label class="form-l">Section</label><select id="edit-ing-sub" class="form-i"></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveIng('+id+')" style="flex:1">Save</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+    updateEditIngSubSelect(id);
+}
+
+function updateEditIngSubSelect(ingId){
+    var ing=D.ings.find(function(x){return x.id===ingId});
+    var areaId=parseInt(document.getElementById('edit-ing-area').value);
+    var area=D.areas.find(function(a){return a.id===areaId});
+    var wrap=document.getElementById('edit-ing-sub-wrap');
+    var sel=document.getElementById('edit-ing-sub');
+    
+    if(area && area.subs && area.subs.length){
+        wrap.style.display='block';
+        var opts='<option value="">None</option>';
+        area.subs.forEach(function(s){
+            var selected=(ing && ing.areaId===areaId && ing.subArea===s)?' selected':'';
+            opts+='<option value="'+s+'"'+selected+'>'+s+'</option>';
+        });
+        sel.innerHTML=opts;
+    }else{
+        wrap.style.display='none';
+    }
+}
+
+function saveIng(id){
+    var ing=D.ings.find(function(x){return x.id===id});
+    if(!ing)return;
+    
+    var oldAreaId=ing.areaId;
+    var oldSubArea=ing.subArea;
+    
+    ing.name=document.getElementById('edit-ing-name').value;
+    ing.catId=parseInt(document.getElementById('edit-ing-cat').value);
+    ing.areaId=parseInt(document.getElementById('edit-ing-area').value);
+    var subSel=document.getElementById('edit-ing-sub');
+    ing.subArea=subSel?subSel.value:'';
+    
+    // Also update any inventory items for this ingredient to the new location
+    D.inv.forEach(function(inv){
+        if(inv.ingId===id && inv.areaId===oldAreaId && inv.subArea===oldSubArea){
+            inv.areaId=ing.areaId;
+            inv.subArea=ing.subArea;
+        }
+    });
+    
+    closeModal();
+    render();
+}
+
+// ==================== RECIPES ====================
+function renderRecs(c,s){
+    s.textContent=D.recs.length+' recipes';
+    var html='';
+    
+    D.recs.forEach(function(rec){
+        var ex=exp['rec-'+rec.id];
+        html+='<div class="card rec-card"><div class="card-h" onclick="tog(\'rec-\'+'+rec.id+')" style="cursor:pointer"><div><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+' • Yield: '+rec.yield+'% • Shelf: '+rec.shelfLife+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
+        
+        if(ex){
+            html+='<div class="rec-ings">';
+            
+            // Ingredients section
+            html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec" style="color:#fdcb6e;margin-top:0">Ingredients</div><button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+            if(rec.ings && rec.ings.length){
+                rec.ings.forEach(function(ri,idx){
+                    var ing=D.ings.find(function(x){return x.id===ri.ingId});
+                    if(ing){
+                        html+='<div class="rec-ing"><span class="rec-ing-name">'+ing.name+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" class="sm-input" value="'+ri.qty+'" onchange="updateRecIngQty('+rec.id+','+idx+',this.value)" style="width:50px" step="0.1"><input type="text" class="sm-input" value="'+ri.unit+'" onchange="updateRecIngUnit('+rec.id+','+idx+',this.value)" style="width:40px"><button class="del-btn" onclick="removeRecIng('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div></div>';
+                    }
+                });
+            }else{
+                html+='<div style="color:#636e72;font-size:11px;padding:8px">No ingredients added</div>';
+            }
+            
+            // Sub-recipes section
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#fd79a8;margin-top:0">Sub-Recipes</div><button class="btn btn-s btn-sm" onclick="addSubRec('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+            if(rec.subRecs && rec.subRecs.length){
+                rec.subRecs.forEach(function(sr,idx){
+                    var subRec=D.recs.find(function(r){return r.id===sr.recId});
+                    if(subRec){
+                        html+='<div class="rec-ing" style="border-left:2px solid #fd79a8"><span class="rec-ing-name">📖 '+subRec.name+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" class="sm-input" value="'+sr.qty+'" onchange="updateSubRecQty('+rec.id+','+idx+',this.value)" style="width:50px" step="0.1"><input type="text" class="sm-input" value="'+sr.unit+'" onchange="updateSubRecUnit('+rec.id+','+idx+',this.value)" style="width:40px"><button class="del-btn" onclick="removeSubRec('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div></div>';
+                    }
+                });
+            }else{
+                html+='<div style="color:#636e72;font-size:11px;padding:8px">No sub-recipes</div>';
+            }
+            
+            // Photos section
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#74b9ff;margin-top:0">Photos</div><button class="btn btn-s btn-sm" onclick="addRecPhoto('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+            if(rec.photos && rec.photos.length){
+                html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';
+                rec.photos.forEach(function(photo,idx){
+                    html+='<div style="position:relative;width:70px;height:70px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,.3)"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover" onerror="this.src=\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22>📷</text></svg>\'"><button onclick="removeRecPhoto('+rec.id+','+idx+')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:10px;cursor:pointer">×</button></div>';
+                });
+                html+='</div>';
+            }else{
+                html+='<div style="color:#636e72;font-size:11px;padding:8px">No photos</div>';
+            }
+            
+            // Videos section
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div class="sec" style="color:#00b894;margin-top:0">Videos</div><button class="btn btn-s btn-sm" onclick="addRecVideo('+rec.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+            if(rec.videos && rec.videos.length){
+                html+='<div style="margin-top:8px">';
+                rec.videos.forEach(function(video,idx){
+                    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px"><span style="font-size:20px">🎬</span><span style="flex:1;font-size:11px;color:#a0aec0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+video+'</span><button class="del-btn" onclick="removeRecVideo('+rec.id+','+idx+')" style="font-size:12px">🗑️</button></div>';
+                });
+                html+='</div>';
+            }else{
+                html+='<div style="color:#636e72;font-size:11px;padding:8px">No videos</div>';
+            }
+            
+            // Notes
+            if(rec.notes){
+                html+='<div class="sec" style="margin-top:12px;color:#a0aec0">Notes</div><p style="font-size:12px;color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px">'+rec.notes+'</p>';
+            }
+            
+            html+='<button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="margin-top:12px">✏️ Edit Recipe Details</button>';
+            html+='</div>';
+        }
+        html+='</div>';
+    });
+    
+    c.innerHTML=html;
+}
+
+// Add ingredient to recipe
+function addRecIng(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Add Ingredient to '+rec.name+'</h3>';
+    html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="add-rec-ing" class="form-i"><option value="">Select...</option>';
+    D.cats.forEach(function(cat){
+        var ci=D.ings.filter(function(i){return i.catId===cat.id});
+        if(ci.length){
+            html+='<optgroup label="'+cat.name+'">';
+            ci.forEach(function(i){html+='<option value="'+i.id+'">'+i.name+'</option>';});
+            html+='</optgroup>';
+        }
+    });
+    html+='</select></div>';
+    html+='<div class="form-r"><div class="form-g"><label class="form-l">Quantity</label><input type="number" id="add-rec-qty" class="form-i" placeholder="0" step="0.1"></div><div class="form-g"><label class="form-l">Unit</label><input type="text" id="add-rec-unit" class="form-i" placeholder="lb"></div></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddRecIng('+recId+')" style="flex:1">Add</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddRecIng(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    
+    var ingId=parseInt(document.getElementById('add-rec-ing').value);
+    var qty=parseFloat(document.getElementById('add-rec-qty').value);
+    var unit=document.getElementById('add-rec-unit').value;
+    
+    if(!ingId||!qty||!unit){alert('Please fill all fields');return;}
+    
+    if(!rec.ings)rec.ings=[];
+    rec.ings.push({ingId:ingId,qty:qty,unit:unit});
+    
+    closeModal();
+    render();
+}
+
+function removeRecIng(recId,idx){
+    if(!confirm('Remove this ingredient?'))return;
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.ings){
+        rec.ings.splice(idx,1);
+        render();
+    }
+}
+
+function updateRecIngUnit(recId,idx,newUnit){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.ings&&rec.ings[idx]){
+        rec.ings[idx].unit=newUnit;
+    }
+}
+
+// Sub-recipes
+function addSubRec(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var otherRecs=D.recs.filter(function(r){return r.id!==recId});
+    
+    var html='<h3>Add Sub-Recipe to '+rec.name+'</h3>';
+    html+='<div class="form-g"><label class="form-l">Recipe</label><select id="add-sub-rec" class="form-i"><option value="">Select...</option>';
+    otherRecs.forEach(function(r){
+        html+='<option value="'+r.id+'">'+r.name+'</option>';
+    });
+    html+='</select></div>';
+    html+='<div class="form-r"><div class="form-g"><label class="form-l">Quantity</label><input type="number" id="add-sub-qty" class="form-i" placeholder="0" step="0.1"></div><div class="form-g"><label class="form-l">Unit</label><input type="text" id="add-sub-unit" class="form-i" placeholder="batch"></div></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddSubRec('+recId+')" style="flex:1">Add</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddSubRec(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    
+    var subRecId=parseInt(document.getElementById('add-sub-rec').value);
+    var qty=parseFloat(document.getElementById('add-sub-qty').value);
+    var unit=document.getElementById('add-sub-unit').value;
+    
+    if(!subRecId||!qty||!unit){alert('Please fill all fields');return;}
+    
+    if(!rec.subRecs)rec.subRecs=[];
+    rec.subRecs.push({recId:subRecId,qty:qty,unit:unit});
+    
+    closeModal();
+    render();
+}
+
+function removeSubRec(recId,idx){
+    if(!confirm('Remove this sub-recipe?'))return;
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.subRecs){
+        rec.subRecs.splice(idx,1);
+        render();
+    }
+}
+
+function updateSubRecQty(recId,idx,newQty){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.subRecs&&rec.subRecs[idx]){
+        rec.subRecs[idx].qty=parseFloat(newQty)||0;
+    }
+}
+
+function updateSubRecUnit(recId,idx,newUnit){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.subRecs&&rec.subRecs[idx]){
+        rec.subRecs[idx].unit=newUnit;
+    }
+}
+
+// Photos
+function addRecPhoto(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Add Photo to '+rec.name+'</h3>';
+    html+='<div class="form-g"><label class="form-l">Photo URL</label><input type="text" id="add-photo-url" class="form-i" placeholder="https://..."></div>';
+    html+='<p style="font-size:11px;color:#636e72;margin-top:-8px;margin-bottom:12px">Enter a URL to an image, or use a base64 data URL</p>';
+    html+='<div class="form-g"><label class="form-l">Or Upload File</label><input type="file" id="add-photo-file" accept="image/*" onchange="handlePhotoUpload(this)" style="font-size:12px;color:#a0aec0"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddPhoto('+recId+')" style="flex:1">Add</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function handlePhotoUpload(input){
+    if(input.files&&input.files[0]){
+        var reader=new FileReader();
+        reader.onload=function(e){
+            document.getElementById('add-photo-url').value=e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function confirmAddPhoto(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    
+    var url=document.getElementById('add-photo-url').value;
+    if(!url){alert('Please enter a URL or upload a file');return;}
+    
+    if(!rec.photos)rec.photos=[];
+    rec.photos.push(url);
+    
+    closeModal();
+    render();
+}
+
+function removeRecPhoto(recId,idx){
+    if(!confirm('Remove this photo?'))return;
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.photos){
+        rec.photos.splice(idx,1);
+        render();
+    }
+}
+
+// Videos
+function addRecVideo(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Add Video to '+rec.name+'</h3>';
+    html+='<div class="form-g"><label class="form-l">Video URL</label><input type="text" id="add-video-url" class="form-i" placeholder="https://youtube.com/..."></div>';
+    html+='<p style="font-size:11px;color:#636e72;margin-top:-8px;margin-bottom:12px">YouTube, Vimeo, or direct video links</p>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddVideo('+recId+')" style="flex:1">Add</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddVideo(recId){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(!rec)return;
+    
+    var url=document.getElementById('add-video-url').value;
+    if(!url){alert('Please enter a video URL');return;}
+    
+    if(!rec.videos)rec.videos=[];
+    rec.videos.push(url);
+    
+    closeModal();
+    render();
+}
+
+function removeRecVideo(recId,idx){
+    if(!confirm('Remove this video?'))return;
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.videos){
+        rec.videos.splice(idx,1);
+        render();
+    }
+}
+
+function updateRecIngQty(recId,ingIdx,newQty){
+    var rec=D.recs.find(function(r){return r.id===recId});
+    if(rec&&rec.ings[ingIdx]){
+        rec.ings[ingIdx].qty=parseFloat(newQty)||0;
+    }
+}
+
+function editRec(id){
+    var rec=D.recs.find(function(x){return x.id===id});
+    if(!rec)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Edit Recipe</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-rec-name" class="form-i" value="'+rec.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="edit-rec-group" class="form-i" value="'+rec.group+'"></div>';
+    html+='<div class="form-r"><div class="form-g"><label class="form-l">Yield %</label><input type="number" id="edit-rec-yield" class="form-i" value="'+rec.yield+'"></div><div class="form-g"><label class="form-l">Shelf Life</label><input type="text" id="edit-rec-shelf" class="form-i" value="'+rec.shelfLife+'"></div></div>';
+    html+='<div class="form-g"><label class="form-l">Notes</label><textarea id="edit-rec-notes" class="form-i" rows="3">'+rec.notes+'</textarea></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRec('+id+')" style="flex:1">Save</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function saveRec(id){
+    var rec=D.recs.find(function(x){return x.id===id});
+    if(!rec)return;
+    rec.name=document.getElementById('edit-rec-name').value;
+    rec.group=document.getElementById('edit-rec-group').value;
+    rec.yield=parseInt(document.getElementById('edit-rec-yield').value)||0;
+    rec.shelfLife=document.getElementById('edit-rec-shelf').value;
+    rec.notes=document.getElementById('edit-rec-notes').value;
+    closeModal();
+    render();
+}
+
+// ==================== MENU ====================
+function renderMenu(c,s){
+    s.textContent=D.menus.length+' items';
+    var html='';
+    
+    D.menus.forEach(function(m){
+        var unit=D.units.find(function(u){return u.id===m.unitId});
+        var ex=exp['menu-'+m.id];
+        
+        // Get associated recipes
+        var recNames=[];
+        if(m.recIds&&m.recIds.length){
+            m.recIds.forEach(function(rid){
+                var r=D.recs.find(function(x){return x.id===rid});
+                if(r)recNames.push(r.name);
+            });
+        }
+        
+        html+='<div class="card"><div class="card-h" onclick="tog(\'menu-\'+'+m.id+')" style="cursor:pointer"><div><div class="card-t">'+m.name+'</div><div class="card-s">TGT: '+m.tgt+(unit?' '+unit.abbr:'')+' • '+(recNames.length?recNames.length+' recipe'+(recNames.length>1?'s':''):'No recipes')+'</div></div><span style="color:#a0aec0">'+(ex?'▼':'▶')+'</span></div>';
+        
+        if(ex){
+            html+='<div style="margin-top:12px">';
+            
+            // Target quantity edit
+            html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:12px;color:#a0aec0">Target:</span><input type="number" class="sm-input" value="'+m.tgt+'" onchange="updTgt('+m.id+',this.value)" style="width:60px"><select class="sm-input" onchange="updMenuUnit('+m.id+',this.value)" style="width:auto;padding:6px">';
+            D.units.forEach(function(u){
+                html+='<option value="'+u.id+'"'+(u.id===m.unitId?' selected':'')+'>'+u.abbr+'</option>';
+            });
+            html+='</select></div>';
+            
+            // Associated recipes
+            html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec" style="color:#fdcb6e;margin:0">Recipes Used</div><button class="btn btn-s btn-sm" onclick="addMenuRec('+m.id+')" style="padding:4px 8px;font-size:10px">+ Add</button></div>';
+            if(m.recIds&&m.recIds.length){
+                m.recIds.forEach(function(rid,idx){
+                    var r=D.recs.find(function(x){return x.id===rid});
+                    if(r){
+                        html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+r.name+'</span><button class="del-btn" onclick="removeMenuRec('+m.id+','+idx+')" style="font-size:12px">🗑️</button></div>';
+                    }
+                });
+            }else{
+                html+='<div style="color:#636e72;font-size:11px;padding:8px">No recipes assigned</div>';
+            }
+            
+            html+='<button class="btn btn-s btn-sm" onclick="editMenu('+m.id+')" style="margin-top:12px">✏️ Edit Details</button>';
+            html+='</div>';
+        }
+        html+='</div>';
+    });
+    
+    c.innerHTML=html;
+}
+
+function updMenuUnit(menuId,unitId){
+    var menu=D.menus.find(function(x){return x.id===menuId});
+    if(menu)menu.unitId=parseInt(unitId);
+}
+
+function addMenuRec(menuId){
+    var menu=D.menus.find(function(x){return x.id===menuId});
+    if(!menu)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    // Filter out already added recipes
+    var availRecs=D.recs.filter(function(r){
+        return !menu.recIds||menu.recIds.indexOf(r.id)===-1;
+    });
+    
+    var html='<h3>Add Recipe to '+menu.name+'</h3>';
+    if(availRecs.length){
+        html+='<div class="form-g"><label class="form-l">Recipe</label><select id="add-menu-rec" class="form-i"><option value="">Select...</option>';
+        availRecs.forEach(function(r){
+            html+='<option value="'+r.id+'">'+r.name+' ('+r.group+')</option>';
+        });
+        html+='</select></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddMenuRec('+menuId+')" style="flex:1">Add</button></div>';
+    }else{
+        html+='<p style="font-size:12px;color:#a0aec0">All recipes are already added to this menu item.</p>';
+        html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:16px">OK</button>';
+    }
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddMenuRec(menuId){
+    var menu=D.menus.find(function(x){return x.id===menuId});
+    if(!menu)return;
+    
+    var recId=parseInt(document.getElementById('add-menu-rec').value);
+    if(!recId){alert('Please select a recipe');return;}
+    
+    if(!menu.recIds)menu.recIds=[];
+    menu.recIds.push(recId);
+    
+    closeModal();
+    render();
+}
+
+function removeMenuRec(menuId,idx){
+    if(!confirm('Remove this recipe?'))return;
+    var menu=D.menus.find(function(x){return x.id===menuId});
+    if(menu&&menu.recIds){
+        menu.recIds.splice(idx,1);
+        render();
+    }
+}
+
+function editMenu(id){
+    var menu=D.menus.find(function(x){return x.id===id});
+    if(!menu)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Edit Menu Item</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-menu-name" class="form-i" value="'+menu.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="edit-menu-tgt" class="form-i" value="'+menu.tgt+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Unit</label><select id="edit-menu-unit" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.id+'"'+(u.id===menu.unitId?' selected':'')+'>'+u.name+' ('+u.abbr+')</option>';});
+    html+='</select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenu('+id+')" style="flex:1">Save</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function saveMenu(id){
+    var menu=D.menus.find(function(x){return x.id===id});
+    if(!menu)return;
+    menu.name=document.getElementById('edit-menu-name').value;
+    menu.tgt=parseInt(document.getElementById('edit-menu-tgt').value)||0;
+    menu.unitId=parseInt(document.getElementById('edit-menu-unit').value);
+    closeModal();
+    render();
+}
+
+// ==================== ADMIN ====================
+function renderAdmin(c,s){
+    s.textContent='Settings';
+    var html='';
+    
+    // Storage Locations
+    html+='<div class="sec" style="color:#b2bec3">Storage Locations</div>';
+    D.areas.forEach(function(a){
+        html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+a.name+'</div><div class="card-s">'+(a.subs.length?a.subs.join(', '):'No sections')+(a.prep?' • Has Prep':'')+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editArea('+a.id+')">✏️</button><button class="del-btn" onclick="delAdminItem(\'areas\','+a.id+')">🗑️</button></div></div>';
+    });
+    html+='<button class="btn btn-s btn-sm" onclick="addArea()" style="margin-top:8px">+ Add Storage Location</button>';
+    
+    // Recipe Units
+    html+='<div class="sec" style="color:#b2bec3;margin-top:20px">Recipe & Inventory Units</div>';
+    var unitRows='';
+    D.units.forEach(function(u,idx){
+        if(idx%3===0)unitRows+='<div style="display:flex;gap:6px;margin-bottom:6px">';
+        unitRows+='<div style="flex:1;display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:6px;font-size:11px"><span style="color:#e0e6ed">'+u.name+' <span style="color:#636e72">('+u.abbr+')</span></span><div style="display:flex;gap:2px"><button class="del-btn" onclick="editUnit('+u.id+')" style="font-size:10px;padding:2px">✏️</button><button class="del-btn" onclick="delAdminItem(\'units\','+u.id+')" style="font-size:10px;padding:2px">🗑️</button></div></div>';
+        if(idx%3===2||idx===D.units.length-1)unitRows+='</div>';
+    });
+    html+=unitRows;
+    html+='<button class="btn btn-s btn-sm" onclick="addUnit()" style="margin-top:8px">+ Add Unit</button>';
+    
+    // Ingredient Categories
+    html+='<div class="sec" style="color:#b2bec3;margin-top:20px">Ingredient Categories</div>';
+    D.cats.forEach(function(cat){
+        html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div class="card-t">'+cat.name+'</div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delAdminItem(\'cats\','+cat.id+')">🗑️</button></div></div>';
+    });
+    html+='<button class="btn btn-s btn-sm" onclick="addCat()" style="margin-top:8px">+ Add Category</button>';
+    
+    // Menu Categories
+    html+='<div class="sec" style="color:#b2bec3;margin-top:20px">Menu Categories</div>';
+    D.menuCats.forEach(function(cat){
+        html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div class="card-t">'+cat.name+'</div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editMenuCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delAdminItem(\'menuCats\','+cat.id+')">🗑️</button></div></div>';
+    });
+    html+='<button class="btn btn-s btn-sm" onclick="addMenuCat()" style="margin-top:8px">+ Add Menu Category</button>';
+    
+    // Users
+    html+='<div class="sec" style="color:#b2bec3;margin-top:20px">Users</div>';
+    D.users.forEach(function(u){
+        var typeColor=u.type==='owner'?'#fdcb6e':'#74b9ff';
+        html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+u.name+' <span class="badge" style="background:rgba(255,255,255,.1);color:'+typeColor+';font-size:9px;padding:2px 6px">'+u.type.toUpperCase()+'</span></div><div class="card-s">'+u.email+(u.phone?' • '+u.phone:'')+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editUser('+u.id+')">✏️</button>'+(u.type!=='owner'||D.users.filter(function(x){return x.type==="owner"}).length>1?'<button class="del-btn" onclick="delAdminItem(\'users\','+u.id+')">🗑️</button>':'')+'</div></div>';
+    });
+    html+='<button class="btn btn-s btn-sm" onclick="addUser()" style="margin-top:8px">+ Add User</button>';
+    
+    c.innerHTML=html;
+}
+
+function delAdminItem(col,id){
+    if(!confirm('Delete this item?'))return;
+    if(col==='areas')D.areas=D.areas.filter(function(x){return x.id!==id});
+    else if(col==='units')D.units=D.units.filter(function(x){return x.id!==id});
+    else if(col==='cats')D.cats=D.cats.filter(function(x){return x.id!==id});
+    else if(col==='menuCats')D.menuCats=D.menuCats.filter(function(x){return x.id!==id});
+    else if(col==='users')D.users=D.users.filter(function(x){return x.id!==id});
+    render();
+}
+
+// Units
+function addUnit(){
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Add Unit</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-unit-name" class="form-i" placeholder="e.g. pound"></div>';
+    html+='<div class="form-g"><label class="form-l">Abbreviation</label><input type="text" id="add-unit-abbr" class="form-i" placeholder="e.g. lb"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddUnit()" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddUnit(){
+    var name=document.getElementById('add-unit-name').value;
+    var abbr=document.getElementById('add-unit-abbr').value;
+    if(!name||!abbr){alert('Please fill all fields');return;}
+    D.units.push({id:nid++,name:name,abbr:abbr});
+    closeModal();
+    render();
+}
+
+function editUnit(id){
+    var unit=D.units.find(function(x){return x.id===id});
+    if(!unit)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Edit Unit</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-unit-name" class="form-i" value="'+unit.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Abbreviation</label><input type="text" id="edit-unit-abbr" class="form-i" value="'+unit.abbr+'"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveUnit('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function saveUnit(id){
+    var unit=D.units.find(function(x){return x.id===id});
+    if(!unit)return;
+    unit.name=document.getElementById('edit-unit-name').value;
+    unit.abbr=document.getElementById('edit-unit-abbr').value;
+    closeModal();
+    render();
+}
+
+// Storage Areas
+function addArea(){
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Add Storage Location</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-area-name" class="form-i" placeholder="e.g. Walk-in Cooler"></div>';
+    html+='<div class="form-g"><label class="form-l">Sections (comma separated)</label><input type="text" id="add-area-subs" class="form-i" placeholder="e.g. Left, Middle, Right"></div>';
+    html+='<div class="form-g" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="add-area-prep"><label style="font-size:12px;color:#e0e6ed">Has Prep Storage</label></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddArea()" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddArea(){
+    var name=document.getElementById('add-area-name').value;
+    if(!name){alert('Please enter a name');return;}
+    var subsStr=document.getElementById('add-area-subs').value;
+    var subs=subsStr?subsStr.split(',').map(function(s){return s.trim()}).filter(function(s){return s}):[];
+    var prep=document.getElementById('add-area-prep').checked?1:0;
+    D.areas.push({id:nid++,name:name,prep:prep,subs:subs});
+    closeModal();
+    render();
+}
+
+// Categories
+function addCat(){
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Add Ingredient Category</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-cat-name" class="form-i" placeholder="e.g. Seafood"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddCat()" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddCat(){
+    var name=document.getElementById('add-cat-name').value;
+    if(!name){alert('Please enter a name');return;}
+    D.cats.push({id:nid++,name:name});
+    closeModal();
+    render();
+}
+
+function addMenuCat(){
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Add Menu Category</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-mcat-name" class="form-i" placeholder="e.g. Desserts"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddMenuCat()" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddMenuCat(){
+    var name=document.getElementById('add-mcat-name').value;
+    if(!name){alert('Please enter a name');return;}
+    D.menuCats.push({id:nid++,name:name});
+    closeModal();
+    render();
+}
+
+// Users
+function addUser(){
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Add User</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-user-name" class="form-i" placeholder="Full name"></div>';
+    html+='<div class="form-g"><label class="form-l">Email</label><input type="email" id="add-user-email" class="form-i" placeholder="email@example.com"></div>';
+    html+='<div class="form-g"><label class="form-l">Phone</label><input type="tel" id="add-user-phone" class="form-i" placeholder="555-555-5555"></div>';
+    html+='<div class="form-g"><label class="form-l">Type</label><select id="add-user-type" class="form-i"><option value="employee">Employee</option><option value="owner">Owner</option></select></div>';
+    html+='<div class="form-g"><label class="form-l">Password</label><input type="text" id="add-user-pass" class="form-i" placeholder="Create password"></div>';
+    html+='<div class="form-g" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="add-user-invite" checked><label style="font-size:12px;color:#e0e6ed">Send invite email</label></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddUser()" style="flex:1">Add User</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function confirmAddUser(){
+    var name=document.getElementById('add-user-name').value;
+    var email=document.getElementById('add-user-email').value;
+    var phone=document.getElementById('add-user-phone').value;
+    var type=document.getElementById('add-user-type').value;
+    var pass=document.getElementById('add-user-pass').value;
+    var sendInvite=document.getElementById('add-user-invite').checked;
+    
+    if(!name||!email||!pass){alert('Please fill required fields (name, email, password)');return;}
+    
+    D.users.push({id:nid++,name:name,email:email,phone:phone,type:type,password:pass});
+    
+    if(sendInvite){
+        // Simulate sending invite
+        setTimeout(function(){
+            alert('Invite sent to '+email+'!\n\nLogin URL: https://lachona.app/login\nUsername: '+email+'\nPassword: '+pass);
+        },300);
+    }
+    
+    closeModal();
+    render();
+}
+
+function editArea(id){
+    var area=D.areas.find(function(x){return x.id===id});
+    if(!area)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    
+    var html='<h3>Edit Storage Location</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-area-name" class="form-i" value="'+area.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Sections (comma separated)</label><input type="text" id="edit-area-subs" class="form-i" value="'+area.subs.join(', ')+'"></div>';
+    html+='<div class="form-g" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="edit-area-prep"'+(area.prep?' checked':'')+'><label style="font-size:12px;color:#e0e6ed">Has Prep Storage</label></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveArea('+id+')" style="flex:1">Save</button></div>';
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function saveArea(id){
+    var area=D.areas.find(function(x){return x.id===id});
+    if(!area)return;
+    area.name=document.getElementById('edit-area-name').value;
+    var subsStr=document.getElementById('edit-area-subs').value;
+    area.subs=subsStr?subsStr.split(',').map(function(s){return s.trim()}).filter(function(s){return s}):[];
+    area.prep=document.getElementById('edit-area-prep').checked?1:0;
+    closeModal();
+    render();
+}
+
+function editCat(id){
+    var cat=D.cats.find(function(x){return x.id===id});
+    if(!cat)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Edit Category</h3><div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-cat-name" class="form-i" value="'+cat.name+'"></div><div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveCat('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function saveCat(id){
+    var cat=D.cats.find(function(x){return x.id===id});
+    if(cat)cat.name=document.getElementById('edit-cat-name').value;
+    closeModal();
+    render();
+}
+
+function editMenuCat(id){
+    var cat=D.menuCats.find(function(x){return x.id===id});
+    if(!cat)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Edit Menu Category</h3><div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-mcat-name" class="form-i" value="'+cat.name+'"></div><div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuCat('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function saveMenuCat(id){
+    var cat=D.menuCats.find(function(x){return x.id===id});
+    if(cat)cat.name=document.getElementById('edit-mcat-name').value;
+    closeModal();
+    render();
+}
+
+function editUser(id){
+    var user=D.users.find(function(x){return x.id===id});
+    if(!user)return;
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Edit User</h3>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-user-name" class="form-i" value="'+user.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Email</label><input type="email" id="edit-user-email" class="form-i" value="'+user.email+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Phone</label><input type="tel" id="edit-user-phone" class="form-i" value="'+(user.phone||'')+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Type</label><select id="edit-user-type" class="form-i"><option value="owner"'+(user.type==='owner'?' selected':'')+'>Owner</option><option value="employee"'+(user.type==='employee'?' selected':'')+'>Employee</option></select></div>';
+    html+='<div class="form-g"><label class="form-l">Password</label><input type="text" id="edit-user-pass" class="form-i" value="'+(user.password||'')+'" placeholder="Enter new password"></div>';
+    html+='<button class="btn btn-s" onclick="resendInvite('+id+')" style="width:100%;margin-top:8px">📧 Resend Invite Email</button>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveUser('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function resendInvite(id){
+    var user=D.users.find(function(x){return x.id===id});
+    if(!user)return;
+    alert('Invite resent to '+user.email+'!\n\nLogin URL: https://lachona.app/login\nUsername: '+user.email+'\nPassword: '+user.password);
+}
+
+function saveUser(id){
+    var user=D.users.find(function(x){return x.id===id});
+    if(!user)return;
+    user.name=document.getElementById('edit-user-name').value;
+    user.email=document.getElementById('edit-user-email').value;
+    user.phone=document.getElementById('edit-user-phone').value;
+    user.type=document.getElementById('edit-user-type').value;
+    user.password=document.getElementById('edit-user-pass').value;
+    closeModal();
+    render();
+}
+
+// ==================== HELPERS ====================
+function tog(id){exp[id]=!exp[id];render();}
+function togAdd(id){addOpen[id]=!addOpen[id];render();}
+
+function updInv(id,v){var i=D.inv.find(function(x){return x.id===id});if(i){i.qty=parseFloat(v)||0;}}
+function updPrep(id,v){var p=D.preps.find(function(x){return x.id===id});if(p){p.onHand=parseFloat(v)||0;render();}}
+function updTgt(id,v){var m=D.menus.find(function(x){return x.id===id});if(m){m.tgt=parseInt(v)||0;}}
+
+function delItem(col,id){
+    if(!confirm('Delete this item?'))return;
+    if(col==='inv')D.inv=D.inv.filter(function(x){return x.id!==id});
+    else if(col==='ings')D.ings=D.ings.filter(function(x){return x.id!==id});
+    else if(col==='shopping')D.shopping=D.shopping.filter(function(x){return x.id!==id});
+    render();
+}
+
+function closeModal(){document.getElementById('modal-o').classList.remove('open');}
+
+function openAdd(){
+    var m=document.getElementById('modal'),o=document.getElementById('modal-o');
+    var html='<h3>Add New</h3>';
+    
+    if(tab==='ingredients'){
+        html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-name" class="form-i" placeholder="Ingredient name"></div>';
+        html+='<div class="form-g"><label class="form-l">Category</label><select id="add-cat" class="form-i">';
+        D.cats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
+        html+='</select></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addIng()" style="flex:1">Add</button></div>';
+    }else if(tab==='recipes'){
+        html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-name" class="form-i" placeholder="Recipe name"></div>';
+        html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="add-group" class="form-i" placeholder="e.g. Filling, Dough"></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addRec()" style="flex:1">Add</button></div>';
+    }else if(tab==='menu'){
+        html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-name" class="form-i" placeholder="Menu item name"></div>';
+        html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="add-tgt" class="form-i" placeholder="0"></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addMenuItem()" style="flex:1">Add</button></div>';
+    }else if(tab==='shopping'){
+        html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="add-ing" class="form-i">';
+        D.ings.forEach(function(i){html+='<option value="'+i.id+'">'+i.name+'</option>';});
+        html+='</select></div>';
+        html+='<div class="form-r"><div class="form-g"><label class="form-l">Qty</label><input type="number" id="add-qty" class="form-i" placeholder="0"></div><div class="form-g"><label class="form-l">Unit</label><input type="text" id="add-unit" class="form-i" placeholder="lb"></div></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addShopItem()" style="flex:1">Add</button></div>';
+    }else{
+        html+='<p style="font-size:12px;color:#a0aec0">Use "+ Add Item" inside each storage area to add inventory, or edit buttons to modify items.</p>';
+        html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:12px">OK</button>';
+    }
+    
+    m.innerHTML=html;
+    o.classList.add('open');
+}
+
+function addIng(){
+    var name=document.getElementById('add-name').value;
+    var catId=parseInt(document.getElementById('add-cat').value);
+    if(!name){alert('Enter a name');return;}
+    D.ings.push({id:nid++,name:name,catId:catId,areaId:1,subArea:''});
+    closeModal();
+    render();
+}
+
+function addRec(){
+    var name=document.getElementById('add-name').value;
+    var group=document.getElementById('add-group').value||'General';
+    if(!name){alert('Enter a name');return;}
+    D.recs.push({id:nid++,name:name,group:group,yield:100,shelfLife:'3 Days',notes:'',ings:[],subRecs:[],photos:[],videos:[]});
+    closeModal();
+    render();
+}
+
+function addMenuItem(){
+    var name=document.getElementById('add-name').value;
+    var tgt=parseInt(document.getElementById('add-tgt').value)||0;
+    if(!name){alert('Enter a name');return;}
+    D.menus.push({id:nid++,name:name,tgt:tgt,unitId:1,recIds:[]});
+    closeModal();
+    render();
+}
+
+function addShopItem(){
+    var ingId=parseInt(document.getElementById('add-ing').value);
+    var qty=parseFloat(document.getElementById('add-qty').value);
+    var unit=document.getElementById('add-unit').value;
+    if(!ingId||!qty||!unit){alert('Fill all fields');return;}
+    var ing=D.ings.find(function(x){return x.id===ingId});
+    D.shopping.push({id:nid++,ingId:ingId,qty:qty,unit:unit,checked:0,savedForLater:0,lastAreaId:ing?ing.areaId:0,lastSubArea:ing?ing.subArea:''});
+    closeModal();
+    render();
+}
+
+document.addEventListener('DOMContentLoaded',render);
+document.getElementById('modal-o').addEventListener('click',function(e){if(e.target.id==='modal-o')closeModal();});
+</script>
+</body>
+</html>
