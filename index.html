@@ -626,6 +626,15 @@ async function loadFromSupabase(){
             console.log('rec_cats table not found, using defaults');
         }
         
+        // Try to load conversions separately (table might not exist)
+        var conversions = {data: []};
+        try {
+            conversions = await supabase.from('conversions').select('*').order('id');
+            console.log('conversions fetched:', conversions.data?.length || 0);
+        } catch(e) {
+            console.log('conversions table not found');
+        }
+        
         // Check if database has data, if not, migrate from localStorage/defaults
         if(!areas.data||areas.data.length===0){
             console.log('Database empty, migrating initial data...');
@@ -640,6 +649,7 @@ async function loadFromSupabase(){
         D.menuCats=(menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
         D.recCats=(recCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
         if(!D.recCats.length) D.recCats=[{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
+        D.conversions=(conversions.data||[]).map(mapConvFromDb);
         D.units=units.data||[];
         D.ings=(ings.data||[]).map(mapIngFromDb);
         D.inv=(inv.data||[]).map(mapInvFromDb);
@@ -680,8 +690,9 @@ function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id};}
 function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',outputMode:r.output_mode||'auto',manualQty:r.manual_qty||0,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0};}
-function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],preps:m.preps||[],recs:m.recs||[],archived:m.archived||0};}
+function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],preps:m.preps||[],recs:m.recs||[],archived:m.archived||0,includeInPrep:m.include_in_prep===0?0:1};}
 function mapLogFromDb(l){return{id:l.id,action:l.action,location:l.location||'',detail:l.detail||'',user:l.user_name||'',time:l.created_at};}
+function mapConvFromDb(c){return{id:c.id,ingId:c.ing_id,storageUnit:c.storage_unit,recipeUnit:c.recipe_unit,factor:c.factor||1};}
 
 // Mapping functions for saving (local camelCase to database snake_case)
 function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep};}
@@ -690,7 +701,8 @@ function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId};}
 function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived};}
-function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,preps:m.preps,recs:m.recs,archived:m.archived};}
+function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,preps:m.preps,recs:m.recs,archived:m.archived,include_in_prep:m.includeInPrep};}
+function mapConvToDb(c){return{id:c.id,ing_id:c.ingId,storage_unit:c.storageUnit,recipe_unit:c.recipeUnit,factor:c.factor};}
 
 async function migrateToSupabase(){
     console.log('Migrating data to Supabase...');
@@ -900,6 +912,14 @@ async function syncNow(){
         }
         if(deleteLog.menus.size > 0){
             promises.push(supabase.from('menus').delete().in('id', getDeletedIds('menus')));
+        }
+        
+        if(changeLog.conversions && changeLog.conversions.size > 0){
+            var items = getChangedItems('conversions', D.conversions, mapConvToDb);
+            if(items.length) promises.push(supabase.from('conversions').upsert(items));
+        }
+        if(deleteLog.conversions && deleteLog.conversions.size > 0){
+            promises.push(supabase.from('conversions').delete().in('id', getDeletedIds('conversions')));
         }
         
         if(changeLog.settings){
@@ -1155,50 +1175,51 @@ var D={
         {id:216,name:'Mategarita Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.25oz mix, shake w/ ice, strain into sugar-rimmed coupe, float 0.5oz red wine. Fresh lime.',ings:[],preps:[],subRecs:[{recId:116,qty:5}],photos:[],videos:[],archived:0}
     ],
     menus:[
-        {id:1,name:'Abuela Chona',catId:1,tgt:50,unitId:1,ings:[],preps:[{prepId:4,qty:1,unit:'ea'}],recs:[],archived:0},
-        {id:2,name:'Criolla',catId:1,tgt:30,unitId:1,ings:[],preps:[{prepId:6,qty:1,unit:'ea'}],recs:[],archived:0},
-        {id:3,name:'Sweet Beef',catId:1,tgt:20,unitId:1,ings:[],preps:[],recs:[{recId:1,qty:2,unit:'oz'}],archived:0},
-        {id:4,name:'Chorizo',catId:1,tgt:25,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:5,name:'Ham & Cheese',catId:1,tgt:30,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:6,name:'Pollo Regular',catId:1,tgt:25,unitId:1,ings:[],preps:[{prepId:5,qty:1,unit:'ea'}],recs:[],archived:0},
-        {id:7,name:'Pollo Spicy',catId:1,tgt:15,unitId:1,ings:[],preps:[{prepId:5,qty:1,unit:'ea'}],recs:[],archived:0},
-        {id:8,name:'Espinaca',catId:1,tgt:25,unitId:1,ings:[],preps:[{prepId:7,qty:1,unit:'ea'}],recs:[],archived:0},
-        {id:9,name:'Humita',catId:1,tgt:20,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:10,name:'Imposter',catId:1,tgt:15,unitId:1,ings:[],preps:[{prepId:8,qty:1,unit:'ea'}],recs:[],archived:0},
-        {id:11,name:'Ensalada Don Jose',catId:2,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:12,name:'Picadas',catId:3,tgt:5,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:13,name:'Quesos y Frutas',catId:3,tgt:5,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:14,name:'Chimichurri Dip',catId:3,tgt:5,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:15,name:'Papas Rustica',catId:3,tgt:15,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:16,name:'Soup of the Day',catId:4,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:17,name:'Alfajor',catId:5,tgt:20,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:18,name:'Pastelito',catId:5,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:20,name:'Maria Emilia Icon Blend 2020',catId:6,tgt:5,unitId:29,ings:[],preps:[],recs:[],archived:0},
-        {id:21,name:'Gran Reserva Cabernet Franc',catId:6,tgt:5,unitId:29,ings:[],preps:[],recs:[],archived:0},
-        {id:22,name:'Norte y Sur Malbec',catId:6,tgt:8,unitId:29,ings:[],preps:[],recs:[],archived:0},
-        {id:23,name:'Icon Sparkling 2020',catId:7,tgt:8,unitId:29,ings:[],preps:[],recs:[],archived:0},
-        {id:24,name:'Chardonnay 2022',catId:7,tgt:5,unitId:29,ings:[],preps:[],recs:[],archived:0},
-        {id:25,name:'Golden Cup',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:101,qty:1,unit:'ea'}],archived:0},
-        {id:26,name:'Que Miras Bobo',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:102,qty:1,unit:'ea'}],archived:0},
-        {id:27,name:'Argentina',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:103,qty:1,unit:'ea'}],archived:0},
-        {id:28,name:'Buenos Aires Old Fashioned',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:104,qty:1,unit:'ea'}],archived:0},
-        {id:29,name:'Espresso Martini',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:106,qty:1,unit:'ea'}],archived:0},
-        {id:34,name:'Fernet Sour',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:105,qty:1,unit:'ea'}],archived:0},
-        {id:35,name:'Lagrima de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:107,qty:1,unit:'ea'}],archived:0},
-        {id:36,name:'La Nieta',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:108,qty:1,unit:'ea'}],archived:0},
-        {id:37,name:'Mendoza',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:109,qty:1,unit:'ea'}],archived:0},
-        {id:38,name:'Potion de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:110,qty:1,unit:'ea'}],archived:0},
-        {id:39,name:'Red Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:111,qty:1,unit:'ea'}],archived:0},
-        {id:40,name:'White Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:112,qty:1,unit:'ea'}],archived:0},
-        {id:41,name:'Bloody Mary',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:113,qty:1,unit:'ea'}],archived:0},
-        {id:42,name:'Asadors Julep',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:114,qty:1,unit:'ea'}],archived:0},
-        {id:43,name:'Beso de Frambuesa',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:115,qty:1,unit:'ea'}],archived:0},
-        {id:44,name:'Mategarita',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:116,qty:1,unit:'ea'}],archived:0},
-        {id:30,name:'Breakfast Empanada',catId:9,tgt:15,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:31,name:'Pancakes',catId:9,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:32,name:'Fresh Fruit',catId:11,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0},
-        {id:33,name:'Bacon',catId:11,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0}
+        {id:1,name:'Abuela Chona',catId:1,tgt:50,unitId:1,ings:[],preps:[{prepId:4,qty:1,unit:'ea'}],recs:[],archived:0,includeInPrep:1},
+        {id:2,name:'Criolla',catId:1,tgt:30,unitId:1,ings:[],preps:[{prepId:6,qty:1,unit:'ea'}],recs:[],archived:0,includeInPrep:1},
+        {id:3,name:'Sweet Beef',catId:1,tgt:20,unitId:1,ings:[],preps:[],recs:[{recId:1,qty:2,unit:'oz'}],archived:0,includeInPrep:1},
+        {id:4,name:'Chorizo',catId:1,tgt:25,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:5,name:'Ham & Cheese',catId:1,tgt:30,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:6,name:'Pollo Regular',catId:1,tgt:25,unitId:1,ings:[],preps:[{prepId:5,qty:1,unit:'ea'}],recs:[],archived:0,includeInPrep:1},
+        {id:7,name:'Pollo Spicy',catId:1,tgt:15,unitId:1,ings:[],preps:[{prepId:5,qty:1,unit:'ea'}],recs:[],archived:0,includeInPrep:1},
+        {id:8,name:'Espinaca',catId:1,tgt:25,unitId:1,ings:[],preps:[{prepId:7,qty:1,unit:'ea'}],recs:[],archived:0,includeInPrep:1},
+        {id:9,name:'Humita',catId:1,tgt:20,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:10,name:'Imposter',catId:1,tgt:15,unitId:1,ings:[],preps:[{prepId:8,qty:1,unit:'ea'}],recs:[],archived:0,includeInPrep:1},
+        {id:11,name:'Ensalada Don Jose',catId:2,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:12,name:'Picadas',catId:3,tgt:5,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:13,name:'Quesos y Frutas',catId:3,tgt:5,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:14,name:'Chimichurri Dip',catId:3,tgt:5,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:15,name:'Papas Rustica',catId:3,tgt:15,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:16,name:'Soup of the Day',catId:4,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:17,name:'Alfajor',catId:5,tgt:20,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:18,name:'Pastelito',catId:5,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:20,name:'Maria Emilia Icon Blend 2020',catId:6,tgt:5,unitId:29,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:21,name:'Gran Reserva Cabernet Franc',catId:6,tgt:5,unitId:29,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:22,name:'Norte y Sur Malbec',catId:6,tgt:8,unitId:29,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:23,name:'Icon Sparkling 2020',catId:7,tgt:8,unitId:29,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:24,name:'Chardonnay 2022',catId:7,tgt:5,unitId:29,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:25,name:'Golden Cup',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:101,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:26,name:'Que Miras Bobo',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:102,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:27,name:'Argentina',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:103,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:28,name:'Buenos Aires Old Fashioned',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:104,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:29,name:'Espresso Martini',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:106,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:34,name:'Fernet Sour',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:105,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:35,name:'Lagrima de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:107,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:36,name:'La Nieta',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:108,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:37,name:'Mendoza',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:109,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:38,name:'Potion de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:110,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:39,name:'Red Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:111,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:40,name:'White Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:112,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:41,name:'Bloody Mary',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:113,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:42,name:'Asadors Julep',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:114,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:43,name:'Beso de Frambuesa',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:115,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:44,name:'Mategarita',catId:8,tgt:0,unitId:1,ings:[],preps:[],recs:[{recId:116,qty:1,unit:'ea'}],archived:0,includeInPrep:1},
+        {id:30,name:'Breakfast Empanada',catId:9,tgt:15,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:31,name:'Pancakes',catId:9,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:32,name:'Fresh Fruit',catId:11,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1},
+        {id:33,name:'Bacon',catId:11,tgt:10,unitId:1,ings:[],preps:[],recs:[],archived:0,includeInPrep:1}
     ],
+    conversions:[],
     log:[]
 };
 
@@ -1522,6 +1543,24 @@ function getPrepName(id){var p=D.preps.find(function(x){return x.id===id;});retu
 
 function getStatusColor(oh,tgt){var d=oh-tgt;return d>=0?'green':d>-3?'yellow':'red';}
 function getStatusTxt(oh,tgt){var d=oh-tgt;return d>=0?'STOCKED':d>-3?'LOW':'CRITICAL';}
+
+// Unit conversion helpers
+function getConversionForIng(ingId){
+    return D.conversions.find(function(c){return c.ingId===ingId;});
+}
+function getConversionForUnit(unit){
+    return D.conversions.find(function(c){return c.recipeUnit===unit;});
+}
+function convertToStorage(qty,ingId){
+    var conv=getConversionForIng(ingId);
+    if(!conv||!conv.factor)return null;
+    return{qty:Math.ceil(qty/conv.factor),unit:conv.storageUnit};
+}
+function convertToRecipe(qty,ingId){
+    var conv=getConversionForIng(ingId);
+    if(!conv||!conv.factor)return null;
+    return{qty:qty*conv.factor,unit:conv.recipeUnit};
+}
 
 // ==================== INVENTORY ====================
 function renderInv(c,s){
@@ -1985,10 +2024,10 @@ function confirmAddToInv(){
 
 // ==================== PREP STATUS ====================
 function renderPrep(c,s){
-    // Calculate prep requirements from Menu items
+    // Calculate prep requirements from Menu items (only those with includeInPrep)
     var prepNeeds={};// recId -> {name, totalNeeded, unit, usedIn:[]}
     
-    D.menus.filter(function(m){return !m.archived;}).forEach(function(menu){
+    D.menus.filter(function(m){return !m.archived && m.includeInPrep;}).forEach(function(menu){
         if(menu.recs&&menu.recs.length){
             menu.recs.forEach(function(mr){
                 var rec=D.recs.find(function(r){return r.id===mr.recId;});
@@ -2011,8 +2050,18 @@ function renderPrep(c,s){
         var need=prepNeeds[recId];
         // Find on-hand in inventory (items with recId)
         var onHand=0;
+        var onHandStorage=0;
+        var storageUnit='';
         D.inv.forEach(function(inv){
-            if(inv.recId===recId)onHand+=inv.qty;
+            if(inv.recId===recId){
+                onHand+=inv.qty;
+                // Check if there's a conversion for this recipe unit
+                var conv=getConversionForUnit(need.unit);
+                if(conv){
+                    onHandStorage+=inv.qty;
+                    storageUnit=conv.storageUnit;
+                }
+            }
         });
         prepList.push({
             recId:recId,
@@ -2020,6 +2069,8 @@ function renderPrep(c,s){
             target:need.totalNeeded,
             unit:need.unit,
             onHand:onHand,
+            onHandStorage:onHandStorage,
+            storageUnit:storageUnit,
             usedIn:need.usedIn
         });
     });
@@ -2035,7 +2086,7 @@ function renderPrep(c,s){
     if(!prepList.length){
         html+='<div class="card" style="text-align:center;color:#a0aec0">';
         html+='<div style="font-size:calc(14px * var(--font-scale));margin-bottom:8px">No prep items yet</div>';
-        html+='<div style="font-size:calc(11px * var(--font-scale))">Add recipes to menu items to see prep requirements here.</div>';
+        html+='<div style="font-size:calc(11px * var(--font-scale))">Add recipes to menu items (with "Include in Prep" enabled) to see requirements here.</div>';
         html+='</div>';
     }else{
         prepList.forEach(function(prep){
@@ -2669,7 +2720,8 @@ function renderMenu(c,s){
         html+='<div class="sec menu">'+cat.name+' ('+catItems.length+')</div>';
         catItems.forEach(function(m){
             var isExp=exp['menu-'+m.id];
-            html+='<div class="card"><div class="card-h" onclick="tog(\'menu-'+m.id+'\')" style="cursor:pointer"><div><div class="card-t">'+m.name+'</div><div class="card-s">Target: '+m.tgt+'</div></div><span style="color:#a0aec0">'+(isExp?'▲':'▼')+'</span></div>';
+            var prepIcon=m.includeInPrep?'<span style="color:#00b894;font-size:calc(10px * var(--font-scale));margin-left:6px" title="Included in Prep">✓ Prep</span>':'<span style="color:#636e72;font-size:calc(10px * var(--font-scale));margin-left:6px" title="Not in Prep">○ No Prep</span>';
+            html+='<div class="card"><div class="card-h" onclick="tog(\'menu-'+m.id+'\')" style="cursor:pointer"><div><div class="card-t">'+m.name+prepIcon+'</div><div class="card-s">Target: '+m.tgt+'</div></div><span style="color:#a0aec0">'+(isExp?'▲':'▼')+'</span></div>';
             
             if(isExp){
                 html+='<div style="margin-top:12px">';
@@ -2872,6 +2924,7 @@ function editMenuItem(id){
     D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===menu.catId?' selected':'')+'>'+cat.name+'</option>';});
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="ed-menu-tgt" class="form-i" value="'+menu.tgt+'"></div>';
+    html+='<div class="form-g" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(108,92,231,.1);border-radius:8px"><input type="checkbox" id="ed-menu-prep" '+(menu.includeInPrep?'checked':'')+'><label for="ed-menu-prep" style="font-size:calc(13px * var(--font-scale));color:#e0e6ed;cursor:pointer">Include in Prep calculations</label></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuEdit('+id+')" style="flex:1">Save</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
@@ -2884,6 +2937,7 @@ function saveMenuEdit(id){
     menu.name=document.getElementById('ed-menu-name').value;
     menu.catId=+document.getElementById('ed-menu-cat').value;
     menu.tgt=+document.getElementById('ed-menu-tgt').value||0;
+    menu.includeInPrep=document.getElementById('ed-menu-prep').checked?1:0;
     closeModal();
     render();
 }
@@ -2959,6 +3013,19 @@ function renderAdmin(c,s){
         D.recCats.forEach(function(cat){
             html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editRecCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delRecCat('+cat.id+')">🗑️</button></div></div></div>';
         });
+    }
+    
+    // Unit Conversions
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">🔄 Unit Conversions ('+(D.conversions?D.conversions.length:0)+')<button class="btn btn-p btn-sm" onclick="addConversion()">+ Add</button></div>';
+    html+='<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-bottom:8px">Convert between storage units (how you buy) and recipe units (how you use)</div>';
+    if(D.conversions && D.conversions.length){
+        D.conversions.forEach(function(conv){
+            var ing=D.ings.find(function(i){return i.id===conv.ingId;});
+            var ingName=ing?ing.name:'Unknown';
+            html+='<div class="card" style="padding:10px;border-left:3px solid #6c5ce7"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t" style="font-size:calc(13px * var(--font-scale))">'+ingName+'</div><div class="card-s">1 '+conv.storageUnit+' = '+conv.factor+' '+conv.recipeUnit+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editConversion('+conv.id+')">✏️</button><button class="del-btn" onclick="delConversion('+conv.id+')">🗑️</button></div></div></div>';
+        });
+    }else{
+        html+='<div style="color:#636e72;font-size:calc(11px * var(--font-scale));padding:12px;text-align:center">No conversions set. Add conversions for items where storage and recipe units differ.<br><em>Example: Pancake Mix: 1 box = 18 cups</em></div>';
     }
     
     // Units
@@ -3143,6 +3210,90 @@ function saveNewMenuCat(){
     var maxId=Math.max.apply(null,D.menuCats.map(function(c){return c.id;}))||0;
     D.menuCats.push({id:maxId+1,name:name});
     closeModal();
+    render();
+}
+
+// Unit Conversions
+function addConversion(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Unit Conversion</div>';
+    html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="conv-ing" class="form-i"><option value="">Select ingredient...</option>';
+    D.ings.filter(function(i){return !i.archived;}).forEach(function(ing){
+        html+='<option value="'+ing.id+'">'+ing.name+'</option>';
+    });
+    html+='</select></div>';
+    html+='<div style="display:flex;gap:8px;align-items:center;margin:16px 0">';
+    html+='<div style="flex:1"><label class="form-l">Storage Unit</label><input type="text" id="conv-storage" class="form-i" placeholder="e.g. box"></div>';
+    html+='<span style="color:#a0aec0;padding-top:20px">=</span>';
+    html+='<div style="flex:1"><label class="form-l">Factor</label><input type="number" id="conv-factor" class="form-i" placeholder="e.g. 18"></div>';
+    html+='<div style="flex:1"><label class="form-l">Recipe Unit</label><select id="conv-recipe" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    html+='</select></div>';
+    html+='</div>';
+    html+='<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:12px">Example: 1 box = 18 cups means you buy boxes but recipes use cups</div>';
+    html+='<div style="display:flex;gap:8px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewConversion()" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewConversion(){
+    var ingId=+document.getElementById('conv-ing').value;
+    var storageUnit=document.getElementById('conv-storage').value.trim();
+    var factor=+document.getElementById('conv-factor').value;
+    var recipeUnit=document.getElementById('conv-recipe').value;
+    if(!ingId||!storageUnit||!factor||!recipeUnit){alert('Fill in all fields');return;}
+    
+    // Check if conversion already exists for this ingredient
+    var existing=D.conversions.find(function(c){return c.ingId===ingId;});
+    if(existing){alert('Conversion already exists for this ingredient. Edit or delete the existing one.');return;}
+    
+    saveState('Add unit conversion');
+    var maxId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+    D.conversions.push({id:maxId+1,ingId:ingId,storageUnit:storageUnit,factor:factor,recipeUnit:recipeUnit});
+    if(!changeLog.conversions)changeLog.conversions=new Set();
+    changeLog.conversions.add(maxId+1);
+    closeModal();
+    render();
+}
+
+function editConversion(id){
+    var conv=D.conversions.find(function(c){return c.id===id;});
+    if(!conv)return;
+    var ing=D.ings.find(function(i){return i.id===conv.ingId;});
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit Conversion for '+(ing?ing.name:'Unknown')+'</div>';
+    html+='<div style="display:flex;gap:8px;align-items:center;margin:16px 0">';
+    html+='<div style="flex:1"><label class="form-l">Storage Unit</label><input type="text" id="conv-storage" class="form-i" value="'+conv.storageUnit+'"></div>';
+    html+='<span style="color:#a0aec0;padding-top:20px">=</span>';
+    html+='<div style="flex:1"><label class="form-l">Factor</label><input type="number" id="conv-factor" class="form-i" value="'+conv.factor+'"></div>';
+    html+='<div style="flex:1"><label class="form-l">Recipe Unit</label><select id="conv-recipe" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===conv.recipeUnit?' selected':'')+'>'+u.abbr+'</option>';});
+    html+='</select></div>';
+    html+='</div>';
+    html+='<div style="display:flex;gap:8px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveConversionEdit('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveConversionEdit(id){
+    var conv=D.conversions.find(function(c){return c.id===id;});
+    if(!conv)return;
+    saveState('Edit unit conversion');
+    conv.storageUnit=document.getElementById('conv-storage').value.trim();
+    conv.factor=+document.getElementById('conv-factor').value;
+    conv.recipeUnit=document.getElementById('conv-recipe').value;
+    if(!changeLog.conversions)changeLog.conversions=new Set();
+    changeLog.conversions.add(id);
+    closeModal();
+    render();
+}
+
+function delConversion(id){
+    if(!confirm('Delete this conversion?'))return;
+    saveState('Delete unit conversion');
+    D.conversions=D.conversions.filter(function(c){return c.id!==id;});
+    if(!deleteLog.conversions)deleteLog.conversions=new Set();
+    deleteLog.conversions.add(id);
     render();
 }
 
@@ -3667,6 +3818,7 @@ var changeLog = {
     preps: new Set(),
     recs: new Set(),
     menus: new Set(),
+    conversions: new Set(),
     settings: false,
     log: new Set()
 };
@@ -3683,7 +3835,8 @@ var deleteLog = {
     shopping: new Set(),
     preps: new Set(),
     recs: new Set(),
-    menus: new Set()
+    menus: new Set(),
+    conversions: new Set()
 };
 
 function markChanged(table, id){
