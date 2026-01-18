@@ -480,10 +480,18 @@ document.addEventListener('click',function(e){
 });
 
 async function onAuthStateChange(event,session){
-    console.log('Auth event:', event);
+    console.log('Auth event:', event, 'Session:', !!session);
+    
+    // Check URL for recovery tokens (type=recovery in hash or query)
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var queryParams = new URLSearchParams(window.location.search);
+    var isRecoveryInUrl = hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery';
     
     // Handle password recovery - show update password form
-    if(event === 'PASSWORD_RECOVERY'){
+    // This must be checked FIRST, even if session exists
+    if(event === 'PASSWORD_RECOVERY' || isRecoveryInUrl || window.isPasswordRecovery){
+        window.isPasswordRecovery = true;
+        console.log('Password recovery mode activated');
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
         // Show update password form
@@ -551,9 +559,14 @@ async function updatePassword(){
         var result=await supabase.auth.updateUser({password:newPassword});
         if(result.error)throw result.error;
         showLoginSuccess('Password updated successfully! Signing you in...');
+        // Clear the recovery flag
+        window.isPasswordRecovery = false;
         // Clear the hash from URL
         history.replaceState(null,'',window.location.pathname);
-        // The auth state change should automatically sign them in
+        // Reload after a moment to complete sign in
+        setTimeout(function(){
+            window.location.reload();
+        }, 1500);
     }catch(err){
         showLoginError(err.message||'Failed to update password');
         document.getElementById('update-password-btn').disabled=false;
@@ -1572,14 +1585,18 @@ function renderIngs(c,s){
 }
 
 function deleteIngredient(id){
+    id=Number(id); // Ensure id is a number
     var ing=D.ings.find(function(x){return x.id===id;});
-    if(!ing)return;
+    if(!ing){
+        console.error('Ingredient not found:', id);
+        return;
+    }
     
     // Check if ingredient is used in any recipes
     var recipesUsingIng=[];
     D.recs.forEach(function(rec){
         if(rec.ings && rec.ings.length){
-            var usesIng=rec.ings.some(function(ri){return ri.ingId===id;});
+            var usesIng=rec.ings.some(function(ri){return Number(ri.ingId)===id;});
             if(usesIng)recipesUsingIng.push(rec.name);
         }
     });
@@ -1588,7 +1605,7 @@ function deleteIngredient(id){
     var menusUsingIng=[];
     D.menus.forEach(function(menu){
         if(menu.ings && menu.ings.length){
-            var usesIng=menu.ings.some(function(mi){return mi.ingId===id;});
+            var usesIng=menu.ings.some(function(mi){return Number(mi.ingId)===id;});
             if(usesIng)menusUsingIng.push(menu.name);
         }
     });
@@ -1618,25 +1635,25 @@ function deleteIngredient(id){
     // Remove from recipes
     D.recs.forEach(function(rec){
         if(rec.ings){
-            rec.ings=rec.ings.filter(function(ri){return ri.ingId!==id;});
+            rec.ings=rec.ings.filter(function(ri){return Number(ri.ingId)!==id;});
         }
     });
     
     // Remove from menu items
     D.menus.forEach(function(menu){
         if(menu.ings){
-            menu.ings=menu.ings.filter(function(mi){return mi.ingId!==id;});
+            menu.ings=menu.ings.filter(function(mi){return Number(mi.ingId)!==id;});
         }
     });
     
     // Remove from inventory
-    D.inv=D.inv.filter(function(i){return i.ingId!==id;});
+    D.inv=D.inv.filter(function(i){return Number(i.ingId)!==id;});
     
     // Remove from shopping list
-    D.shopping=D.shopping.filter(function(s){return s.ingId!==id;});
+    D.shopping=D.shopping.filter(function(s){return Number(s.ingId)!==id;});
     
     // Remove the ingredient itself
-    D.ings=D.ings.filter(function(i){return i.id!==id;});
+    D.ings=D.ings.filter(function(i){return Number(i.id)!==id;});
     
     // Log the action
     addLog('Deleted ingredient: '+ing.name,'Ingredients','');
@@ -1756,7 +1773,7 @@ function renderRecs(c,s){
                     html+='<div class="sec" style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-top:12px">Notes</div><p style="font-size:calc(11px * var(--font-scale));color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px">'+rec.notes+'</p>';
                 }
                 
-                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'recs\','+rec.id+')">📥 Archive</button></div>';
+                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'recs\','+rec.id+')">📥 Archive</button><button class="del-btn" onclick="deleteRecipe('+rec.id+')" title="Delete">🗑️</button></div>';
                 html+='</div>';
             }
             html+='</div>';
@@ -1873,6 +1890,76 @@ function saveRecSubRec(recId){
     saveState('Add sub-recipe');
     rec.subRecs.push({recId:+document.getElementById('new-sr-rec').value});
     closeModal();
+    render();
+}
+
+function deleteRecipe(id){
+    id=Number(id);
+    var rec=D.recs.find(function(r){return r.id===id;});
+    if(!rec){
+        console.error('Recipe not found:', id);
+        return;
+    }
+    
+    // Check if recipe is used in any menu items
+    var menusUsingRec=[];
+    D.menus.forEach(function(menu){
+        if(menu.recId===id){
+            menusUsingRec.push(menu.name);
+        }
+    });
+    
+    // Check if recipe is used as sub-recipe in other recipes
+    var recipesUsingAsSubRec=[];
+    D.recs.forEach(function(r){
+        if(r.subRecs && r.subRecs.length){
+            var usesRec=r.subRecs.some(function(sr){return Number(sr.recId)===id;});
+            if(usesRec)recipesUsingAsSubRec.push(r.name);
+        }
+    });
+    
+    // Build warning message
+    var warningMsg='';
+    if(menusUsingRec.length>0){
+        warningMsg+='⚠️ This recipe is used in '+menusUsingRec.length+' menu item(s):\n• '+menusUsingRec.slice(0,5).join('\n• ');
+        if(menusUsingRec.length>5)warningMsg+='\n• ...and '+(menusUsingRec.length-5)+' more';
+        warningMsg+='\n\n';
+    }
+    if(recipesUsingAsSubRec.length>0){
+        warningMsg+='⚠️ This recipe is used as a sub-recipe in '+recipesUsingAsSubRec.length+' recipe(s):\n• '+recipesUsingAsSubRec.slice(0,5).join('\n• ');
+        if(recipesUsingAsSubRec.length>5)warningMsg+='\n• ...and '+(recipesUsingAsSubRec.length-5)+' more';
+        warningMsg+='\n\n';
+    }
+    
+    warningMsg+='Are you sure you want to permanently delete "'+rec.name+'"?';
+    if(menusUsingRec.length>0||recipesUsingAsSubRec.length>0){
+        warningMsg+='\n\nThis will remove it from all menu items and recipes.';
+    }
+    
+    if(!confirm(warningMsg))return;
+    
+    saveState('Delete recipe: '+rec.name);
+    
+    // Remove from menu items that use this recipe
+    D.menus.forEach(function(menu){
+        if(menu.recId===id){
+            menu.recId=null;
+        }
+    });
+    
+    // Remove from other recipes that use this as sub-recipe
+    D.recs.forEach(function(r){
+        if(r.subRecs){
+            r.subRecs=r.subRecs.filter(function(sr){return Number(sr.recId)!==id;});
+        }
+    });
+    
+    // Remove the recipe itself
+    D.recs=D.recs.filter(function(r){return Number(r.id)!==id;});
+    
+    // Log the action
+    addLog('Deleted recipe: '+rec.name,'Recipes','');
+    
     render();
 }
 
@@ -2699,6 +2786,14 @@ document.addEventListener('DOMContentLoaded',async function(){
         var savedScale=localStorage.getItem('ro_fontScale');
         if(savedScale){D.fontScale=+savedScale;}
     }catch(e){}
+    
+    // Check URL for password recovery tokens BEFORE initializing auth
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var queryParams = new URLSearchParams(window.location.search);
+    if(hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery'){
+        window.isPasswordRecovery = true;
+        console.log('Password recovery detected in URL');
+    }
     
     // Initialize Supabase (uses dynamic import)
     var supabaseReady = await initSupabase();
