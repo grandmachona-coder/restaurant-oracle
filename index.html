@@ -633,13 +633,13 @@ async function updatePassword(){
 // ==================== SUPABASE DATA FUNCTIONS ====================
 async function loadFromSupabase(){
     showSyncStatus('syncing');
+    console.log('loadFromSupabase starting...');
     try{
-        // Load all tables
-        var [areas,cats,menuCats,recCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
+        // Load all tables - rec_cats might not exist yet, handle separately
+        var [areas,cats,menuCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
             supabase.from('areas').select('*').order('id'),
             supabase.from('cats').select('*').order('id'),
             supabase.from('menu_cats').select('*').order('id'),
-            supabase.from('rec_cats').select('*').order('id'),
             supabase.from('units').select('*').order('id'),
             supabase.from('ings').select('*').order('id'),
             supabase.from('inv').select('*').order('id'),
@@ -649,6 +649,14 @@ async function loadFromSupabase(){
             supabase.from('menus').select('*').order('id'),
             supabase.from('log').select('*').order('created_at',{ascending:false}).limit(100)
         ]);
+        
+        // Try to load rec_cats separately (table might not exist)
+        var recCats = {data: []};
+        try {
+            recCats = await supabase.from('rec_cats').select('*').order('id');
+        } catch(e) {
+            console.log('rec_cats table not found, using defaults');
+        }
         
         // Check if database has data, if not, migrate from localStorage/defaults
         if(!areas.data||areas.data.length===0){
@@ -662,6 +670,7 @@ async function loadFromSupabase(){
         D.cats=cats.data||[];
         D.menuCats=(menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
         D.recCats=(recCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
+        if(!D.recCats.length) D.recCats=[{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
         D.units=units.data||[];
         D.ings=(ings.data||[]).map(mapIngFromDb);
         D.inv=(inv.data||[]).map(mapInvFromDb);
@@ -683,12 +692,14 @@ async function loadFromSupabase(){
         }
         
         takeSyncSnapshot(); // Store snapshot of synced data
+        console.log('loadFromSupabase complete, calling showSyncStatus');
         showSyncStatus('synced');
     }catch(err){
         console.error('Load from Supabase error:',err);
         showSyncStatus('offline');
         // Fall back to localStorage
         loadAllDataLocal();
+        takeSyncSnapshot(); // Still take snapshot so sync can work later
     }
 }
 
@@ -1230,20 +1241,26 @@ var undoHistory=[];
 var syncedSnapshot = null;
 
 function takeSyncSnapshot(){
-    syncedSnapshot = {
-        inv: JSON.stringify(D.inv),
-        shopping: JSON.stringify(D.shopping),
-        preps: JSON.stringify(D.preps),
-        ings: JSON.stringify(D.ings),
-        recs: JSON.stringify(D.recs),
-        menus: JSON.stringify(D.menus),
-        areas: JSON.stringify(D.areas),
-        cats: JSON.stringify(D.cats),
-        menuCats: JSON.stringify(D.menuCats),
-        recCats: JSON.stringify(D.recCats),
-        units: JSON.stringify(D.units),
-        autoAddToInv: D.autoAddToInv
-    };
+    console.log('takeSyncSnapshot called');
+    try {
+        syncedSnapshot = {
+            inv: JSON.stringify(D.inv),
+            shopping: JSON.stringify(D.shopping),
+            preps: JSON.stringify(D.preps),
+            ings: JSON.stringify(D.ings),
+            recs: JSON.stringify(D.recs),
+            menus: JSON.stringify(D.menus),
+            areas: JSON.stringify(D.areas),
+            cats: JSON.stringify(D.cats),
+            menuCats: JSON.stringify(D.menuCats),
+            recCats: JSON.stringify(D.recCats || []),
+            units: JSON.stringify(D.units),
+            autoAddToInv: D.autoAddToInv
+        };
+        console.log('takeSyncSnapshot complete, syncedSnapshot:', !!syncedSnapshot);
+    } catch(e) {
+        console.error('takeSyncSnapshot error:', e);
+    }
 }
 
 function saveState(actionName){
