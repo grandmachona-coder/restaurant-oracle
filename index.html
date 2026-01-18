@@ -254,11 +254,11 @@
                     <div class="user-dropdown" id="user-dropdown">
                         <div class="user-dropdown-header">
                             <div class="user-dropdown-name" id="user-name">User</div>
-                            <div class="user-dropdown-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a2c7cfc3cbcee2c7dac3cfd2cec78cc1cdcf">[email&#160;protected]</a></div>
+                            <div class="user-dropdown-email" id="user-email">user@example.com</div>
                         </div>
-                        <div class="user-dropdown-item" onclick="syncNow()">🔄 Sync Now</div>
-                        <div class="user-dropdown-item" onclick="exportData()">📤 Export Backup</div>
-                        <div class="user-dropdown-item logout" onclick="signOut()">🚪 Sign Out</div>
+                        <div class="user-dropdown-item" onclick="event.stopPropagation();syncNow()">🔄 Sync Now</div>
+                        <div class="user-dropdown-item" onclick="event.stopPropagation();exportData()">📤 Export Backup</div>
+                        <div class="user-dropdown-item logout" onclick="event.stopPropagation();signOut()">🚪 Sign Out</div>
                     </div>
                 </div>
                 <button class="header-add" id="fab" onclick="openAdd()">+</button>
@@ -289,7 +289,7 @@
     </div>
     <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
 </div>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ==================== EARLY PASSWORD RECOVERY CHECK ====================
 // Check IMMEDIATELY before anything else runs - Supabase will clear the hash
 (function(){
@@ -468,14 +468,23 @@ async function signUp(){
 }
 
 async function signOut(){
+    console.log('signOut called');
     try{
+        if(!supabase){
+            console.error('Supabase not available');
+            alert('Error: Not connected to authentication service');
+            return;
+        }
+        console.log('Calling supabase.auth.signOut...');
         await supabase.auth.signOut();
+        console.log('Sign out successful');
         currentAuthUser=null;
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
         document.getElementById('user-dropdown').classList.remove('open');
     }catch(err){
         console.error('Sign out error:',err);
+        alert('Sign out failed: '+err.message);
     }
 }
 
@@ -716,16 +725,20 @@ async function saveToSupabase(table,data,isDelete){
 }
 
 async function syncNow(){
+    console.log('syncNow called');
+    console.log('supabase:', !!supabase, 'currentAuthUser:', !!currentAuthUser);
+    
     if(!supabase||!currentAuthUser){
         alert('Not connected to cloud. Please sign in.');
         return;
     }
     
     showSyncStatus('syncing');
+    console.log('Starting sync...');
     
     try{
         // Save all current data to Supabase
-        await Promise.all([
+        var results = await Promise.all([
             supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
             supabase.from('cats').upsert(D.cats),
             supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
@@ -738,7 +751,9 @@ async function syncNow(){
             supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
             supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
         ]);
+        console.log('Sync results:', results);
         showSyncStatus('synced');
+        console.log('Sync complete');
     }catch(err){
         console.error('Sync error:',err);
         showSyncStatus('offline');
