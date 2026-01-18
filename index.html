@@ -254,7 +254,7 @@
                     <div class="user-dropdown" id="user-dropdown">
                         <div class="user-dropdown-header">
                             <div class="user-dropdown-name" id="user-name">User</div>
-                            <div class="user-dropdown-email" id="user-email">user@example.com</div>
+                            <div class="user-dropdown-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3144425443715449505c415d541f525e5c">[email&#160;protected]</a></div>
                         </div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();syncNow()">🔄 Sync Now</div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();exportData()">📤 Export Backup</div>
@@ -289,7 +289,7 @@
     </div>
     <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
 </div>
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ==================== EARLY PASSWORD RECOVERY CHECK ====================
 // Check IMMEDIATELY before anything else runs - Supabase will clear the hash
 (function(){
@@ -1717,7 +1717,7 @@ function deleteIngredient(id){
     console.log('Ingredients: '+beforeCount+' -> '+D.ings.length);
     
     // Log the action
-    addLog('Deleted ingredient: '+ingName,'Ingredients','');
+    logAction('Deleted ingredient: '+ingName,'Ingredients','');
     
     // Delete from Supabase if connected
     if(supabase && currentAuthUser){
@@ -2035,7 +2035,7 @@ function deleteRecipe(id){
     D.recs=D.recs.filter(function(r){return Number(r.id)!==id;});
     
     // Log the action
-    addLog('Deleted recipe: '+recName,'Recipes','');
+    logAction('Deleted recipe: '+recName,'Recipes','');
     
     // Delete from Supabase if connected
     if(supabase && currentAuthUser){
