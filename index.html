@@ -3136,77 +3136,18 @@ function loadAllDataLocal(){
 }
 
 function mergeData(saved){
-    // For simple settings, use saved values
+    // Use ALL saved data as-is - user data is the source of truth
+    // Core file updates should never change user data
+    
     if(saved.autoAddToInv!==undefined)D.autoAddToInv=saved.autoAddToInv;
     
-    // For arrays that user modifies (inv, shopping, preps changes), use saved
-    if(saved.inv)D.inv=saved.inv;
-    if(saved.shopping)D.shopping=saved.shopping;
-    if(saved.log)D.log=saved.log;
-    
-    // For preps, merge: keep saved onHand values but add new default preps
-    if(saved.preps){
-        var savedPrepIds=saved.preps.map(function(p){return p.id;});
-        var defaultPreps=D.preps.filter(function(p){return savedPrepIds.indexOf(p.id)===-1;});
-        saved.preps.forEach(function(sp){
-            var existing=D.preps.find(function(p){return p.id===sp.id;});
-            if(existing){
-                existing.onHand=sp.onHand;
-                existing.tgt=sp.tgt;
-            }
-        });
-        defaultPreps.forEach(function(p){D.preps.push(p);});
-    }
-    
-    // For config arrays (users, areas, cats, menuCats, units), merge new defaults with saved edits
-    ['users','areas','cats','menuCats','units'].forEach(function(key){
-        if(saved[key]){
-            var savedIds=saved[key].map(function(x){return x.id;});
-            // Keep all saved items
-            D[key]=saved[key];
-            // Add any new default items not in saved
-            var defaultItems=getDefaultData()[key]||[];
-            defaultItems.forEach(function(item){
-                if(savedIds.indexOf(item.id)===-1){
-                    D[key].push(item);
-                }
-            });
-        }
+    // All data arrays - use saved data exactly as-is
+    ['users','areas','cats','menuCats','units','ings','inv','shopping','preps','recs','menus','log'].forEach(function(key){
+        if(saved[key])D[key]=saved[key];
     });
     
-    // For ings, recs, menus - merge: saved user additions + default items
-    ['ings','recs','menus'].forEach(function(key){
-        if(saved[key]){
-            var savedIds=saved[key].map(function(x){return x.id;});
-            var defaultItems=getDefaultData()[key]||[];
-            // Start with saved data
-            D[key]=saved[key];
-            // Add any new default items
-            defaultItems.forEach(function(item){
-                if(savedIds.indexOf(item.id)===-1){
-                    D[key].push(item);
-                }
-            });
-        }
-    });
-    
-    // Migrate menu data to new format
+    // Migrate menu data to new format if needed
     migrateMenuData();
-}
-
-function getDefaultData(){
-    // Returns fresh copy of default data for merging
-    return {
-        users:[{id:1,name:'Owner',role:'owner',email:'owner@lachona.com',phone:''},{id:2,name:'Maria',role:'employee',email:'maria@lachona.com',phone:''}],
-        areas:[{id:1,name:'Oven Fridge',sections:[],prep:1},{id:2,name:'Dairy Fridge',sections:[],prep:1},{id:3,name:'Prep Fridge',sections:['Left','Middle','Right'],prep:1},{id:4,name:'Main Prep Table',sections:[],prep:1},{id:5,name:'Oven Prep Table',sections:[],prep:1},{id:6,name:'Dishwasher',sections:[],prep:0},{id:7,name:'Sheeter',sections:[],prep:0},{id:8,name:'Freezer',sections:[],prep:1},{id:9,name:'Hallway Fridge',sections:[],prep:1},{id:10,name:'Stairs',sections:[],prep:0},{id:11,name:'Wine Display',sections:['Left Column','Top Row','Right Column'],prep:0},{id:12,name:'Left Wine Fridge',sections:[],prep:1},{id:13,name:'Right Wine Fridge',sections:[],prep:1}],
-        cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'},{id:7,name:'Bar/Spirits'},{id:8,name:'Bar/Wine'},{id:9,name:'Bar/Mixers'}],
-        menuCats:[{id:1,name:'Empanadas'},{id:2,name:'Ensalada'},{id:3,name:'Tapas'},{id:4,name:'Soup'},{id:5,name:'Desserts'},{id:6,name:'Red Wine'},{id:7,name:'White & Sparkling'},{id:8,name:'Cocktails'},{id:9,name:'Brunch'},{id:10,name:'Beverages'},{id:11,name:'Sides'}],
-        units:D.units,
-        ings:[], // Will be populated from current D.ings
-        recs:[],
-        menus:[],
-        preps:[]
-    };
 }
 
 function saveAllData(){
