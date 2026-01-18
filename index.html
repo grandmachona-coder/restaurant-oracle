@@ -254,7 +254,7 @@
                     <div class="user-dropdown" id="user-dropdown">
                         <div class="user-dropdown-header">
                             <div class="user-dropdown-name" id="user-name">User</div>
-                            <div class="user-dropdown-email" id="user-email">user@example.com</div>
+                            <div class="user-dropdown-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0e7b7d6b7c4e6b766f637e626b206d6163">[email&#160;protected]</a></div>
                         </div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();syncNow()">🔄 Sync Now</div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();exportData()">📤 Export Backup</div>
@@ -289,7 +289,7 @@
     </div>
     <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
 </div>
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ==================== EARLY PASSWORD RECOVERY CHECK ====================
 // Check IMMEDIATELY before anything else runs - Supabase will clear the hash
 (function(){
@@ -695,7 +695,7 @@ function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area
 function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id,qty:i.qty||0,unit:i.unit||'ea'};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id};}
-function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0};}
+function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',outputMode:r.output_mode||'auto',manualQty:r.manual_qty||0,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0};}
 function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],preps:m.preps||[],recs:m.recs||[],archived:m.archived||0};}
 function mapLogFromDb(l){return{id:l.id,action:l.action,location:l.location||'',detail:l.detail||'',user:l.user_name||'',time:l.created_at};}
 
@@ -705,7 +705,7 @@ function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaI
 function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId,qty:i.qty,unit:i.unit};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId};}
-function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived};}
+function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived};}
 function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,preps:m.preps,recs:m.recs,archived:m.archived};}
 
 async function migrateToSupabase(){
@@ -1199,9 +1199,15 @@ function calcRecipeOutput(rec){
 }
 
 function getRecipeOutputDisplay(rec){
+    // If manual mode, use manualQty
+    if(rec.outputMode === 'manual' && rec.manualQty > 0){
+        var unit = rec.yieldUnit || 'ea';
+        return rec.manualQty + ' ' + unit;
+    }
+    // Otherwise use calculated output
     var output = calcRecipeOutput(rec);
     if(output.qty === 0) return 'No ingredients';
-    return output.qty + ' ' + output.unit;
+    return output.qty + ' ' + (rec.yieldUnit || output.unit);
 }
 
 // ==================== DATA MIGRATION ====================
@@ -1954,7 +1960,8 @@ function renderRecs(c,s){
         catRecs.forEach(function(rec){
             var isExp=exp['rec-'+rec.id];
             var outputDisplay = getRecipeOutputDisplay(rec);
-            html+='<div class="card"><div class="card-h" onclick="tog(\'rec-'+rec.id+'\')" style="cursor:pointer"><div><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+' • <span style="color:#00b894">Produces: '+outputDisplay+'</span> <span style="color:#a0aec0">('+rec.yield+'% yield)</span></div></div><span style="color:#a0aec0">'+(isExp?'▲':'▼')+'</span></div>';
+            var yieldInfo = rec.outputMode === 'manual' ? '(manual)' : '('+rec.yield+'% yield)';
+            html+='<div class="card"><div class="card-h" onclick="tog(\'rec-'+rec.id+'\')" style="cursor:pointer"><div><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+' • <span style="color:#00b894">Produces: '+outputDisplay+'</span> <span style="color:#a0aec0">'+yieldInfo+'</span></div></div><span style="color:#a0aec0">'+(isExp?'▲':'▼')+'</span></div>';
             
             if(isExp){
                 html+='<div style="margin-top:12px">';
@@ -2219,25 +2226,62 @@ function editRec(id){
     if(!rec)return;
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var output = calcRecipeOutput(rec);
+    var isManual = rec.outputMode === 'manual';
     var html='<div class="modal-t">Edit '+rec.name+'</div>';
     html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-rec-name" class="form-i" value="'+rec.name+'"></div>';
     html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="ed-rec-group" class="form-i" value="'+rec.group+'"></div>';
     html+='<div class="form-g"><label class="form-l">Category</label><select id="ed-rec-cat" class="form-i"><option value="">Uncategorized</option>';
     D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===rec.catId?' selected':'')+'>'+cat.name+'</option>';});
     html+='</select></div>';
-    html+='<div style="display:flex;gap:8px">';
+    
+    // Output Mode Toggle
+    html+='<div class="form-g"><label class="form-l">Output Mode</label><div style="display:flex;gap:4px">';
+    html+='<button type="button" id="btn-mode-auto" class="btn btn-sm '+(isManual?'btn-s':'btn-p')+'" onclick="toggleOutputMode(\'auto\')" style="flex:1;padding:8px">🔄 Yield Calc</button>';
+    html+='<button type="button" id="btn-mode-manual" class="btn btn-sm '+(isManual?'btn-p':'btn-s')+'" onclick="toggleOutputMode(\'manual\')" style="flex:1;padding:8px">✏️ Manual</button>';
+    html+='</div></div>';
+    
+    // Yield % row (for auto mode)
+    html+='<div id="yield-row" style="display:'+(isManual?'none':'flex')+';gap:8px">';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Yield %</label><input type="number" id="ed-rec-yield" class="form-i" value="'+rec.yield+'" min="1" max="100"></div>';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Output Unit</label><select id="ed-rec-yieldunit" class="form-i">';
     html+='<option value=""'+((!rec.yieldUnit)?' selected':'')+'>Auto ('+output.unit+')</option>';
     D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(rec.yieldUnit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
-    html+='<div style="padding:10px;background:rgba(0,184,148,.1);border-radius:8px;margin-bottom:12px"><div style="font-size:calc(11px * var(--font-scale));color:#a0aec0">Calculated Production Output:</div><div style="font-size:calc(16px * var(--font-scale));color:#00b894;font-weight:600">'+output.qty+' '+(rec.yieldUnit||output.unit)+'</div></div>';
+    
+    // Manual qty row (for manual mode)
+    html+='<div id="manual-row" style="display:'+(isManual?'flex':'none')+';gap:8px">';
+    html+='<div class="form-g" style="flex:1"><label class="form-l">Output Quantity</label><input type="number" id="ed-rec-manualqty" class="form-i" value="'+(rec.manualQty||'')+'" step="0.1" placeholder="e.g. 100"></div>';
+    html+='<div class="form-g" style="flex:1"><label class="form-l">Output Unit</label><select id="ed-rec-manualunit" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+((rec.yieldUnit===u.abbr||(isManual && !rec.yieldUnit && u.abbr==='ea'))?' selected':'')+'>'+u.abbr+'</option>';});
+    html+='</select></div>';
+    html+='</div>';
+    
+    // Output display
+    var displayQty = isManual ? (rec.manualQty || 0) : output.qty;
+    var displayUnit = rec.yieldUnit || (isManual ? 'ea' : output.unit);
+    html+='<div id="output-display" style="padding:10px;background:rgba(0,184,148,.1);border-radius:8px;margin-bottom:12px"><div style="font-size:calc(11px * var(--font-scale));color:#a0aec0">'+(isManual?'Manual':'Calculated')+' Production Output:</div><div style="font-size:calc(16px * var(--font-scale));color:#00b894;font-weight:600">'+displayQty+' '+displayUnit+'</div></div>';
+    
     html+='<div class="form-g"><label class="form-l">Shelf Life</label><input type="text" id="ed-rec-shelf" class="form-i" value="'+rec.shelfLife+'"></div>';
     html+='<div class="form-g"><label class="form-l">Notes</label><textarea id="ed-rec-notes" class="form-i" rows="3">'+rec.notes+'</textarea></div>';
+    html+='<input type="hidden" id="ed-rec-outputmode" value="'+(rec.outputMode||'auto')+'">';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRecEdit('+id+')" style="flex:1">Save</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
+}
+
+function toggleOutputMode(mode){
+    var isManual = mode === 'manual';
+    document.getElementById('ed-rec-outputmode').value = mode;
+    document.getElementById('btn-mode-auto').className = 'btn btn-sm ' + (isManual ? 'btn-s' : 'btn-p');
+    document.getElementById('btn-mode-manual').className = 'btn btn-sm ' + (isManual ? 'btn-p' : 'btn-s');
+    document.getElementById('yield-row').style.display = isManual ? 'none' : 'flex';
+    document.getElementById('manual-row').style.display = isManual ? 'flex' : 'none';
+    
+    // Update output display label
+    var outputDiv = document.getElementById('output-display');
+    var label = outputDiv.querySelector('div:first-child');
+    label.textContent = (isManual ? 'Manual' : 'Calculated') + ' Production Output:';
 }
 
 function saveRecEdit(id){
@@ -2247,8 +2291,16 @@ function saveRecEdit(id){
     rec.name=document.getElementById('ed-rec-name').value;
     rec.group=document.getElementById('ed-rec-group').value;
     rec.catId=+document.getElementById('ed-rec-cat').value||0;
-    rec.yield=+document.getElementById('ed-rec-yield').value||98;
-    rec.yieldUnit=document.getElementById('ed-rec-yieldunit').value||'';
+    rec.outputMode=document.getElementById('ed-rec-outputmode').value||'auto';
+    
+    if(rec.outputMode === 'manual'){
+        rec.manualQty=+document.getElementById('ed-rec-manualqty').value||0;
+        rec.yieldUnit=document.getElementById('ed-rec-manualunit').value||'ea';
+    } else {
+        rec.yield=+document.getElementById('ed-rec-yield').value||98;
+        rec.yieldUnit=document.getElementById('ed-rec-yieldunit').value||'';
+    }
+    
     rec.shelfLife=document.getElementById('ed-rec-shelf').value;
     rec.notes=document.getElementById('ed-rec-notes').value;
     closeModal();
@@ -3256,10 +3308,9 @@ function toggleFontControl(){
 
 function setFontScale(val){
     D.fontScale=+val;
-    document.getElementById('font-scale-val').textContent=(D.fontScale*100).toFixed(0)+'%';
-    document.getElementById('font-slider').value=val;
+    document.documentElement.style.setProperty('--font-scale',val);
+    document.getElementById('font-scale-val').textContent=Math.round(val*100)+'%';
     try{localStorage.setItem('ro_fontScale',val);}catch(e){}
-    render();
 }
 </script>
 </body>
