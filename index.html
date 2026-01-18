@@ -683,7 +683,7 @@ async function loadFromSupabase(){
         D.recs=(recs.data||[]).map(mapRecFromDb);
         D.menus=(menus.data||[]).map(mapMenuFromDb);
         D.log=(log.data||[]).map(mapLogFromDb);
-        console.log('Data mapped, recs:', D.recs.length, 'recCats:', D.recCats.length);
+        console.log('Data loaded from Supabase - recs:', D.recs.length, 'First rec:', D.recs[0]?.name);
         
         // Migrate menu data to new format if needed
         migrateMenuData();
@@ -3765,10 +3765,20 @@ function queueSupabaseSave(){
             
             if(changeLog.recs.size > 0){
                 var items = getChangedItems('recs', D.recs, mapRecToDb);
-                if(items.length) promises.push(supabase.from('recs').upsert(items));
+                console.log('Syncing recs:', items.length, 'items', items);
+                if(items.length) promises.push(supabase.from('recs').upsert(items).then(function(res){
+                    if(res.error) console.error('recs upsert error:', res.error);
+                    else console.log('recs upsert success:', res.data);
+                    return res;
+                }));
             }
             if(deleteLog.recs.size > 0){
-                promises.push(supabase.from('recs').delete().in('id', getDeletedIds('recs')));
+                var ids = getDeletedIds('recs');
+                console.log('Deleting recs:', ids);
+                promises.push(supabase.from('recs').delete().in('id', ids).then(function(res){
+                    if(res.error) console.error('recs delete error:', res.error);
+                    return res;
+                }));
             }
             
             if(changeLog.menus.size > 0){
