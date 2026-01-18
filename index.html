@@ -635,10 +635,11 @@ async function loadFromSupabase(){
     showSyncStatus('syncing');
     try{
         // Load all tables
-        var [areas,cats,menuCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
+        var [areas,cats,menuCats,recCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
             supabase.from('areas').select('*').order('id'),
             supabase.from('cats').select('*').order('id'),
             supabase.from('menu_cats').select('*').order('id'),
+            supabase.from('rec_cats').select('*').order('id'),
             supabase.from('units').select('*').order('id'),
             supabase.from('ings').select('*').order('id'),
             supabase.from('inv').select('*').order('id'),
@@ -660,6 +661,7 @@ async function loadFromSupabase(){
         D.areas=areas.data.map(mapAreaFromDb);
         D.cats=cats.data||[];
         D.menuCats=(menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
+        D.recCats=(recCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
         D.units=units.data||[];
         D.ings=(ings.data||[]).map(mapIngFromDb);
         D.inv=(inv.data||[]).map(mapInvFromDb);
@@ -718,6 +720,7 @@ async function migrateToSupabase(){
         if(D.areas.length)await supabase.from('areas').upsert(D.areas.map(mapAreaToDb));
         if(D.cats.length)await supabase.from('cats').upsert(D.cats);
         if(D.menuCats.length)await supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};}));
+        if(D.recCats&&D.recCats.length)await supabase.from('rec_cats').upsert(D.recCats.map(function(c){return{id:c.id,name:c.name};}));
         if(D.units.length)await supabase.from('units').upsert(D.units);
         if(D.ings.length)await supabase.from('ings').upsert(D.ings.map(mapIngToDb));
         if(D.inv.length)await supabase.from('inv').upsert(D.inv.map(mapInvToDb));
@@ -862,6 +865,7 @@ var D={
     ],
     cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'},{id:7,name:'Bar/Spirits'},{id:8,name:'Bar/Wine'},{id:9,name:'Bar/Mixers'}],
     menuCats:[{id:1,name:'Empanadas'},{id:2,name:'Ensalada'},{id:3,name:'Tapas'},{id:4,name:'Soup'},{id:5,name:'Desserts'},{id:6,name:'Red Wine'},{id:7,name:'White & Sparkling'},{id:8,name:'Cocktails'},{id:9,name:'Brunch'},{id:10,name:'Beverages'},{id:11,name:'Sides'}],
+    recCats:[{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}],
     units:[
         {id:1,name:'each',abbr:'ea'},{id:2,name:'pound',abbr:'lb'},{id:3,name:'ounce',abbr:'oz'},{id:4,name:'gram',abbr:'g'},{id:5,name:'kilogram',abbr:'kg'},
         {id:6,name:'cup',abbr:'cup'},{id:7,name:'tablespoon',abbr:'tbsp'},{id:8,name:'teaspoon',abbr:'tsp'},{id:9,name:'fluid ounce',abbr:'fl oz'},{id:10,name:'milliliter',abbr:'ml'},
@@ -1085,6 +1089,7 @@ function takeSyncSnapshot(){
         areas: JSON.stringify(D.areas),
         cats: JSON.stringify(D.cats),
         menuCats: JSON.stringify(D.menuCats),
+        recCats: JSON.stringify(D.recCats),
         units: JSON.stringify(D.units),
         autoAddToInv: D.autoAddToInv
     };
@@ -1127,6 +1132,7 @@ function detectAllChanges(){
     detectTableChanges('areas', JSON.parse(syncedSnapshot.areas), D.areas);
     detectTableChanges('cats', JSON.parse(syncedSnapshot.cats), D.cats);
     detectTableChanges('menuCats', JSON.parse(syncedSnapshot.menuCats), D.menuCats);
+    detectTableChanges('recCats', JSON.parse(syncedSnapshot.recCats || '[]'), D.recCats || []);
     detectTableChanges('units', JSON.parse(syncedSnapshot.units), D.units);
     
     // Check settings
@@ -2018,8 +2024,9 @@ function renderRecs(c,s){
     s.textContent=activeRecs.length+' recipes';
     var html='';
     
-    // Group by menu category
-    D.menuCats.forEach(function(cat){
+    // Group by recipe category
+    var recCats = D.recCats || [];
+    recCats.forEach(function(cat){
         var catRecs=activeRecs.filter(function(r){return r.catId===cat.id;});
         if(!catRecs.length)return;
         
@@ -2298,7 +2305,7 @@ function editRec(id){
     html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-rec-name" class="form-i" value="'+rec.name+'"></div>';
     html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="ed-rec-group" class="form-i" value="'+rec.group+'"></div>';
     html+='<div class="form-g"><label class="form-l">Category</label><select id="ed-rec-cat" class="form-i"><option value="">Uncategorized</option>';
-    D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===rec.catId?' selected':'')+'>'+cat.name+'</option>';});
+    if(D.recCats){ D.recCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===rec.catId?' selected':'')+'>'+cat.name+'</option>';}); }
     html+='</select></div>';
     
     // Output Mode Toggle
@@ -2672,6 +2679,14 @@ function renderAdmin(c,s){
         html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editMenuCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delMenuCat('+cat.id+')">🗑️</button></div></div></div>';
     });
     
+    // Recipe Categories
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📖 Recipe Categories ('+(D.recCats?D.recCats.length:0)+')<button class="btn btn-p btn-sm" onclick="addRecCat()">+ Add</button></div>';
+    if(D.recCats){
+        D.recCats.forEach(function(cat){
+            html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editRecCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delRecCat('+cat.id+')">🗑️</button></div></div></div>';
+        });
+    }
+    
     // Units
     html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📏 Recipe Units ('+D.units.length+')<button class="btn btn-p btn-sm" onclick="addUnit()">+ Add</button></div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
@@ -2915,6 +2930,56 @@ function delMenuCat(id){
     }
 }
 
+function addRecCat(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Recipe Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-rcat-name" class="form-i" placeholder="e.g. Sauces"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewRecCat()" style="flex:1">Add Category</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewRecCat(){
+    var name=document.getElementById('new-rcat-name').value.trim();
+    if(!name){alert('Enter a name');return;}
+    if(!D.recCats) D.recCats = [];
+    var maxId=D.recCats.length ? Math.max.apply(null,D.recCats.map(function(c){return c.id;})) : 0;
+    D.recCats.push({id:maxId+1,name:name});
+    closeModal();
+    render();
+}
+
+function editRecCat(id){
+    var cat=D.recCats.find(function(c){return c.id===id;});
+    if(!cat)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit Recipe Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-rcat-name" class="form-i" value="'+cat.name+'"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRecCatEdit('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveRecCatEdit(id){
+    var cat=D.recCats.find(function(c){return c.id===id;});
+    if(!cat)return;
+    cat.name=document.getElementById('ed-rcat-name').value;
+    closeModal();
+    render();
+}
+
+function delRecCat(id){
+    var inUse=D.recs.some(function(r){return r.catId===id;});
+    if(inUse){
+        alert('Cannot delete: This category is used by recipes.');
+        return;
+    }
+    if(confirm('Delete this recipe category?')){
+        D.recCats=D.recCats.filter(function(c){return c.id!==id;});
+        render();
+    }
+}
+
 function delUnit(id){
     // Check if unit is in use in recipes
     var inUse=D.recs.some(function(r){
@@ -2940,6 +3005,7 @@ function exportData(){
             areas:D.areas,
             cats:D.cats,
             menuCats:D.menuCats,
+            recCats:D.recCats,
             units:D.units,
             ings:D.ings,
             inv:D.inv,
@@ -3272,9 +3338,12 @@ function mergeData(saved){
     if(saved.autoAddToInv!==undefined)D.autoAddToInv=saved.autoAddToInv;
     
     // All data arrays - use saved data exactly as-is
-    ['users','areas','cats','menuCats','units','ings','inv','shopping','preps','recs','menus','log'].forEach(function(key){
+    ['users','areas','cats','menuCats','recCats','units','ings','inv','shopping','preps','recs','menus','log'].forEach(function(key){
         if(saved[key])D[key]=saved[key];
     });
+    
+    // Initialize recCats if not present
+    if(!D.recCats) D.recCats = [{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
     
     // Migrate menu data to new format if needed
     migrateMenuData();
@@ -3292,6 +3361,7 @@ function saveAllDataLocal(){
             areas:D.areas,
             cats:D.cats,
             menuCats:D.menuCats,
+            recCats:D.recCats,
             units:D.units,
             ings:D.ings,
             inv:D.inv,
@@ -3315,6 +3385,7 @@ var changeLog = {
     areas: new Set(),
     cats: new Set(),
     menuCats: new Set(),
+    recCats: new Set(),
     units: new Set(),
     ings: new Set(),
     inv: new Set(),
@@ -3331,6 +3402,7 @@ var deleteLog = {
     areas: new Set(),
     cats: new Set(),
     menuCats: new Set(),
+    recCats: new Set(),
     units: new Set(),
     ings: new Set(),
     inv: new Set(),
@@ -3423,6 +3495,7 @@ function queueSupabaseSave(){
             areas: changeLog.areas.size,
             cats: changeLog.cats.size,
             menuCats: changeLog.menuCats.size,
+            recCats: changeLog.recCats.size,
             units: changeLog.units.size,
             ings: changeLog.ings.size,
             inv: changeLog.inv.size,
@@ -3459,6 +3532,14 @@ function queueSupabaseSave(){
             }
             if(deleteLog.menuCats.size > 0){
                 promises.push(supabase.from('menu_cats').delete().in('id', getDeletedIds('menuCats')));
+            }
+            
+            if(changeLog.recCats.size > 0){
+                var items = getChangedItems('recCats', D.recCats, function(c){return{id:c.id,name:c.name};});
+                if(items.length) promises.push(supabase.from('rec_cats').upsert(items));
+            }
+            if(deleteLog.recCats.size > 0){
+                promises.push(supabase.from('rec_cats').delete().in('id', getDeletedIds('recCats')));
             }
             
             if(changeLog.units.size > 0){
