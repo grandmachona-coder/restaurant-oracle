@@ -1,1 +1,3023 @@
-I'll read the fixed file and write it there
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Restaurant Oracle</title>
+    
+    <!-- Supabase setup will be done inline in main script using dynamic import -->
+    
+    <!-- Web App Icons -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Restaurant Oracle">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Restaurant Oracle">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="Smart Kitchen Management">
+    <link rel="manifest" href="manifest.json">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        :root{--font-size:14px;--font-scale:1}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a3a);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+        
+        /* Login Screen - Warm Coral/Peach Theme with Dark Mode inputs */
+        .login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:40px 20px;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#f5c97a 0%,#f5a76c 25%,#e8846b 50%,#e07b65 75%,#d4725f 100%)}
+        .login-screen.hidden{display:none}
+        .login-logo{width:100%;max-width:340px;height:auto;margin-bottom:16px;border-radius:20px}
+        .login-title{font-size:28px;font-weight:700;color:#2d3436;margin-bottom:8px;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+        .login-subtitle{font-size:14px;color:#4a3f3a;margin-bottom:32px;text-align:center}
+        .login-box{width:100%;max-width:340px;background:rgba(30,30,50,.95);border:1px solid rgba(232,132,107,.3);border-radius:20px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+        .login-tabs{display:flex;margin-bottom:20px;background:rgba(0,0,0,.3);border-radius:10px;padding:4px}
+        .login-tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;color:#a0aec0;cursor:pointer;border-radius:8px;transition:all .2s}
+        .login-tab.active{background:linear-gradient(135deg,#e8846b,#f5a76c);color:#fff}
+        .login-form{display:none}
+        .login-form.active{display:block}
+        .login-input{width:100%;padding:14px 16px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e0e6ed;font-size:14px;margin-bottom:12px}
+        .login-input:focus{outline:none;border-color:#e8846b;box-shadow:0 0 0 3px rgba(232,132,107,.3)}
+        .login-input::placeholder{color:#636e72}
+        .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#e8846b,#f5a76c);border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
+        .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(232,132,107,.4)}
+        .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .login-error{background:rgba(214,48,49,.2);color:#ff7675;padding:12px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
+        .login-error.show{display:block}
+        .login-success{background:rgba(0,184,148,.2);color:#00b894;padding:12px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
+        .login-success.show{display:block}
+        .login-divider{text-align:center;color:#636e72;font-size:12px;margin:20px 0;position:relative}
+        .login-divider::before,.login-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:rgba(255,255,255,.1)}
+        .login-divider::before{left:0}
+        .login-divider::after{right:0}
+        .sync-status{position:fixed;bottom:20px;right:20px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:none;z-index:1000}
+        .sync-status.syncing{display:block;background:rgba(253,203,110,.2);color:#fdcb6e}
+        .sync-status.synced{display:block;background:rgba(0,184,148,.2);color:#00b894}
+        .sync-status.offline{display:block;background:rgba(214,48,49,.2);color:#ff7675}
+        .sync-status.unsaved{display:block;background:rgba(116,185,255,.2);color:#74b9ff}
+        .user-menu{position:relative}
+        .user-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00b894,#00cec9);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+        .user-dropdown{position:absolute;top:44px;right:0;background:#2d2d4a;border-radius:12px;padding:8px;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:none;z-index:50}
+        .user-dropdown.open{display:block}
+        .user-dropdown-item{padding:10px 12px;border-radius:8px;font-size:13px;color:#e0e6ed;cursor:pointer;display:flex;align-items:center;gap:8px}
+        .user-dropdown-item:hover{background:rgba(255,255,255,.1)}
+        .user-dropdown-item.logout{color:#ff7675}
+        .user-dropdown-header{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:4px}
+        .user-dropdown-name{font-weight:600;color:#e0e6ed;font-size:14px}
+        .user-dropdown-email{font-size:11px;color:#a0aec0;margin-top:2px}
+        
+        .phone{width:390px;height:844px;background:#1a1a2e;border-radius:44px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.5),0 0 0 12px #2a2a3e;display:flex;flex-direction:column;position:relative}
+        .phone.hidden{display:none}
+        .status{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 8px;font-size:calc(14px * var(--font-scale));font-weight:600;color:#e0e6ed}
+        .header{padding:12px 20px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
+        .header h1{font-size:calc(20px * var(--font-scale));color:#e0e6ed}
+        .header p{font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-top:2px}
+        .content{flex:1;overflow-y:auto;padding:16px;font-size:calc(var(--font-size) * var(--font-scale))}
+        .content::-webkit-scrollbar{width:4px}
+        .content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+        .tabs-container{display:flex;align-items:center;border-top:1px solid rgba(255,255,255,.1);position:relative;background:#1a1a2e}
+        .tabs-wrap{flex:1;overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-behavior:smooth}
+        .tabs-wrap::-webkit-scrollbar{display:none}
+        .tabs{display:flex;padding:8px 4px 30px;width:max-content;gap:4px}
+        .tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;cursor:pointer;border-radius:10px;min-width:65px;flex-shrink:0}
+        .scroll-hint{width:28px;height:60px;display:flex;align-items:center;justify-content:center;background:#1a1a2e;color:#a29bfe;font-size:28px;font-weight:bold;cursor:pointer;flex-shrink:0;border:none;padding-bottom:20px}
+        .scroll-hint:hover{color:#fff;background:rgba(108,92,231,.3)}
+        .scroll-hint.scroll-left{border-right:1px solid rgba(255,255,255,.1)}
+        .scroll-hint.scroll-right{border-left:1px solid rgba(255,255,255,.1)}
+        .tab:hover{background:rgba(255,255,255,.05)}
+        .tab span:first-child{font-size:calc(28px * var(--font-scale));opacity:.85;transition:all .2s}
+        .tab span:last-child{font-size:calc(10px * var(--font-scale));font-weight:600;color:#a0aec0;white-space:nowrap}
+        .tab.active span:first-child{opacity:1;transform:scale(1.1)}
+        .tab.active span:last-child{font-weight:700}
+        .tab[data-t="inventory"].active span:last-child{color:#a29bfe}
+        .tab[data-t="shopping"].active span:last-child{color:#e17055}
+        .tab[data-t="prep"].active span:last-child{color:#fd79a8}
+        .tab[data-t="ingredients"].active span:last-child{color:#00b894}
+        .tab[data-t="recipes"].active span:last-child{color:#fdcb6e}
+        .tab[data-t="menu"].active span:last-child{color:#74b9ff}
+        .tab[data-t="log"].active span:last-child{color:#81ecec}
+        .tab[data-t="admin"].active span:last-child{color:#b2bec3}
+        .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;margin-bottom:10px}
+        .card:hover{border-color:rgba(255,255,255,.2)}
+        .card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+        .card-t{font-size:calc(15px * var(--font-scale));font-weight:600;color:#e0e6ed}
+        .card-s{font-size:calc(11px * var(--font-scale));color:#a0aec0}
+        .card-cnt{font-size:calc(11px * var(--font-scale));color:#a0aec0;background:rgba(0,0,0,.2);padding:4px 8px;border-radius:6px}
+        .sec{font-size:calc(12px * var(--font-scale));font-weight:700;color:#a29bfe;margin:16px 0 8px;display:flex;align-items:center;gap:6px}
+        .sec.ing{color:#00b894}
+        .sec.prep{color:#fd79a8}
+        .sec.menu{color:#74b9ff}
+        .sec.log{color:#81ecec}
+        .btn{padding:10px 16px;border-radius:10px;font-weight:600;font-size:calc(13px * var(--font-scale));cursor:pointer;border:none;transition:all .2s}
+        .btn-p{background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff}
+        .btn-p:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(108,92,231,.4)}
+        .btn-s{background:rgba(255,255,255,.1);color:#e0e6ed}
+        .btn-s:hover{background:rgba(255,255,255,.15)}
+        .btn-sm{padding:6px 10px;font-size:calc(11px * var(--font-scale))}
+        .btn-d{background:rgba(214,48,49,.2);color:#d63031}
+        .form-g{margin-bottom:12px}
+        .form-l{display:block;font-size:calc(11px * var(--font-scale));font-weight:600;color:#a0aec0;margin-bottom:4px}
+        .form-i{width:100%;padding:10px 12px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))}
+        .form-i:focus{outline:none;border-color:#a29bfe}
+        .form-i::placeholder{color:#636e72}
+        select.form-i{cursor:pointer}
+        select.form-i optgroup{background:#2d2d4a;color:#a29bfe;font-weight:700;padding:4px 0}
+        select.form-i option{background:#1a1a2e;color:#e0e6ed;padding:8px}
+        .header-add{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6c5ce7,#a29bfe);border:none;color:#fff;font-size:22px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(108,92,231,.4);display:flex;align-items:center;justify-content:center;transition:all .2s}
+        .header-add:hover{transform:scale(1.1);box-shadow:0 4px 12px rgba(108,92,231,.5)}
+        .header-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#a0aec0;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+        .header-btn:hover:not(:disabled){background:rgba(255,255,255,.2);color:#e0e6ed}
+        .header-btn:disabled{cursor:not-allowed;opacity:0.4}
+        .font-control-bar{display:none;margin-top:10px;padding:10px 12px;background:rgba(0,0,0,.2);border-radius:8px;align-items:center;gap:10px}
+        .font-control-bar.open{display:flex}
+        .font-control-bar input[type="range"]{flex:1;accent-color:#a29bfe;height:4px}
+        .modal-o{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}
+        .modal-o.open{display:flex}
+        .modal{background:#1a1a2e;border-radius:20px;padding:20px;width:340px;max-height:80vh;overflow-y:auto}
+        .modal-t{font-size:calc(18px * var(--font-scale));font-weight:700;color:#e0e6ed;margin-bottom:16px}
+        .del-btn{background:none;border:none;color:#d63031;cursor:pointer;padding:4px;font-size:calc(16px * var(--font-scale))}
+        .del-btn:hover{opacity:.7}
+        .shop-item{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(0,0,0,.2);border-radius:10px;margin-bottom:8px}
+        .shop-item.checked{opacity:.5}
+        .shop-check{width:24px;height:24px;border-radius:6px;border:2px solid #e17055;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:calc(14px * var(--font-scale))}
+        .shop-check.checked{background:#e17055;color:#fff}
+        .shop-info{flex:1}
+        .shop-name{font-size:calc(14px * var(--font-scale));color:#e0e6ed;font-weight:600}
+        .shop-meta{font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-top:2px}
+        .shop-qty{font-size:calc(16px * var(--font-scale));font-weight:700;color:#e17055}
+        .shop-undo{background:none;border:none;color:#fdcb6e;cursor:pointer;font-size:calc(12px * var(--font-scale));padding:4px 8px;border-radius:4px}
+        .shop-undo:hover{background:rgba(253,203,110,.2)}
+        .rec-ing{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px}
+        .rec-ing-name{font-size:calc(12px * var(--font-scale));color:#e0e6ed}
+        .archive-header{margin-top:24px;padding:12px;background:rgba(0,0,0,.3);border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+        .archive-header span{color:#636e72;font-size:calc(12px * var(--font-scale));font-weight:600}
+        .log-item{padding:10px 12px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:6px;border-left:3px solid #81ecec}
+        .log-item .log-action{font-size:calc(13px * var(--font-scale));color:#e0e6ed;font-weight:500}
+        .log-item .log-meta{font-size:calc(10px * var(--font-scale));color:#a0aec0;margin-top:4px}
+        .standalone-badge{background:rgba(253,203,110,.2);color:#fdcb6e;font-size:calc(9px * var(--font-scale));padding:2px 6px;border-radius:4px;font-weight:600}
+        .min-qty-badge{background:rgba(0,184,148,.2);color:#00b894;font-size:calc(9px * var(--font-scale));padding:2px 6px;border-radius:4px;margin-left:4px}
+        .sub-area{margin-left:12px;padding-left:12px;border-left:2px solid rgba(255,255,255,.1)}
+        .add-toggle{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;margin-top:8px;border-radius:6px;background:rgba(108,92,231,.1);cursor:pointer;transition:background .2s}
+        .add-toggle:hover{background:rgba(108,92,231,.2)}
+        .add-toggle-t{font-size:calc(12px * var(--font-scale));color:#a29bfe;font-weight:500}
+        .add-form{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+        .add-form.open{display:block}
+        .inv-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:background .2s}
+        .inv-item:hover{background:rgba(108,92,231,.2)}
+        .inv-item-name{font-size:calc(13px * var(--font-scale));color:#e0e6ed}
+        .inv-item-sub{font-size:calc(10px * var(--font-scale));color:#a0aec0;margin-left:4px}
+        .inv-item-controls{display:flex;align-items:center;gap:6px}
+        .status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:calc(10px * var(--font-scale));font-weight:600}
+        .status-stocked{background:rgba(0,184,148,.2);color:#00b894}
+        .status-low{background:rgba(253,203,110,.2);color:#fdcb6e}
+        .status-critical{background:rgba(214,48,49,.2);color:#d63031}
+        .section-label{font-size:calc(10px * var(--font-scale));font-weight:700;color:#a0aec0;margin:12px 0 6px;padding-left:4px}
+        .recipe-comp{padding:8px;background:rgba(0,0,0,.15);border-radius:6px;margin-bottom:4px;border-left:2px solid}
+        .recipe-comp.ing{border-color:#00b894}
+        .recipe-comp.prep{border-color:#fd79a8}
+        .recipe-comp.rec{border-color:#fdcb6e}
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="login-screen">
+    <img src="icon.png" alt="Restaurant Oracle" class="login-logo">
+    <div class="login-title">Restaurant Oracle</div>
+    <div class="login-subtitle">Smart Kitchen Management for LaChona</div>
+    <div class="login-box">
+        <div class="login-tabs">
+            <div class="login-tab active" onclick="switchLoginTab('signin')">Sign In</div>
+            <div class="login-tab" onclick="switchLoginTab('signup')">Sign Up</div>
+        </div>
+        <div class="login-error" id="login-error"></div>
+        <div class="login-success" id="login-success"></div>
+        
+        <!-- Sign In Form -->
+        <div class="login-form active" id="signin-form">
+            <input type="email" class="login-input" id="signin-email" placeholder="Email address">
+            <input type="password" class="login-input" id="signin-password" placeholder="Password">
+            <button class="login-btn" onclick="signIn()" id="signin-btn">Sign In</button>
+            <div style="text-align:center;margin-top:12px">
+                <a href="#" onclick="showResetPassword();return false;" style="color:#f5a76c;font-size:13px;text-decoration:none">Forgot Password?</a>
+            </div>
+        </div>
+        
+        <!-- Reset Password Form -->
+        <div class="login-form" id="reset-form">
+            <p style="color:#a0aec0;font-size:13px;margin-bottom:16px;text-align:center">Enter your email and we'll send you a link to reset your password.</p>
+            <input type="email" class="login-input" id="reset-email" placeholder="Email address">
+            <button class="login-btn" onclick="sendResetEmail()" id="reset-btn">Send Reset Link</button>
+            <div style="text-align:center;margin-top:12px">
+                <a href="#" onclick="switchLoginTab('signin');return false;" style="color:#a0aec0;font-size:13px;text-decoration:none">← Back to Sign In</a>
+            </div>
+        </div>
+        
+        <!-- Update Password Form (shown after clicking reset link) -->
+        <div class="login-form" id="update-password-form">
+            <p style="color:#a0aec0;font-size:13px;margin-bottom:16px;text-align:center">Enter your new password below.</p>
+            <input type="password" class="login-input" id="new-password" placeholder="New password (min 6 characters)">
+            <input type="password" class="login-input" id="confirm-password" placeholder="Confirm new password">
+            <button class="login-btn" onclick="updatePassword()" id="update-password-btn">Update Password</button>
+        </div>
+        
+        <!-- Sign Up Form -->
+        <div class="login-form" id="signup-form">
+            <input type="text" class="login-input" id="signup-name" placeholder="Your name">
+            <input type="email" class="login-input" id="signup-email" placeholder="Email address">
+            <input type="password" class="login-input" id="signup-password" placeholder="Password (min 6 characters)">
+            <button class="login-btn" onclick="signUp()" id="signup-btn">Create Account</button>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Status Indicator -->
+<div class="sync-status" id="sync-status"></div>
+
+<!-- Main App -->
+<div class="phone hidden" id="app-container">
+    <div class="status"><span>Restaurant Oracle</span><span id="connection-status"></span></div>
+    <div class="header">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+                <h1 id="hdr-t">📦 Inventory</h1>
+                <p id="hdr-s">Items</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <button class="header-btn" id="undo-btn" onclick="undoAction()" title="Undo" disabled>↩</button>
+                <button class="header-btn" id="font-btn" onclick="toggleFontControl()" title="Text Size">🔤</button>
+                <div class="user-menu">
+                    <button class="user-btn" id="user-btn" onclick="toggleUserMenu()">?</button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-dropdown-header">
+                            <div class="user-dropdown-name" id="user-name">User</div>
+                            <div class="user-dropdown-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a2c7cfc3cbcee2c7dac3cfd2cec78cc1cdcf">[email&#160;protected]</a></div>
+                        </div>
+                        <div class="user-dropdown-item" onclick="syncNow()">🔄 Sync Now</div>
+                        <div class="user-dropdown-item" onclick="exportData()">📤 Export Backup</div>
+                        <div class="user-dropdown-item logout" onclick="signOut()">🚪 Sign Out</div>
+                    </div>
+                </div>
+                <button class="header-add" id="fab" onclick="openAdd()">+</button>
+            </div>
+        </div>
+        <div class="font-control-bar" id="font-control-bar">
+            <span style="font-size:calc(11px * var(--font-scale));color:#a0aec0">Text Size:</span>
+            <input type="range" min="0.8" max="1.4" step="0.1" value="1" id="font-slider" onchange="setFontScale(this.value)">
+            <span id="font-scale-val" style="font-size:calc(12px * var(--font-scale));color:#e0e6ed;min-width:36px">100%</span>
+        </div>
+    </div>
+    <div class="content" id="content"></div>
+    <div class="tabs-container">
+        <div class="scroll-hint scroll-left" id="scroll-left" onclick="scrollTabs(-1)">‹</div>
+        <div class="tabs-wrap" id="tabs-wrap">
+            <div class="tabs">
+                <div class="tab active" data-t="inventory" onclick="go('inventory')"><span>📦</span><span>Inventory</span></div>
+                <div class="tab" data-t="shopping" onclick="go('shopping')"><span>🛒</span><span>Shopping</span></div>
+                <div class="tab" data-t="prep" onclick="go('prep')"><span>👨‍🍳</span><span>Prep</span></div>
+                <div class="tab" data-t="ingredients" onclick="go('ingredients')"><span>🥬</span><span>Ingredients</span></div>
+                <div class="tab" data-t="recipes" onclick="go('recipes')"><span>📖</span><span>Recipes</span></div>
+                <div class="tab" data-t="menu" onclick="go('menu')"><span>🍽️</span><span>Menu</span></div>
+                <div class="tab" data-t="log" onclick="go('log')"><span>📋</span><span>Log</span></div>
+                <div class="tab" data-t="admin" onclick="go('admin')"><span>⚙️</span><span>Admin</span></div>
+            </div>
+        </div>
+        <div class="scroll-hint scroll-right" id="scroll-right" onclick="scrollTabs(1)">›</div>
+    </div>
+    <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
+</div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ==================== SUPABASE CONFIG ====================
+var SUPABASE_URL='https://quoqhfbibsmsdicrddym.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1b3FoZmJpYnNtc2RpY3JkZHltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2Njc5MDUsImV4cCI6MjA4NDI0MzkwNX0.DaqF9ToMtgqdNZJfpj-nueGJBeQSq_Gutkl2bXhqhpo';
+var supabase=null;
+var currentAuthUser=null;
+var isOnline=navigator.onLine;
+var syncQueue=[];
+var realtimeChannel=null;
+
+// Initialize Supabase using dynamic import
+async function initSupabase(){
+    try{
+        console.log('Loading Supabase library...');
+        var module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        supabase = module.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase initialized successfully');
+        return true;
+    }catch(e){
+        console.error('Supabase init error:', e);
+        return false;
+    }
+}
+
+// ==================== AUTH FUNCTIONS ====================
+function switchLoginTab(tab){
+    document.querySelectorAll('.login-tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.login-form').forEach(function(f){f.classList.remove('active');});
+    if(tab==='signin'||tab==='signup'){
+        document.querySelector('.login-tab:nth-child('+(tab==='signin'?'1':'2')+')').classList.add('active');
+    }
+    document.getElementById(tab+'-form').classList.add('active');
+    hideLoginMessages();
+}
+
+function showResetPassword(){
+    document.querySelectorAll('.login-tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.login-form').forEach(function(f){f.classList.remove('active');});
+    document.getElementById('reset-form').classList.add('active');
+    // Pre-fill email if already entered
+    var signinEmail=document.getElementById('signin-email').value.trim();
+    if(signinEmail){
+        document.getElementById('reset-email').value=signinEmail;
+    }
+    hideLoginMessages();
+}
+
+async function sendResetEmail(){
+    hideLoginMessages();
+    var email=document.getElementById('reset-email').value.trim();
+    
+    if(!email){
+        showLoginError('Please enter your email address');
+        return;
+    }
+    
+    document.getElementById('reset-btn').disabled=true;
+    document.getElementById('reset-btn').textContent='Sending...';
+    
+    try{
+        var result=await supabase.auth.resetPasswordForEmail(email,{
+            redirectTo:window.location.origin+window.location.pathname
+        });
+        if(result.error)throw result.error;
+        showLoginSuccess('Password reset link sent! Check your email.');
+        setTimeout(function(){
+            switchLoginTab('signin');
+        },3000);
+    }catch(err){
+        showLoginError(err.message||'Failed to send reset email');
+    }
+    
+    document.getElementById('reset-btn').disabled=false;
+    document.getElementById('reset-btn').textContent='Send Reset Link';
+}
+
+function hideLoginMessages(){
+    document.getElementById('login-error').classList.remove('show');
+    document.getElementById('login-success').classList.remove('show');
+}
+
+function showLoginError(msg){
+    var el=document.getElementById('login-error');
+    el.textContent=msg;
+    el.classList.add('show');
+}
+
+function showLoginSuccess(msg){
+    var el=document.getElementById('login-success');
+    el.textContent=msg;
+    el.classList.add('show');
+}
+
+async function signIn(){
+    hideLoginMessages();
+    var email=document.getElementById('signin-email').value.trim();
+    var password=document.getElementById('signin-password').value;
+    
+    if(!email||!password){
+        showLoginError('Please enter email and password');
+        return;
+    }
+    
+    document.getElementById('signin-btn').disabled=true;
+    document.getElementById('signin-btn').textContent='Signing in...';
+    
+    try{
+        var result=await supabase.auth.signInWithPassword({email:email,password:password});
+        if(result.error)throw result.error;
+        // Auth state change will handle the rest
+    }catch(err){
+        showLoginError(err.message||'Sign in failed');
+        document.getElementById('signin-btn').disabled=false;
+        document.getElementById('signin-btn').textContent='Sign In';
+    }
+}
+
+async function signUp(){
+    hideLoginMessages();
+    var name=document.getElementById('signup-name').value.trim();
+    var email=document.getElementById('signup-email').value.trim();
+    var password=document.getElementById('signup-password').value;
+    
+    if(!name||!email||!password){
+        showLoginError('Please fill in all fields');
+        return;
+    }
+    if(password.length<6){
+        showLoginError('Password must be at least 6 characters');
+        return;
+    }
+    
+    document.getElementById('signup-btn').disabled=true;
+    document.getElementById('signup-btn').textContent='Creating account...';
+    
+    try{
+        var result=await supabase.auth.signUp({
+            email:email,
+            password:password,
+            options:{data:{name:name}}
+        });
+        if(result.error)throw result.error;
+        
+        // Check if this is the first user (make them owner)
+        var existingMembers = await supabase.from('team_members').select('id').limit(1);
+        var isFirstUser = !existingMembers.data || existingMembers.data.length === 0;
+        
+        // Add to team_members table
+        if(result.data.user){
+            await supabase.from('team_members').insert({
+                user_id:result.data.user.id,
+                name:name,
+                email:email,
+                role: isFirstUser ? 'owner' : 'employee'
+            });
+        }
+        
+        showLoginSuccess('Account created!' + (isFirstUser ? ' You are the Owner.' : '') + ' Check your email to confirm, then sign in.');
+        switchLoginTab('signin');
+    }catch(err){
+        showLoginError(err.message||'Sign up failed');
+    }
+    
+    document.getElementById('signup-btn').disabled=false;
+    document.getElementById('signup-btn').textContent='Create Account';
+}
+
+async function signOut(){
+    try{
+        await supabase.auth.signOut();
+        currentAuthUser=null;
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
+        document.getElementById('user-dropdown').classList.remove('open');
+    }catch(err){
+        console.error('Sign out error:',err);
+    }
+}
+
+function toggleUserMenu(){
+    document.getElementById('user-dropdown').classList.toggle('open');
+}
+
+// Close user menu when clicking outside
+document.addEventListener('click',function(e){
+    if(!e.target.closest('.user-menu')){
+        document.getElementById('user-dropdown').classList.remove('open');
+    }
+});
+
+async function onAuthStateChange(event,session){
+    console.log('Auth event:', event, 'Session:', !!session);
+    
+    // Check URL for recovery tokens (type=recovery in hash or query)
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var queryParams = new URLSearchParams(window.location.search);
+    var isRecoveryInUrl = hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery';
+    
+    // Handle password recovery - show update password form
+    // This must be checked FIRST, even if session exists
+    if(event === 'PASSWORD_RECOVERY' || isRecoveryInUrl || window.isPasswordRecovery){
+        window.isPasswordRecovery = true;
+        console.log('Password recovery mode activated');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
+        // Show update password form
+        document.querySelectorAll('.login-tab').forEach(function(t){t.classList.remove('active');});
+        document.querySelectorAll('.login-form').forEach(function(f){f.classList.remove('active');});
+        document.getElementById('update-password-form').classList.add('active');
+        showLoginSuccess('Please enter your new password.');
+        return;
+    }
+    
+    if(session&&session.user){
+        currentAuthUser=session.user;
+        
+        // Update UI
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        
+        var userName=session.user.user_metadata?.name||session.user.email.split('@')[0];
+        document.getElementById('user-name').textContent=userName;
+        document.getElementById('user-email').textContent=session.user.email;
+        document.getElementById('user-btn').textContent=userName.charAt(0).toUpperCase();
+        
+        // Load data from Supabase
+        await loadFromSupabase();
+        
+        // Setup real-time sync
+        setupRealtimeSync();
+        
+        render();
+    }else{
+        currentAuthUser=null;
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
+        
+        // Cleanup realtime
+        if(realtimeChannel){
+            supabase.removeChannel(realtimeChannel);
+            realtimeChannel=null;
+        }
+    }
+}
+
+async function updatePassword(){
+    hideLoginMessages();
+    var newPassword=document.getElementById('new-password').value;
+    var confirmPassword=document.getElementById('confirm-password').value;
+    
+    if(!newPassword||!confirmPassword){
+        showLoginError('Please fill in both password fields');
+        return;
+    }
+    if(newPassword.length<6){
+        showLoginError('Password must be at least 6 characters');
+        return;
+    }
+    if(newPassword!==confirmPassword){
+        showLoginError('Passwords do not match');
+        return;
+    }
+    
+    document.getElementById('update-password-btn').disabled=true;
+    document.getElementById('update-password-btn').textContent='Updating...';
+    
+    try{
+        var result=await supabase.auth.updateUser({password:newPassword});
+        if(result.error)throw result.error;
+        showLoginSuccess('Password updated successfully! Signing you in...');
+        // Clear the recovery flag
+        window.isPasswordRecovery = false;
+        // Clear the hash from URL
+        history.replaceState(null,'',window.location.pathname);
+        // Reload after a moment to complete sign in
+        setTimeout(function(){
+            window.location.reload();
+        }, 1500);
+    }catch(err){
+        showLoginError(err.message||'Failed to update password');
+        document.getElementById('update-password-btn').disabled=false;
+        document.getElementById('update-password-btn').textContent='Update Password';
+    }
+}
+
+// ==================== SUPABASE DATA FUNCTIONS ====================
+async function loadFromSupabase(){
+    showSyncStatus('syncing');
+    try{
+        // Load all tables
+        var [areas,cats,menuCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
+            supabase.from('areas').select('*').order('id'),
+            supabase.from('cats').select('*').order('id'),
+            supabase.from('menu_cats').select('*').order('id'),
+            supabase.from('units').select('*').order('id'),
+            supabase.from('ings').select('*').order('id'),
+            supabase.from('inv').select('*').order('id'),
+            supabase.from('shopping').select('*').order('id'),
+            supabase.from('preps').select('*').order('id'),
+            supabase.from('recs').select('*').order('id'),
+            supabase.from('menus').select('*').order('id'),
+            supabase.from('log').select('*').order('created_at',{ascending:false}).limit(100)
+        ]);
+        
+        // Check if database has data, if not, migrate from localStorage/defaults
+        if(!areas.data||areas.data.length===0){
+            console.log('Database empty, migrating initial data...');
+            await migrateToSupabase();
+            return loadFromSupabase(); // Reload after migration
+        }
+        
+        // Map database fields to local format
+        D.areas=areas.data.map(mapAreaFromDb);
+        D.cats=cats.data||[];
+        D.menuCats=(menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
+        D.units=units.data||[];
+        D.ings=(ings.data||[]).map(mapIngFromDb);
+        D.inv=(inv.data||[]).map(mapInvFromDb);
+        D.shopping=(shopping.data||[]).map(mapShoppingFromDb);
+        D.preps=(preps.data||[]).map(mapPrepFromDb);
+        D.recs=(recs.data||[]).map(mapRecFromDb);
+        D.menus=(menus.data||[]).map(mapMenuFromDb);
+        D.log=(log.data||[]).map(mapLogFromDb);
+        
+        // Load settings
+        var settings=await supabase.from('settings').select('*');
+        if(settings.data){
+            settings.data.forEach(function(s){
+                if(s.key==='autoAddToInv')D.autoAddToInv=s.value?1:0;
+            });
+        }
+        
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Load from Supabase error:',err);
+        showSyncStatus('offline');
+        // Fall back to localStorage
+        loadAllDataLocal();
+    }
+}
+
+// Field mapping functions (database snake_case to local camelCase)
+function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0};}
+function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:0,minQty:i.par||0,cost:i.cost||0};}
+function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id,qty:i.qty||0,unit:i.unit||'ea'};}
+function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
+function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id};}
+function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||1,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0};}
+function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],preps:m.preps||[],recIds:m.rec_ids||[],archived:m.archived||0};}
+function mapLogFromDb(l){return{id:l.id,action:l.action,location:l.location||'',detail:l.detail||'',user:l.user_name||'',time:l.created_at};}
+
+// Mapping functions for saving (local camelCase to database snake_case)
+function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep};}
+function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,par:i.minQty,cost:i.cost||0};}
+function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId,qty:i.qty,unit:i.unit};}
+function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
+function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId};}
+function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived};}
+function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,preps:m.preps,rec_ids:m.recIds,archived:m.archived};}
+
+async function migrateToSupabase(){
+    console.log('Migrating data to Supabase...');
+    showSyncStatus('syncing');
+    
+    try{
+        // Insert default/localStorage data into Supabase
+        if(D.areas.length)await supabase.from('areas').upsert(D.areas.map(mapAreaToDb));
+        if(D.cats.length)await supabase.from('cats').upsert(D.cats);
+        if(D.menuCats.length)await supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};}));
+        if(D.units.length)await supabase.from('units').upsert(D.units);
+        if(D.ings.length)await supabase.from('ings').upsert(D.ings.map(mapIngToDb));
+        if(D.inv.length)await supabase.from('inv').upsert(D.inv.map(mapInvToDb));
+        if(D.shopping.length)await supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb));
+        if(D.preps.length)await supabase.from('preps').upsert(D.preps.map(mapPrepToDb));
+        if(D.recs.length)await supabase.from('recs').upsert(D.recs.map(mapRecToDb));
+        if(D.menus.length)await supabase.from('menus').upsert(D.menus.map(mapMenuToDb));
+        
+        console.log('Migration complete!');
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Migration error:',err);
+        showSyncStatus('offline');
+    }
+}
+
+async function saveToSupabase(table,data,isDelete){
+    if(!supabase||!currentAuthUser){
+        saveAllDataLocal();
+        return;
+    }
+    
+    showSyncStatus('syncing');
+    
+    try{
+        if(isDelete){
+            await supabase.from(table).delete().eq('id',data.id);
+        }else{
+            await supabase.from(table).upsert(data);
+        }
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Save to Supabase error:',err);
+        showSyncStatus('offline');
+        // Queue for later
+        syncQueue.push({table:table,data:data,isDelete:isDelete});
+        saveAllDataLocal();
+    }
+}
+
+async function syncNow(){
+    if(!supabase||!currentAuthUser){
+        alert('Not connected to cloud. Please sign in.');
+        return;
+    }
+    
+    showSyncStatus('syncing');
+    
+    try{
+        // Save all current data to Supabase
+        await Promise.all([
+            supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
+            supabase.from('cats').upsert(D.cats),
+            supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+            supabase.from('units').upsert(D.units),
+            supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
+            supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
+            supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
+            supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
+            supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
+            supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
+            supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
+        ]);
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Sync error:',err);
+        showSyncStatus('offline');
+        alert('Sync failed: '+err.message);
+    }
+}
+
+function setupRealtimeSync(){
+    // Disabled for now - causes performance issues with reload loops
+    // Users can manually sync with "Sync Now" button or refresh the page
+    // Real-time sync will be re-enabled in a future update with smarter merging
+    console.log('Real-time sync disabled for performance');
+    return;
+    
+    /*
+    if(!supabase||realtimeChannel)return;
+    
+    realtimeChannel=supabase.channel('db-changes')
+        .on('postgres_changes',{event:'*',schema:'public'},function(payload){
+            console.log('Realtime update:',payload);
+            // Reload data on any change
+            loadFromSupabase().then(render);
+        })
+        .subscribe();
+    */
+}
+
+function showSyncStatus(status){
+    var el=document.getElementById('sync-status');
+    el.className='sync-status '+status;
+    if(status==='syncing')el.textContent='⏳ Syncing...';
+    else if(status==='synced')el.textContent='✓ Synced';
+    else if(status==='offline')el.textContent='⚠ Offline';
+    else if(status==='unsaved')el.textContent='● Unsaved';
+    
+    // Hide after 2 seconds if synced
+    if(status==='synced'){
+        setTimeout(function(){el.className='sync-status';},2000);
+    }
+}
+
+// Online/offline handling
+window.addEventListener('online',function(){
+    isOnline=true;
+    // Don't auto-sync, let user do it manually
+});
+window.addEventListener('offline',function(){
+    isOnline=false;
+    showSyncStatus('offline');
+});
+
+// ==================== DATA ====================
+var D={
+    fontScale:1,
+    autoAddToInv:0,
+    currentUser:{id:1,name:'Owner',role:'owner'},
+    users:[{id:1,name:'Owner',role:'owner',email:'owner@lachona.com',phone:''},{id:2,name:'Maria',role:'employee',email:'maria@lachona.com',phone:''}],
+    areas:[
+        {id:1,name:'Oven Fridge',sections:[],prep:1},
+        {id:2,name:'Dairy Fridge',sections:[],prep:1},
+        {id:3,name:'Prep Fridge',sections:['Left','Middle','Right'],prep:1},
+        {id:4,name:'Main Prep Table',sections:[],prep:1},
+        {id:5,name:'Oven Prep Table',sections:[],prep:1},
+        {id:6,name:'Dishwasher',sections:[],prep:0},
+        {id:7,name:'Sheeter',sections:[],prep:0},
+        {id:8,name:'Freezer',sections:[],prep:1},
+        {id:9,name:'Hallway Fridge',sections:[],prep:1},
+        {id:10,name:'Stairs',sections:[],prep:0},
+        {id:11,name:'Wine Display',sections:['Left Column','Top Row','Right Column'],prep:0},
+        {id:12,name:'Left Wine Fridge',sections:[],prep:1},
+        {id:13,name:'Right Wine Fridge',sections:[],prep:1}
+    ],
+    cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'},{id:7,name:'Bar/Spirits'},{id:8,name:'Bar/Wine'},{id:9,name:'Bar/Mixers'}],
+    menuCats:[{id:1,name:'Empanadas'},{id:2,name:'Ensalada'},{id:3,name:'Tapas'},{id:4,name:'Soup'},{id:5,name:'Desserts'},{id:6,name:'Red Wine'},{id:7,name:'White & Sparkling'},{id:8,name:'Cocktails'},{id:9,name:'Brunch'},{id:10,name:'Beverages'},{id:11,name:'Sides'}],
+    units:[
+        {id:1,name:'each',abbr:'ea'},{id:2,name:'pound',abbr:'lb'},{id:3,name:'ounce',abbr:'oz'},{id:4,name:'gram',abbr:'g'},{id:5,name:'kilogram',abbr:'kg'},
+        {id:6,name:'cup',abbr:'cup'},{id:7,name:'tablespoon',abbr:'tbsp'},{id:8,name:'teaspoon',abbr:'tsp'},{id:9,name:'fluid ounce',abbr:'fl oz'},{id:10,name:'milliliter',abbr:'ml'},
+        {id:11,name:'liter',abbr:'L'},{id:12,name:'gallon',abbr:'gal'},{id:13,name:'quart',abbr:'qt'},{id:14,name:'pint',abbr:'pt'},{id:15,name:'bunch',abbr:'bunch'},
+        {id:16,name:'head',abbr:'head'},{id:17,name:'clove',abbr:'clove'},{id:18,name:'slice',abbr:'slice'},{id:19,name:'piece',abbr:'pc'},{id:20,name:'package',abbr:'pkg'},
+        {id:21,name:'can',abbr:'can'},{id:22,name:'jar',abbr:'jar'},{id:23,name:'bottle',abbr:'btl'},{id:24,name:'box',abbr:'box'},{id:25,name:'bag',abbr:'bag'},
+        {id:26,name:'case',abbr:'case'},{id:27,name:'dozen',abbr:'doz'},{id:28,name:'half dozen',abbr:'1/2 doz'},{id:29,name:'bottle wine',abbr:'btl'},{id:30,name:'batch',abbr:'batch'},
+        {id:31,name:'portion',abbr:'portion'},{id:32,name:'serving',abbr:'srv'},{id:33,name:'sheet',abbr:'sheet'},{id:34,name:'rack',abbr:'rack'},{id:35,name:'tray',abbr:'tray'},
+        {id:36,name:'pan',abbr:'pan'},{id:37,name:'hotel pan',abbr:'hotel'},{id:38,name:'half hotel',abbr:'1/2 hotel'},{id:39,name:'third hotel',abbr:'1/3 hotel'},{id:40,name:'sixth hotel',abbr:'1/6 hotel'},
+        {id:41,name:'cambro',abbr:'cambro'},{id:42,name:'lexan',abbr:'lexan'},{id:43,name:'quart container',abbr:'qt cont'},{id:44,name:'pint container',abbr:'pt cont'},{id:45,name:'deli container',abbr:'deli'},
+        {id:46,name:'squeeze bottle',abbr:'squeeze'},{id:47,name:'roll',abbr:'roll'},{id:48,name:'sleeve',abbr:'sleeve'},{id:49,name:'stick',abbr:'stick'},{id:50,name:'bar',abbr:'bar'},
+        {id:51,name:'cube',abbr:'cube'},{id:52,name:'pack',abbr:'pack'}
+    ],
+    ings:[
+        {id:1,name:'Ground Beef',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
+        {id:2,name:'Chicken Breast',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
+        {id:3,name:'Sweet Onion',catId:2,areaId:3,subArea:'Left',defUnit:'lb',archived:0,standalone:0,minQty:0},
+        {id:4,name:'Sweet Red Pepper',catId:2,areaId:3,subArea:'Middle',defUnit:'ea',archived:0,standalone:0,minQty:0},
+        {id:5,name:'Potatoes',catId:2,areaId:3,subArea:'Right',defUnit:'lb',archived:0,standalone:0,minQty:0},
+        {id:6,name:'Cheese',catId:3,areaId:2,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
+        {id:7,name:'Eggs',catId:3,areaId:2,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:24},
+        {id:8,name:'Flour',catId:4,areaId:10,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
+        {id:9,name:'Salt',catId:4,areaId:4,subArea:'',defUnit:'lb',archived:0,standalone:1,minQty:2},
+        {id:10,name:'Olive Oil',catId:5,areaId:10,subArea:'',defUnit:'gal',archived:0,standalone:1,minQty:1},
+        {id:11,name:'Carrots',catId:2,areaId:3,subArea:'Left',defUnit:'cup',archived:0,standalone:0,minQty:0},
+        {id:12,name:'Prego Sauce',catId:5,areaId:10,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
+        {id:13,name:'Veg Broth Cubes',catId:4,areaId:4,subArea:'',defUnit:'cube',archived:0,standalone:0,minQty:0},
+        {id:14,name:'Beef Bouillon',catId:4,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
+        {id:15,name:'Chicken Bouillon',catId:4,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
+        {id:16,name:'Paprika',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
+        {id:17,name:'Cumin',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
+        {id:18,name:'Empanada Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
+        {id:19,name:'Chicken Package',catId:1,areaId:8,subArea:'',defUnit:'pack',archived:0,standalone:0,minQty:0},
+        {id:20,name:'Pizza Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
+        {id:21,name:'Green Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0},
+        {id:22,name:'Spanish Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0},
+        {id:23,name:'Oregano',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
+        {id:24,name:'Taco Seasoning',catId:4,areaId:4,subArea:'',defUnit:'pkg',archived:0,standalone:0,minQty:0},
+        {id:25,name:'Spinach',catId:2,areaId:3,subArea:'Middle',defUnit:'pkg',archived:0,standalone:0,minQty:0},
+        {id:26,name:'Parmesan Cheese',catId:3,areaId:2,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0},
+        {id:27,name:'Mozzarella Bar',catId:3,areaId:2,subArea:'',defUnit:'bar',archived:0,standalone:0,minQty:0},
+        {id:28,name:'Broccoli',catId:2,areaId:3,subArea:'Right',defUnit:'bag',archived:0,standalone:0,minQty:0},
+        {id:29,name:'Water',catId:5,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
+        {id:30,name:'Gin',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:31,name:'Vermouth',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:32,name:'Cointreau',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:33,name:'DOM Benedictine',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:34,name:'Bitters',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:35,name:'Vodka',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:36,name:'Tequila',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:37,name:'Rum',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:38,name:'Fernet',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:39,name:'Rye Whiskey',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:40,name:'XO Brandy',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:41,name:'Amaro di Montenegro',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:42,name:'Campari',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:43,name:'Irish Cream',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:44,name:'Raspberry di Amore',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:45,name:'Simple Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:46,name:'Pancake Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:47,name:'Lemons',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:48,name:'Limes',catId:2,areaId:3,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0},
+        {id:49,name:'Strawberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:50,name:'Raspberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:51,name:'Blackberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
+        {id:52,name:'Tomato Juice',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:53,name:'Worcestershire',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:54,name:'Hot Sauce',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:55,name:'Black Pepper',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:56,name:'Celery Salt',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:57,name:'Bacon',catId:1,areaId:1,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:58,name:'Tonic Water',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:59,name:'Club Soda',catId:9,areaId:10,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0},
+        {id:60,name:'Cinnamon',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:61,name:'Cinnamon Stick',catId:4,areaId:4,subArea:'',defUnit:'ea',archived:0,standalone:0,minQty:0},
+        {id:62,name:'Orange Juice',catId:9,areaId:3,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:63,name:'Concord Espresso',catId:9,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
+        {id:64,name:'LaChona Reserva Blend 2021',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:65,name:'LaChona White Malbec Rose',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:66,name:'LaChona Chardonnay 2022',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:67,name:'LaChona Norte y Sur Malbec',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
+        {id:68,name:'LaChona Norte y Sur Cabernet',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0}
+    ],
+    inv:[
+        {id:1,areaId:1,ingId:1,qty:10,unit:'lb'},
+        {id:2,areaId:2,ingId:7,qty:36,unit:'ea'},
+        {id:3,areaId:3,subArea:'Left',ingId:3,qty:5,unit:'lb'},
+        {id:4,areaId:10,ingId:8,qty:25,unit:'lb'},
+        {id:5,areaId:4,ingId:9,qty:3,unit:'lb'}
+    ],
+    shopping:[
+        {id:1,ingId:1,qty:20,unit:'lb',checked:0,savedForLater:0},
+        {id:2,ingId:7,qty:48,unit:'ea',checked:0,savedForLater:0}
+    ],
+    preps:[
+        {id:1,name:'Abuela Chona Mix',recId:4,onHand:2,tgt:5,unit:'batch'},
+        {id:2,name:'Pollo Mix',recId:5,onHand:1,tgt:3,unit:'batch'},
+        {id:3,name:'Dough Discs',recId:3,onHand:40,tgt:100,unit:'ea'},
+        {id:10,name:'Golden Cup Batch',recId:201,onHand:0,tgt:1,unit:'batch'},
+        {id:11,name:'Que Miras Bobo Batch',recId:202,onHand:0,tgt:1,unit:'batch'},
+        {id:12,name:'Argentina Batch',recId:203,onHand:0,tgt:1,unit:'batch'},
+        {id:13,name:'BA Old Fashioned Batch',recId:204,onHand:0,tgt:1,unit:'batch'},
+        {id:14,name:'Fernet Sour Batch',recId:205,onHand:0,tgt:1,unit:'batch'},
+        {id:15,name:'Espresso Martini Batch',recId:206,onHand:0,tgt:1,unit:'batch'},
+        {id:16,name:'Lagrima de Amor Batch',recId:207,onHand:0,tgt:1,unit:'batch'},
+        {id:17,name:'La Nieta Batch',recId:208,onHand:0,tgt:1,unit:'batch'},
+        {id:18,name:'Mendoza Batch',recId:209,onHand:0,tgt:1,unit:'batch'},
+        {id:19,name:'Potion de Amor Batch',recId:210,onHand:0,tgt:1,unit:'batch'},
+        {id:20,name:'Red Wine Spritzer Batch',recId:211,onHand:0,tgt:1,unit:'batch'},
+        {id:21,name:'White Wine Spritzer Batch',recId:212,onHand:0,tgt:1,unit:'batch'},
+        {id:22,name:'Bloody Mary Batch',recId:213,onHand:0,tgt:1,unit:'batch'},
+        {id:23,name:'Asadors Julep Batch',recId:214,onHand:0,tgt:1,unit:'batch'},
+        {id:24,name:'Beso de Frambuesa Batch',recId:215,onHand:0,tgt:1,unit:'batch'},
+        {id:25,name:'Mategarita Batch',recId:216,onHand:0,tgt:1,unit:'batch'}
+    ],
+    recs:[
+        {id:1,name:'Beef Filling',group:'Filling',catId:1,yield:95,shelfLife:'3 Days',notes:'Brown beef, add veggies',ings:[{ingId:1,qty:5,unit:'lb'},{ingId:3,qty:1,unit:'lb'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:2,name:'Chicken Filling',group:'Filling',catId:1,yield:90,shelfLife:'3 Days',notes:'Poach chicken, shred',ings:[{ingId:2,qty:4,unit:'lb'},{ingId:3,qty:0.5,unit:'lb'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:3,name:'Dough Discs',group:'Dough',catId:1,yield:100,shelfLife:'2 Days',notes:'Mix flour with water and salt. Roll thin.',ings:[{ingId:8,qty:10,unit:'lb'},{ingId:7,qty:4,unit:'ea'},{ingId:9,qty:0.25,unit:'lb'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:4,name:'Abuela Chona Mix',group:'Mix',catId:1,yield:95,shelfLife:'7 Days',notes:'1 pack ground beef, 1 big sweet onion, 1 big sweet red pepper, 2 cups carrots, 2 cups Prego, 1 cup water, 4 cubes veg broth, 1/4 cup beef bouillon, 1/4 cup chicken bouillon, 3 tbsp paprika, 2 tbsp cumin, 2 tbsp empanada mix, 4 big potatoes, 4 boiled eggs',ings:[{ingId:1,qty:1,unit:'pack'},{ingId:3,qty:1,unit:'ea'},{ingId:4,qty:1,unit:'ea'},{ingId:11,qty:2,unit:'cup'},{ingId:12,qty:2,unit:'cup'},{ingId:29,qty:1,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:16,qty:3,unit:'tbsp'},{ingId:17,qty:2,unit:'tbsp'},{ingId:18,qty:2,unit:'tbsp'},{ingId:5,qty:4,unit:'ea'},{ingId:7,qty:4,unit:'ea'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:5,name:'Pollo Mix',group:'Mix',catId:1,yield:90,shelfLife:'7 Days',notes:'1 chicken package (6 bags), 2 big sweet onions, 2 big sweet red peppers, 4 cups carrots, 2 cups Prego, 4 cubes veg broth, 1/4 cup beef bouillon, 1/4 cup chicken bouillon, 3 tbsp paprika, 2 tbsp cumin, 2 tbsp pizza mix seasoning',ings:[{ingId:19,qty:1,unit:'pack'},{ingId:3,qty:2,unit:'ea'},{ingId:4,qty:2,unit:'ea'},{ingId:11,qty:4,unit:'cup'},{ingId:12,qty:2,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:16,qty:3,unit:'tbsp'},{ingId:17,qty:2,unit:'tbsp'},{ingId:20,qty:2,unit:'tbsp'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:6,name:'Beef Criolla Mix',group:'Mix',catId:1,yield:95,shelfLife:'7 Days',notes:'1 pack ground beef, green olives, 1 big sweet onion, 1 big sweet red pepper, 2 cups carrots, 2 cups Prego, 1 cup water, 4 cubes veg broth, 1/4 cup beef/chicken bouillon, 1 tbsp oregano, 3 tbsp paprika, 1 taco pkg (1/2 hot, 1/2 regular), 1 jar Spanish olives',ings:[{ingId:1,qty:1,unit:'pack'},{ingId:3,qty:1,unit:'ea'},{ingId:4,qty:1,unit:'ea'},{ingId:11,qty:2,unit:'cup'},{ingId:12,qty:2,unit:'cup'},{ingId:29,qty:1,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:23,qty:1,unit:'tbsp'},{ingId:16,qty:3,unit:'tbsp'},{ingId:24,qty:1,unit:'pkg'},{ingId:22,qty:1,unit:'jar'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:7,name:'Espinaca Mix',group:'Mix',catId:1,yield:90,shelfLife:'5 Days',notes:'4 spinach packages, 1 jar parmesan, 1 bar mozzarella, 1 big sweet onion, 1 big sweet red pepper, 2 cups carrots, 1 cup Prego, 4 cubes veg broth, 1/4 cup beef/chicken bouillon, 3 tbsp paprika, 2 tbsp cumin, 2 tbsp pizza mix',ings:[{ingId:25,qty:4,unit:'pkg'},{ingId:26,qty:1,unit:'jar'},{ingId:27,qty:1,unit:'bar'},{ingId:3,qty:1,unit:'ea'},{ingId:4,qty:1,unit:'ea'},{ingId:11,qty:2,unit:'cup'},{ingId:12,qty:1,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:16,qty:3,unit:'tbsp'},{ingId:17,qty:2,unit:'tbsp'},{ingId:20,qty:2,unit:'tbsp'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:8,name:'Imposter Mix',group:'Mix',catId:1,yield:90,shelfLife:'5 Days',notes:'Broccoli: 3 bags cut, 1 jar parmesan, 1 bar mozzarella, 1 big sweet onion, 1 big sweet red pepper, 2 cups carrots, 1 cup Prego, 4 cubes veg broth, 1/4 cup beef/chicken bouillon, 3 tbsp paprika, 2 tbsp cumin, 2 tbsp pizza mix',ings:[{ingId:28,qty:3,unit:'bag'},{ingId:26,qty:1,unit:'jar'},{ingId:27,qty:1,unit:'bar'},{ingId:3,qty:1,unit:'ea'},{ingId:4,qty:1,unit:'ea'},{ingId:11,qty:2,unit:'cup'},{ingId:12,qty:1,unit:'cup'},{ingId:13,qty:4,unit:'cube'},{ingId:14,qty:0.25,unit:'cup'},{ingId:15,qty:0.25,unit:'cup'},{ingId:16,qty:3,unit:'tbsp'},{ingId:17,qty:2,unit:'tbsp'},{ingId:20,qty:2,unit:'tbsp'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:101,name:'Golden Cup',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Special glass. Shake all but tonic w/ ice, add to glass, add tonic, add 2 cubes, top with whip cream and cinnamon stick garnish. Cost: $1.24, Margin: 92.73%',ings:[{ingId:65,qty:3,unit:'fl oz'},{ingId:37,qty:1,unit:'fl oz'},{ingId:58,qty:2,unit:'fl oz'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'},{ingId:60,qty:1,unit:'oz'},{ingId:61,qty:1,unit:'ea'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:102,name:'Que Miras Bobo',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Coupe. Cherry garnish, mash w/ 6 cherries and pour through strainer into glass after shaking with ice. Cost: $4.24, Margin: 75.05%',ings:[{ingId:39,qty:2,unit:'fl oz'},{ingId:38,qty:1,unit:'fl oz'},{ingId:33,qty:0.25,unit:'fl oz'},{ingId:51,qty:1,unit:'oz'},{ingId:45,qty:0.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:103,name:'Argentina',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Garnish: Orange Peel. Ice: Sphere. Glass: Serrated Whiskey. Cost: $3.15, Margin: 81.45%',ings:[{ingId:30,qty:1,unit:'fl oz'},{ingId:31,qty:1,unit:'fl oz'},{ingId:32,qty:0.25,unit:'fl oz'},{ingId:33,qty:0.25,unit:'fl oz'},{ingId:34,qty:0.2,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:104,name:'Buenos Aires Old Fashioned',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Garnish: Orange wedge. Ice: Square. Glass: Serrated Whiskey. Cost: $4.06, Margin: 76.13%',ings:[{ingId:36,qty:2,unit:'fl oz'},{ingId:31,qty:1,unit:'fl oz'},{ingId:41,qty:1,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'},{ingId:45,qty:0.5,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:105,name:'Fernet Sour',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Coupe. Lemon curl garnish. No ice in glass. Shake w/ ice and egg white, pour into glass with nice foam layer. Cost: $4.23, Margin: 75.09%',ings:[{ingId:38,qty:2,unit:'fl oz'},{ingId:7,qty:1,unit:'ea'},{ingId:47,qty:3.5,unit:'oz'},{ingId:34,qty:0.1,unit:'fl oz'},{ingId:45,qty:1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:106,name:'Espresso Martini',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Large V-shaped. Shaker for all with ice, pour, garnish with bean. Prep: 3 min. Cost: $1.96, Margin: 88.46%',ings:[{ingId:35,qty:1.5,unit:'fl oz'},{ingId:63,qty:0.5,unit:'oz'},{ingId:43,qty:0.5,unit:'fl oz'},{ingId:45,qty:0.25,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:107,name:'Lagrima de Amor',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Cost: $3.29, Margin: 80.63%',ings:[{ingId:35,qty:2,unit:'fl oz'},{ingId:32,qty:0.5,unit:'fl oz'},{ingId:47,qty:3.5,unit:'oz'},{ingId:45,qty:0.75,unit:'fl oz'},{ingId:49,qty:1.75,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:108,name:'La Nieta',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Collins tall and skinny. Shake with ice, strain on cube. Cost: $2.62, Margin: 84.62%',ings:[{ingId:66,qty:2,unit:'fl oz'},{ingId:37,qty:1.5,unit:'fl oz'},{ingId:42,qty:0.5,unit:'fl oz'},{ingId:48,qty:1,unit:'ea'},{ingId:45,qty:0.75,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:109,name:'Mendoza',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Cost: $1.08, Margin: 93.65%',ings:[{ingId:67,qty:2,unit:'fl oz'},{ingId:40,qty:2,unit:'fl oz'},{ingId:62,qty:0.5,unit:'fl oz'},{ingId:46,qty:0.25,unit:'fl oz'},{ingId:60,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:110,name:'Potion de Amor',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Glass: Large v-shape. Shake in ice, serve with berry garnish. Cost: $3.82, Margin: 77.55%',ings:[{ingId:35,qty:2,unit:'fl oz'},{ingId:32,qty:0.5,unit:'fl oz'},{ingId:44,qty:1,unit:'fl oz'},{ingId:45,qty:0.75,unit:'fl oz'},{ingId:50,qty:2,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:111,name:'Red Wine Spritzer',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Fill with ice, pour wine, then club soda, add slices of orange to inside of glass, top with 2 berries. Cost: $0.93, Margin: 93.81%',ings:[{ingId:67,qty:3,unit:'fl oz'},{ingId:59,qty:0.5,unit:'ea'},{ingId:50,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:112,name:'White Wine Spritzer',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Fill with ice, pour wine, then club soda, add slices of lemon to inside of glass, top with mint. Cost: $0.74, Margin: 95.04%',ings:[{ingId:66,qty:3,unit:'fl oz'},{ingId:59,qty:0.5,unit:'ea'},{ingId:47,qty:3,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:113,name:'Bloody Mary',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Cost: $1.43, Margin: 91.61%',ings:[{ingId:35,qty:1.5,unit:'fl oz'},{ingId:52,qty:3,unit:'fl oz'},{ingId:47,qty:1.5,unit:'oz'},{ingId:53,qty:0.5,unit:'fl oz'},{ingId:54,qty:0.5,unit:'fl oz'},{ingId:55,qty:0.1,unit:'oz'},{ingId:56,qty:0.1,unit:'oz'},{ingId:57,qty:1,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:114,name:'Asadors Julep',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Mash berries, shake in ice, strain into coupe, garnish with berry. Cost: $0.72, Margin: 95.74%',ings:[{ingId:64,qty:2,unit:'fl oz'},{ingId:48,qty:0.5,unit:'ea'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:34,qty:0.1,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:115,name:'Beso de Frambuesa',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Mash berries, shake in ice, strain into coupe, garnish with berry. Cost: $1.24',ings:[{ingId:64,qty:2,unit:'fl oz'},{ingId:44,qty:2,unit:'fl oz'},{ingId:45,qty:0.5,unit:'fl oz'},{ingId:49,qty:0.75,unit:'oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:116,name:'Mategarita',group:'Cocktail',catId:8,yield:1,shelfLife:'N/A',notes:'Prep: 3 min. Glass: Coupe. Sugar rim. Shaker all but wine together in ice, pour (no ice in glass). Float red wine on top. Cost: $2.44',ings:[{ingId:36,qty:1.75,unit:'fl oz'},{ingId:68,qty:0.5,unit:'fl oz'},{ingId:32,qty:0.75,unit:'fl oz'},{ingId:48,qty:0.5,unit:'ea'},{ingId:45,qty:0.75,unit:'fl oz'}],preps:[],subRecs:[],photos:[],videos:[],archived:0},
+        {id:201,name:'Golden Cup Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.5oz mix, add 2oz tonic, ice, whip cream & cinnamon stick. DO NOT add tonic to batch.',ings:[],preps:[],subRecs:[{recId:101,qty:5}],photos:[],videos:[],archived:0},
+        {id:202,name:'Que Miras Bobo Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.75oz mix, mash w/ 6 cherries, shake w/ ice, strain into coupe. Add fresh blackberries.',ings:[],preps:[],subRecs:[{recId:102,qty:5}],photos:[],videos:[],archived:0},
+        {id:203,name:'Argentina Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.7oz mix over sphere ice in serrated whiskey glass, garnish orange peel.',ings:[],preps:[],subRecs:[{recId:103,qty:5}],photos:[],videos:[],archived:0},
+        {id:204,name:'BA Old Fashioned Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'5 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.6oz mix over square ice in serrated whiskey glass, garnish orange wedge.',ings:[],preps:[],subRecs:[{recId:104,qty:5}],photos:[],videos:[],archived:0},
+        {id:205,name:'Fernet Sour Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.6oz mix, ADD 1 EGG WHITE fresh, shake hard w/ ice, strain into coupe, lemon curl garnish.',ings:[],preps:[],subRecs:[{recId:105,qty:5}],photos:[],videos:[],archived:0},
+        {id:206,name:'Espresso Martini Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 2.75oz mix, shake w/ ice, strain into large V glass, garnish w/ bean. Make espresso fresh.',ings:[],preps:[],subRecs:[{recId:106,qty:5}],photos:[],videos:[],archived:0},
+        {id:207,name:'Lagrima de Amor Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.75oz mix, shake w/ ice, strain. Add fresh strawberries per drink.',ings:[],preps:[],subRecs:[{recId:107,qty:5}],photos:[],videos:[],archived:0},
+        {id:208,name:'La Nieta Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.85oz mix, shake w/ ice, strain over cube in Collins glass. Squeeze fresh lime.',ings:[],preps:[],subRecs:[{recId:108,qty:5}],photos:[],videos:[],archived:0},
+        {id:209,name:'Mendoza Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.75oz mix, stir, serve. Add fresh cinnamon garnish.',ings:[],preps:[],subRecs:[{recId:109,qty:5}],photos:[],videos:[],archived:0},
+        {id:210,name:'Potion de Amor Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 4.25oz mix, shake w/ ice, strain into large V glass. Add fresh raspberries.',ings:[],preps:[],subRecs:[{recId:110,qty:5}],photos:[],videos:[],archived:0},
+        {id:211,name:'Red Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, orange slices, 2 berries. DO NOT batch soda.',ings:[],preps:[],subRecs:[{recId:111,qty:5}],photos:[],videos:[],archived:0},
+        {id:212,name:'White Wine Spritzer Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'1 Day',notes:'Store in Hallway Fridge. Per serving: pour 3oz wine over ice, add club soda fresh, lemon slices, mint. DO NOT batch soda.',ings:[],preps:[],subRecs:[{recId:112,qty:5}],photos:[],videos:[],archived:0},
+        {id:213,name:'Bloody Mary Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 6.5oz mix over ice, garnish w/ celery, bacon, olives. Shake before pouring.',ings:[],preps:[],subRecs:[{recId:113,qty:5}],photos:[],videos:[],archived:0},
+        {id:214,name:'Asadors Julep Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.1oz mix, shake w/ ice, strain into coupe, berry garnish. Squeeze fresh lime.',ings:[],preps:[],subRecs:[{recId:114,qty:5}],photos:[],videos:[],archived:0},
+        {id:215,name:'Beso de Frambuesa Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'2 Days',notes:'Store in Hallway Fridge. Per serving: pour 5oz mix, mash w/ berries, shake w/ ice, strain into coupe, berry garnish.',ings:[],preps:[],subRecs:[{recId:115,qty:5}],photos:[],videos:[],archived:0},
+        {id:216,name:'Mategarita Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.25oz mix, shake w/ ice, strain into sugar-rimmed coupe, float 0.5oz red wine. Fresh lime.',ings:[],preps:[],subRecs:[{recId:116,qty:5}],photos:[],videos:[],archived:0}
+    ],
+    menus:[
+        {id:1,name:'Abuela Chona',catId:1,tgt:50,unitId:1,ings:[],preps:[{prepId:4,qty:1}],recIds:[],archived:0},
+        {id:2,name:'Criolla',catId:1,tgt:30,unitId:1,ings:[],preps:[{prepId:6,qty:1}],recIds:[],archived:0},
+        {id:3,name:'Sweet Beef',catId:1,tgt:20,unitId:1,ings:[],preps:[],recIds:[1],archived:0},
+        {id:4,name:'Chorizo',catId:1,tgt:25,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:5,name:'Ham & Cheese',catId:1,tgt:30,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:6,name:'Pollo Regular',catId:1,tgt:25,unitId:1,ings:[],preps:[{prepId:5,qty:1}],recIds:[],archived:0},
+        {id:7,name:'Pollo Spicy',catId:1,tgt:15,unitId:1,ings:[],preps:[{prepId:5,qty:1}],recIds:[],archived:0},
+        {id:8,name:'Espinaca',catId:1,tgt:25,unitId:1,ings:[],preps:[{prepId:7,qty:1}],recIds:[],archived:0},
+        {id:9,name:'Humita',catId:1,tgt:20,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:10,name:'Imposter',catId:1,tgt:15,unitId:1,ings:[],preps:[{prepId:8,qty:1}],recIds:[],archived:0},
+        {id:11,name:'Ensalada Don Jose',catId:2,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:12,name:'Picadas',catId:3,tgt:5,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:13,name:'Quesos y Frutas',catId:3,tgt:5,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:14,name:'Chimichurri Dip',catId:3,tgt:5,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:15,name:'Papas Rustica',catId:3,tgt:15,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:16,name:'Soup of the Day',catId:4,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:17,name:'Alfajor',catId:5,tgt:20,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:18,name:'Pastelito',catId:5,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:20,name:'Maria Emilia Icon Blend 2020',catId:6,tgt:5,unitId:29,ings:[],preps:[],recIds:[],archived:0},
+        {id:21,name:'Gran Reserva Cabernet Franc',catId:6,tgt:5,unitId:29,ings:[],preps:[],recIds:[],archived:0},
+        {id:22,name:'Norte y Sur Malbec',catId:6,tgt:8,unitId:29,ings:[],preps:[],recIds:[],archived:0},
+        {id:23,name:'Icon Sparkling 2020',catId:7,tgt:8,unitId:29,ings:[],preps:[],recIds:[],archived:0},
+        {id:24,name:'Chardonnay 2022',catId:7,tgt:5,unitId:29,ings:[],preps:[],recIds:[],archived:0},
+        {id:25,name:'Golden Cup',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[101],archived:0},
+        {id:26,name:'Que Miras Bobo',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[102],archived:0},
+        {id:27,name:'Argentina',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[103],archived:0},
+        {id:28,name:'Buenos Aires Old Fashioned',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[104],archived:0},
+        {id:29,name:'Espresso Martini',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[106],archived:0},
+        {id:34,name:'Fernet Sour',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[105],archived:0},
+        {id:35,name:'Lagrima de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[107],archived:0},
+        {id:36,name:'La Nieta',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[108],archived:0},
+        {id:37,name:'Mendoza',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[109],archived:0},
+        {id:38,name:'Potion de Amor',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[110],archived:0},
+        {id:39,name:'Red Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[111],archived:0},
+        {id:40,name:'White Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[112],archived:0},
+        {id:41,name:'Bloody Mary',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[113],archived:0},
+        {id:42,name:'Asadors Julep',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[114],archived:0},
+        {id:43,name:'Beso de Frambuesa',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[115],archived:0},
+        {id:44,name:'Mategarita',catId:8,tgt:0,unitId:1,ings:[],preps:[],recIds:[116],archived:0},
+        {id:30,name:'Breakfast Empanada',catId:9,tgt:15,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:31,name:'Pancakes',catId:9,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:32,name:'Fresh Fruit',catId:11,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0},
+        {id:33,name:'Bacon',catId:11,tgt:10,unitId:1,ings:[],preps:[],recIds:[],archived:0}
+    ],
+    log:[]
+};
+
+var tab='inventory',nid=300,exp={},addOpen={},pendingPurchase=null,archiveOpen={ings:0,recs:0,menus:0};
+var undoHistory=[];
+
+// ==================== UNDO SYSTEM ====================
+function saveState(actionName){
+    // Deep copy the data that can be changed
+    var state={
+        action:actionName,
+        inv:JSON.parse(JSON.stringify(D.inv)),
+        shopping:JSON.parse(JSON.stringify(D.shopping)),
+        preps:JSON.parse(JSON.stringify(D.preps)),
+        ings:JSON.parse(JSON.stringify(D.ings)),
+        recs:JSON.parse(JSON.stringify(D.recs)),
+        menus:JSON.parse(JSON.stringify(D.menus)),
+        log:JSON.parse(JSON.stringify(D.log))
+    };
+    undoHistory.push(state);
+    // Keep only last 5 states
+    if(undoHistory.length>5)undoHistory.shift();
+    updateUndoButton();
+    
+    // Mark that we have unsaved changes
+    showSyncStatus('unsaved');
+}
+
+function undoAction(){
+    if(undoHistory.length===0)return;
+    var state=undoHistory.pop();
+    D.inv=state.inv;
+    D.shopping=state.shopping;
+    D.preps=state.preps;
+    D.ings=state.ings;
+    D.recs=state.recs;
+    D.menus=state.menus;
+    D.log=state.log;
+    updateUndoButton();
+    render();
+}
+
+function updateUndoButton(){
+    var btn=document.getElementById('undo-btn');
+    if(btn){
+        btn.disabled=undoHistory.length===0;
+        btn.title=undoHistory.length>0?'Undo: '+undoHistory[undoHistory.length-1].action+' ('+undoHistory.length+')':'Nothing to undo';
+        btn.style.opacity=undoHistory.length>0?'1':'0.4';
+    }
+}
+
+// ==================== LOG FUNCTIONS ====================
+function logAction(action,location,details){
+    var now=new Date();
+    D.log.unshift({
+        id:nid++,
+        user:D.currentUser.name,
+        action:action,
+        location:location,
+        details:details||'',
+        timestamp:now.toISOString(),
+        date:now.toLocaleDateString(),
+        time:now.toLocaleTimeString()
+    });
+    // Keep only last 4 weeks
+    var fourWeeksAgo=new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate()-28);
+    D.log=D.log.filter(function(l){return new Date(l.timestamp)>=fourWeeksAgo;});
+}
+
+// ==================== NAVIGATION ====================
+function go(t){
+    tab=t;
+    document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('active');});
+    document.querySelector('.tab[data-t="'+t+'"]').classList.add('active');
+    document.getElementById('fab').style.display=(t==='admin'||t==='log')?'none':'block';
+    render();
+}
+
+function render(){
+    document.documentElement.style.setProperty('--font-scale',D.fontScale);
+    // Sync font slider
+    var slider=document.getElementById('font-slider');
+    var val=document.getElementById('font-scale-val');
+    if(slider)slider.value=D.fontScale;
+    if(val)val.textContent=(D.fontScale*100).toFixed(0)+'%';
+    
+    var c=document.getElementById('content'),h=document.getElementById('hdr-t'),s=document.getElementById('hdr-s');
+    var titles={inventory:'📦 Inventory',shopping:'🛒 Shopping List',prep:'👨‍🍳 Prep Status',ingredients:'🥬 Ingredients',recipes:'📖 Recipes',menu:'🍽️ Menu',log:'📋 Activity Log',admin:'⚙️ Admin'};
+    h.textContent=titles[tab];
+    if(tab==='inventory')renderInv(c,s);
+    else if(tab==='shopping')renderShop(c,s);
+    else if(tab==='prep')renderPrep(c,s);
+    else if(tab==='ingredients')renderIngs(c,s);
+    else if(tab==='recipes')renderRecs(c,s);
+    else if(tab==='menu')renderMenu(c,s);
+    else if(tab==='log')renderLog(c,s);
+    else if(tab==='admin')renderAdmin(c,s);
+}
+
+// ==================== HELPER FUNCTIONS ====================
+function getAreaName(areaId,subArea){
+    var a=D.areas.find(function(x){return x.id===areaId;});
+    if(!a)return 'Unknown';
+    return subArea?a.name+' ('+subArea+')':a.name;
+}
+
+function getIngName(id){var i=D.ings.find(function(x){return x.id===id;});return i?i.name:'Unknown';}
+function getRecName(id){var r=D.recs.find(function(x){return x.id===id;});return r?r.name:'Unknown';}
+function getPrepName(id){var p=D.preps.find(function(x){return x.id===id;});return p?p.name:'Unknown';}
+
+function getStatusColor(oh,tgt){var d=oh-tgt;return d>=0?'green':d>-3?'yellow':'red';}
+function getStatusTxt(oh,tgt){var d=oh-tgt;return d>=0?'STOCKED':d>-3?'LOW':'CRITICAL';}
+
+// ==================== INVENTORY ====================
+function renderInv(c,s){
+    var total=D.inv.length;
+    s.textContent=total+' items';
+    var html='';
+    
+    D.areas.forEach(function(area){
+        var areaItems=D.inv.filter(function(i){return i.areaId===area.id&&(!area.sections.length||!i.subArea);});
+        var subItems={};
+        if(area.sections.length){
+            area.sections.forEach(function(sec){
+                subItems[sec]=D.inv.filter(function(i){return i.areaId===area.id&&i.subArea===sec;});
+            });
+        }
+        var totalInArea=areaItems.length;
+        area.sections.forEach(function(sec){totalInArea+=subItems[sec]?subItems[sec].length:0;});
+        
+        var isExp=exp['area-'+area.id];
+        html+='<div class="card"><div class="card-h" onclick="tog(\'area-'+area.id+'\')" style="cursor:pointer"><div><div class="card-t">'+area.name+'</div><div class="card-s">'+(area.prep?'🧊 Prep Area':'📍 Storage')+'</div></div><span class="card-cnt">'+totalInArea+' '+(isExp?'▲':'▼')+'</span></div>';
+        
+        if(isExp){
+            html+='<div style="margin-top:12px">';
+            // Main area items
+            areaItems.forEach(function(inv){
+                var ing=D.ings.find(function(x){return x.id===inv.ingId;});
+                if(ing){
+                    html+='<div class="inv-item" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
+                    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+                    html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
+                }
+            });
+            // Sub-areas
+            if(area.sections.length){
+                area.sections.forEach(function(sec){
+                    html+='<div class="section-label">'+sec+'</div><div class="sub-area">';
+                    if(subItems[sec]&&subItems[sec].length){
+                        subItems[sec].forEach(function(inv){
+                            var ing=D.ings.find(function(x){return x.id===inv.ingId;});
+                            if(ing){
+                                html+='<div class="inv-item" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
+                                D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+                                html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
+                            }
+                        });
+                    }else{
+                        html+='<div style="color:#636e72;font-size:calc(11px * var(--font-scale));padding:8px">No items</div>';
+                    }
+                    html+='</div>';
+                });
+            }
+            // Add form toggle
+            html+='<div class="add-toggle" onclick="togAdd(\'area-'+area.id+'\')"><span class="add-toggle-t">+ Add Ingredient</span></div>';
+            html+='<div class="add-form'+(addOpen['area-'+area.id]?' open':'')+'">';
+            html+='<select id="sel-'+area.id+'" class="form-i" style="margin-bottom:8px"><option value="">Select ingredient...</option>';
+            D.cats.forEach(function(cat){
+                var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+                if(catIngs.length){
+                    html+='<optgroup label="'+cat.name+'">';
+                    catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                    html+='</optgroup>';
+                }
+            });
+            // Uncategorized ingredients
+            var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+            if(uncatIngs.length){
+                html+='<optgroup label="Other">';
+                uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                html+='</optgroup>';
+            }
+            html+='</select>';
+            if(area.sections.length){
+                html+='<select id="sub-'+area.id+'" class="form-i" style="margin-bottom:8px"><option value="">Main Area</option>';
+                area.sections.forEach(function(sec){html+='<option value="'+sec+'">'+sec+'</option>';});
+                html+='</select>';
+            }
+            html+='<div style="display:flex;gap:8px"><input type="number" id="qty-'+area.id+'" class="form-i" placeholder="Qty" style="flex:1"><select id="unit-'+area.id+'" class="form-i" style="flex:1">';
+            D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+            html+='</select></div>';
+            html+='<button class="btn btn-p" onclick="addToArea('+area.id+')" style="width:100%;margin-top:8px">Add</button>';
+            html+='</div>';
+            html+='</div>';
+        }
+        html+='</div>';
+    });
+    c.innerHTML=html;
+}
+
+function addToArea(areaId){
+    var ingId=+document.getElementById('sel-'+areaId).value;
+    var qty=+document.getElementById('qty-'+areaId).value;
+    var unit=document.getElementById('unit-'+areaId).value;
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    var subArea='';
+    if(area&&area.sections.length){
+        var subEl=document.getElementById('sub-'+areaId);
+        if(subEl)subArea=subEl.value;
+    }
+    if(!ingId||!qty){alert('Select ingredient and enter quantity');return;}
+    
+    saveState('Add to '+getAreaName(areaId,subArea));
+    D.inv.push({id:nid++,areaId:areaId,subArea:subArea,ingId:ingId,qty:qty,unit:unit});
+    logAction('Added to inventory',getAreaName(areaId,subArea),getIngName(ingId)+': '+qty+' '+unit);
+    addOpen['area-'+areaId]=false;
+    render();
+}
+
+function updInv(id,v){
+    var i=D.inv.find(function(x){return x.id===id;});
+    if(i){
+        saveState('Update qty');
+        var oldQty=i.qty;
+        i.qty=+v||0;
+        var ing=D.ings.find(function(x){return x.id===i.ingId;});
+        logAction('Updated quantity',getAreaName(i.areaId,i.subArea),(ing?ing.name:'')+': '+oldQty+' → '+i.qty);
+        render();
+    }
+}
+
+function updInvUnit(id,v){
+    var i=D.inv.find(function(x){return x.id===id;});
+    if(i){i.unit=v;render();}
+}
+
+function delInv(id){
+    var i=D.inv.find(function(x){return x.id===id;});
+    if(i&&confirm('Remove from inventory?')){
+        saveState('Remove from inventory');
+        logAction('Removed from inventory',getAreaName(i.areaId,i.subArea),getIngName(i.ingId));
+        D.inv=D.inv.filter(function(x){return x.id!==id;});
+        render();
+    }
+}
+
+function editInvItem(id){
+    var inv=D.inv.find(function(x){return x.id===id;});
+    if(!inv)return;
+    var ing=D.ings.find(function(x){return x.id===inv.ingId;});
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Move '+ing.name+'</div>';
+    html+='<div class="form-g"><label class="form-l">Current Location</label><div style="padding:8px;background:rgba(0,0,0,.2);border-radius:6px;color:#a0aec0;font-size:calc(12px * var(--font-scale))">'+getAreaName(inv.areaId,inv.subArea)+'</div></div>';
+    html+='<div class="form-g"><label class="form-l">Move To</label><select id="move-area" class="form-i" onchange="updateSubAreaOptions()">';
+    D.areas.forEach(function(a){html+='<option value="'+a.id+'"'+(a.id===inv.areaId?' selected':'')+'>'+a.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g" id="sub-area-wrap"><label class="form-l">Section</label><select id="move-sub" class="form-i"><option value="">Main Area</option></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="moveInvItem('+id+')" style="flex:1">Move</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+    updateSubAreaOptions();
+}
+
+function updateSubAreaOptions(){
+    var areaId=+document.getElementById('move-area').value;
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    var wrap=document.getElementById('sub-area-wrap');
+    var sel=document.getElementById('move-sub');
+    if(area&&area.sections.length){
+        wrap.style.display='block';
+        sel.innerHTML='<option value="">Main Area</option>';
+        area.sections.forEach(function(sec){sel.innerHTML+='<option value="'+sec+'">'+sec+'</option>';});
+    }else{
+        wrap.style.display='none';
+        sel.innerHTML='<option value="">Main Area</option>';
+    }
+}
+
+function moveInvItem(id){
+    var inv=D.inv.find(function(x){return x.id===id;});
+    if(!inv)return;
+    var newAreaId=+document.getElementById('move-area').value;
+    var newSub=document.getElementById('move-sub').value;
+    var oldLoc=getAreaName(inv.areaId,inv.subArea);
+    saveState('Move item');
+    inv.areaId=newAreaId;
+    inv.subArea=newSub;
+    logAction('Moved item',oldLoc+' → '+getAreaName(newAreaId,newSub),getIngName(inv.ingId));
+    closeModal();
+    render();
+}
+
+// ==================== SHOPPING LIST ====================
+function renderShop(c,s){
+    var toBuy=D.shopping.filter(function(x){return !x.checked&&!x.savedForLater;});
+    var purchased=D.shopping.filter(function(x){return x.checked&&!x.savedForLater;});
+    var saved=D.shopping.filter(function(x){return x.savedForLater;});
+    s.textContent=toBuy.length+' to buy';
+    
+    // Auto-add toggle
+    var html='<div class="card" style="padding:10px;margin-bottom:12px;background:'+(D.autoAddToInv?'rgba(0,184,148,.15)':'rgba(255,255,255,.05)')+'">';
+    html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer">';
+    html+='<input type="checkbox" id="auto-add-toggle" '+(D.autoAddToInv?'checked':'')+' onchange="toggleAutoAdd()">';
+    html+='<div><div style="font-weight:600;font-size:calc(12px * var(--font-scale));color:'+(D.autoAddToInv?'#00b894':'#a0aec0')+'">⚡ Auto-Add to Inventory</div>';
+    html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72">When checked, purchased items go directly to their designated locations</div></div>';
+    html+='</label></div>';
+    
+    html+='<div class="sec" style="color:#e17055">To Buy ('+toBuy.length+')</div>';
+    if(toBuy.length){
+        toBuy.forEach(function(item){
+            var ing=D.ings.find(function(x){return x.id===item.ingId;});
+            if(ing){
+                html+='<div class="shop-item"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info"><div class="shop-name">'+ing.name+'</div><div class="shop-meta">'+ing.catId+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button></div>';
+            }
+        });
+    }else{
+        html+='<div style="color:#636e72;font-size:calc(12px * var(--font-scale));padding:16px;text-align:center">Nothing to buy!</div>';
+    }
+    
+    html+='<div class="sec" style="color:#00b894;margin-top:20px;display:flex;justify-content:space-between;align-items:center">Purchased ('+purchased.length+')';
+    if(purchased.length){
+        // Count how many can be auto-added (have designated locations)
+        var canAutoAdd=purchased.filter(function(item){
+            var ing=D.ings.find(function(x){return x.id===item.ingId;});
+            return ing&&ing.areaId;
+        }).length;
+        if(canAutoAdd>0){
+            html+='<button class="btn btn-p btn-sm" onclick="addAllPurchasedToInv()" style="font-size:calc(10px * var(--font-scale))">📦 Add All to Inventory ('+canAutoAdd+')</button>';
+        }
+    }
+    html+='</div>';
+    if(purchased.length){
+        purchased.forEach(function(item){
+            var ing=D.ings.find(function(x){return x.id===item.ingId;});
+            if(ing){
+                var hasLocation=ing.areaId?'✓':'⚠️';
+                var locationName=ing.areaId?getAreaName(ing.areaId,ing.subArea):'No location set';
+                html+='<div class="shop-item checked"><div class="shop-check checked" onclick="togShop('+item.id+')">✓</div><div class="shop-info"><div class="shop-name" style="text-decoration:line-through">'+ing.name+'</div><div class="shop-meta">'+hasLocation+' '+locationName+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="shop-undo" onclick="undoShopCheck('+item.id+')">↩</button><button class="btn btn-p btn-sm" onclick="addToInv('+item.id+')"'+(ing.areaId?'':' style="background:#fdcb6e"')+'>→ Inv</button></div>';
+            }
+        });
+    }
+    
+    html+='<div class="sec" style="color:#fdcb6e;margin-top:20px">Saved for Later ('+saved.length+')</div>';
+    if(saved.length){
+        saved.forEach(function(item){
+            var ing=D.ings.find(function(x){return x.id===item.ingId;});
+            if(ing){
+                html+='<div class="shop-item" style="opacity:.6"><div class="shop-info"><div class="shop-name">'+ing.name+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="restoreFromSaved('+item.id+')">↩</button><button class="del-btn" onclick="delShop('+item.id+')">🗑️</button></div>';
+            }
+        });
+    }
+    
+    c.innerHTML=html;
+}
+
+function togShop(id){
+    var s=D.shopping.find(function(x){return x.id===id;});
+    if(s){
+        saveState(s.checked?'Uncheck item':'Mark purchased');
+        s.checked=s.checked?0:1;
+        if(s.checked){
+            logAction('Marked as purchased','Shopping List',getIngName(s.ingId));
+            // Auto-add to inventory if enabled and ingredient has a location
+            if(D.autoAddToInv){
+                var ing=D.ings.find(function(x){return x.id===s.ingId;});
+                if(ing&&ing.areaId){
+                    D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
+                    logAction('Auto-added to inventory',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+                    D.shopping=D.shopping.filter(function(x){return x.id!==id;});
+                }
+            }
+        }
+        render();
+    }
+}
+
+function toggleAutoAdd(){
+    D.autoAddToInv=D.autoAddToInv?0:1;
+    render();
+}
+
+function undoShopCheck(id){
+    var s=D.shopping.find(function(x){return x.id===id;});
+    if(s){
+        saveState('Undo purchase check');
+        s.checked=0;
+        logAction('Undo purchase','Shopping List',getIngName(s.ingId)+' moved back to To Buy');
+        render();
+    }
+}
+
+function saveForLater(id){
+    var s=D.shopping.find(function(x){return x.id===id;});
+    if(s){saveState('Save for later');s.savedForLater=1;render();}
+}
+
+function restoreFromSaved(id){
+    var s=D.shopping.find(function(x){return x.id===id;});
+    if(s){saveState('Restore from saved');s.savedForLater=0;render();}
+}
+
+function delShop(id){
+    if(confirm('Remove from shopping list?')){
+        saveState('Remove from shopping');
+        D.shopping=D.shopping.filter(function(x){return x.id!==id;});
+        render();
+    }
+}
+
+function addToInv(shopId){
+    var s=D.shopping.find(function(x){return x.id===shopId;});
+    if(!s)return;
+    var ing=D.ings.find(function(x){return x.id===s.ingId;});
+    if(!ing)return;
+    
+    // Check if ingredient has a default location
+    if(ing.areaId){
+        D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
+        logAction('Added from shopping',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+        D.shopping=D.shopping.filter(function(x){return x.id!==shopId;});
+        render();
+    }else{
+        // Show location picker
+        pendingPurchase=shopId;
+        openLocationPicker(s);
+    }
+}
+
+function addAllPurchasedToInv(){
+    var purchased=D.shopping.filter(function(x){return x.checked&&!x.savedForLater;});
+    var added=0;
+    var skipped=0;
+    var skippedItems=[];
+    
+    saveState('Add all purchased to inventory');
+    
+    purchased.forEach(function(s){
+        var ing=D.ings.find(function(x){return x.id===s.ingId;});
+        if(ing&&ing.areaId){
+            D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
+            logAction('Added from shopping',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+            D.shopping=D.shopping.filter(function(x){return x.id!==s.id;});
+            added++;
+        }else{
+            skipped++;
+            if(ing)skippedItems.push(ing.name);
+        }
+    });
+    
+    render();
+    
+    var msg='Added '+added+' item'+(added!==1?'s':'')+' to inventory.';
+    if(skipped>0){
+        msg+='\n\n'+skipped+' item'+(skipped!==1?'s':'')+' skipped (no location set):\n• '+skippedItems.join('\n• ');
+    }
+    alert(msg);
+}
+
+function openLocationPicker(shopItem){
+    var ing=D.ings.find(function(x){return x.id===shopItem.ingId;});
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Select Location for '+ing.name+'</div>';
+    html+='<div class="form-g"><label class="form-l">Storage Area</label><select id="loc-area" class="form-i" onchange="updateSubAreaOptions()">';
+    D.areas.forEach(function(a){html+='<option value="'+a.id+'">'+a.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g" id="sub-area-wrap"><label class="form-l">Section</label><select id="move-sub" class="form-i"><option value="">Main Area</option></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal();pendingPurchase=null;" style="flex:1">Cancel</button><button class="btn btn-p" onclick="confirmAddToInv()" style="flex:1">Add to Inventory</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+    updateSubAreaOptions();
+}
+
+function confirmAddToInv(){
+    if(!pendingPurchase)return;
+    var s=D.shopping.find(function(x){return x.id===pendingPurchase;});
+    if(!s)return;
+    var areaId=+document.getElementById('loc-area').value;
+    var subArea=document.getElementById('move-sub').value;
+    
+    saveState('Add to inventory from shopping');
+    D.inv.push({id:nid++,areaId:areaId,subArea:subArea,ingId:s.ingId,qty:s.qty,unit:s.unit});
+    logAction('Added from shopping',getAreaName(areaId,subArea),getIngName(s.ingId)+': '+s.qty+' '+s.unit);
+    D.shopping=D.shopping.filter(function(x){return x.id!==pendingPurchase;});
+    pendingPurchase=null;
+    closeModal();
+    render();
+}
+
+// ==================== PREP STATUS ====================
+function renderPrep(c,s){
+    s.textContent=D.preps.length+' prep items';
+    var sorted=D.preps.slice().sort(function(a,b){
+        var da=a.onHand-a.tgt,db=b.onHand-b.tgt;
+        return da-db;
+    });
+    
+    var html='';
+    sorted.forEach(function(prep){
+        var diff=prep.onHand-prep.tgt;
+        var status=getStatusTxt(prep.onHand,prep.tgt);
+        var color=getStatusColor(prep.onHand,prep.tgt);
+        html+='<div class="card"><div class="card-h"><div><div class="card-t">'+prep.name+'</div><div class="card-s">Target: '+prep.tgt+' '+prep.unit+'</div></div><span class="status-badge status-'+status.toLowerCase()+'">'+status+'</span></div>';
+        html+='<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand:</span><input type="number" value="'+prep.onHand+'" onchange="updPrep('+prep.id+',this.value)" style="width:60px;padding:6px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;text-align:center;font-size:calc(14px * var(--font-scale))"><span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">'+prep.unit+'</span><span style="margin-left:auto;font-weight:600;color:'+(color==='green'?'#00b894':color==='yellow'?'#fdcb6e':'#d63031')+'">'+(diff>=0?'+':'')+diff+'</span></div></div>';
+    });
+    c.innerHTML=html;
+}
+
+function updPrep(id,v){
+    var p=D.preps.find(function(x){return x.id===id;});
+    if(p){
+        saveState('Update prep qty');
+        var old=p.onHand;
+        p.onHand=+v||0;
+        logAction('Updated prep qty','Prep',p.name+': '+old+' → '+p.onHand);
+        render();
+    }
+}
+
+// ==================== INGREDIENTS ====================
+function renderIngs(c,s){
+    var activeIngs=D.ings.filter(function(i){return !i.archived;});
+    var archivedIngs=D.ings.filter(function(i){return i.archived;});
+    var standaloneIngs=activeIngs.filter(function(i){return i.standalone;});
+    s.textContent=activeIngs.length+' ingredients';
+    var html='';
+    
+    // Standalone ingredients section
+    if(standaloneIngs.length){
+        html+='<div class="sec" style="color:#fdcb6e">⭐ Standalone Items ('+standaloneIngs.length+')</div>';
+        standaloneIngs.forEach(function(ing){
+            var invItem=D.inv.find(function(x){return x.ingId===ing.id;});
+            var onHand=invItem?invItem.qty:0;
+            var diff=onHand-ing.minQty;
+            var status=diff>=0?'stocked':diff>-3?'low':'critical';
+            html+='<div class="card" style="border-left:3px solid #fdcb6e"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+' <span class="standalone-badge">Standalone</span><span class="min-qty-badge">Min: '+ing.minQty+'</span></div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • On hand: '+onHand+' '+ing.defUnit+'</div></div><div style="display:flex;gap:4px;align-items:center"><span class="status-badge status-'+status+'">'+(diff>=0?'+':'')+diff+'</span><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div></div>';
+        });
+    }
+    
+    // Regular ingredients by category
+    D.cats.forEach(function(cat){
+        var catIngs=activeIngs.filter(function(i){return i.catId===cat.id&&!i.standalone;});
+        if(!catIngs.length)return;
+        
+        html+='<div class="sec ing">'+cat.name+'</div>';
+        catIngs.forEach(function(ing){
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • Default: '+ing.defUnit+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'ings\','+ing.id+')" title="Archive">📥</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div>';
+        });
+    });
+    
+    // Find ingredients not used in any recipe
+    var usedIngIds=[];
+    D.recs.forEach(function(rec){
+        if(rec.ings && rec.ings.length){
+            rec.ings.forEach(function(ri){
+                if(usedIngIds.indexOf(ri.ingId)===-1)usedIngIds.push(ri.ingId);
+            });
+        }
+    });
+    var unusedIngs=activeIngs.filter(function(i){return usedIngIds.indexOf(i.id)===-1;});
+    
+    // Unused ingredients section
+    if(unusedIngs.length){
+        html+='<div class="sec" style="color:#ff7675;margin-top:24px">⚠️ Not Used in Any Recipe ('+unusedIngs.length+')</div>';
+        html+='<div style="background:rgba(255,118,117,.1);border:1px solid rgba(255,118,117,.2);border-radius:12px;padding:12px">';
+        unusedIngs.forEach(function(ing){
+            var cat=D.cats.find(function(c){return c.id===ing.catId;});
+            var catName=cat?cat.name:'Uncategorized';
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><div><span style="color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'+ing.name+'</span><span style="color:#636e72;font-size:calc(11px * var(--font-scale));margin-left:8px">'+catName+'</span></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div>';
+        });
+        html+='</div>';
+    }
+    
+    // Archive section
+    html+='<div class="archive-header" onclick="toggleArchive(\'ings\')"><span>📥 Archived ('+archivedIngs.length+')</span><span>'+(archiveOpen.ings?'▲':'▼')+'</span></div>';
+    if(archiveOpen.ings&&archivedIngs.length){
+        html+='<div style="margin-top:8px;opacity:.7">';
+        archivedIngs.forEach(function(ing){
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;border-left:3px solid #636e72"><div><div class="card-t" style="color:#a0aec0">'+ing.name+'</div><div class="card-s">Default: '+ing.defUnit+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="reviveItem(\'ings\','+ing.id+')" title="Restore">📤</button><button class="del-btn" onclick="delItem(\'ings\','+ing.id+')">🗑️</button></div></div>';
+        });
+        html+='</div>';
+    }
+    
+    c.innerHTML=html;
+}
+
+function deleteIngredient(id){
+    id=Number(id); // Ensure id is a number
+    var ing=D.ings.find(function(x){return x.id===id;});
+    if(!ing){
+        console.error('Ingredient not found:', id);
+        return;
+    }
+    
+    // Check if ingredient is used in any recipes
+    var recipesUsingIng=[];
+    D.recs.forEach(function(rec){
+        if(rec.ings && rec.ings.length){
+            var usesIng=rec.ings.some(function(ri){return Number(ri.ingId)===id;});
+            if(usesIng)recipesUsingIng.push(rec.name);
+        }
+    });
+    
+    // Check if ingredient is used in any menu items
+    var menusUsingIng=[];
+    D.menus.forEach(function(menu){
+        if(menu.ings && menu.ings.length){
+            var usesIng=menu.ings.some(function(mi){return Number(mi.ingId)===id;});
+            if(usesIng)menusUsingIng.push(menu.name);
+        }
+    });
+    
+    // Build warning message
+    var warningMsg='';
+    if(recipesUsingIng.length>0){
+        warningMsg+='⚠️ This ingredient is used in '+recipesUsingIng.length+' recipe(s):\n• '+recipesUsingIng.slice(0,5).join('\n• ');
+        if(recipesUsingIng.length>5)warningMsg+='\n• ...and '+(recipesUsingIng.length-5)+' more';
+        warningMsg+='\n\n';
+    }
+    if(menusUsingIng.length>0){
+        warningMsg+='⚠️ This ingredient is used in '+menusUsingIng.length+' menu item(s):\n• '+menusUsingIng.slice(0,5).join('\n• ');
+        if(menusUsingIng.length>5)warningMsg+='\n• ...and '+(menusUsingIng.length-5)+' more';
+        warningMsg+='\n\n';
+    }
+    
+    warningMsg+='Are you sure you want to permanently delete "'+ing.name+'"?';
+    if(recipesUsingIng.length>0||menusUsingIng.length>0){
+        warningMsg+='\n\nThis will remove it from all recipes and menu items.';
+    }
+    
+    if(!confirm(warningMsg))return;
+    
+    saveState('Delete ingredient: '+ing.name);
+    
+    // Remove from recipes
+    D.recs.forEach(function(rec){
+        if(rec.ings){
+            rec.ings=rec.ings.filter(function(ri){return Number(ri.ingId)!==id;});
+        }
+    });
+    
+    // Remove from menu items
+    D.menus.forEach(function(menu){
+        if(menu.ings){
+            menu.ings=menu.ings.filter(function(mi){return Number(mi.ingId)!==id;});
+        }
+    });
+    
+    // Remove from inventory
+    D.inv=D.inv.filter(function(i){return Number(i.ingId)!==id;});
+    
+    // Remove from shopping list
+    D.shopping=D.shopping.filter(function(s){return Number(s.ingId)!==id;});
+    
+    // Remove the ingredient itself
+    D.ings=D.ings.filter(function(i){return Number(i.id)!==id;});
+    
+    // Log the action
+    addLog('Deleted ingredient: '+ing.name,'Ingredients','');
+    
+    render();
+}
+
+function editIng(id){
+    var ing=D.ings.find(function(x){return x.id===id;});
+    if(!ing)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit '+ing.name+'</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="edit-name" class="form-i" value="'+ing.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Category</label><select id="edit-cat" class="form-i">';
+    D.cats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===ing.catId?' selected':'')+'>'+cat.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Default Storage</label><select id="edit-area" class="form-i" onchange="updateEditSubArea()">';
+    html+='<option value="">No default</option>';
+    D.areas.forEach(function(a){html+='<option value="'+a.id+'"'+(a.id===ing.areaId?' selected':'')+'>'+a.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g" id="edit-sub-wrap"><label class="form-l">Section</label><select id="edit-sub" class="form-i"><option value="">Main Area</option></select></div>';
+    html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="edit-unit" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===ing.defUnit?' selected':'')+'>'+u.name+' ('+u.abbr+')</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g" style="padding:12px;background:rgba(253,203,110,.1);border-radius:8px;border:1px solid rgba(253,203,110,.3)"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="edit-standalone"'+(ing.standalone?' checked':'')+' onchange="toggleStandaloneFields()"><span style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;font-weight:600">⭐ Standalone Item</span></label><div class="card-s" style="margin-top:4px">Track this item independently with its own minimum quantity</div></div>';
+    html+='<div class="form-g" id="min-qty-wrap" style="display:'+(ing.standalone?'block':'none')+'"><label class="form-l">Minimum Required Quantity</label><input type="number" id="edit-minqty" class="form-i" value="'+(ing.minQty||0)+'" placeholder="0"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveIng('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+    updateEditSubArea();
+}
+
+function toggleStandaloneFields(){
+    var wrap=document.getElementById('min-qty-wrap');
+    var cb=document.getElementById('edit-standalone');
+    wrap.style.display=cb.checked?'block':'none';
+}
+
+function updateEditSubArea(){
+    var areaId=+document.getElementById('edit-area').value;
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    var wrap=document.getElementById('edit-sub-wrap');
+    var sel=document.getElementById('edit-sub');
+    if(area&&area.sections.length){
+        wrap.style.display='block';
+        sel.innerHTML='<option value="">Main Area</option>';
+        area.sections.forEach(function(sec){sel.innerHTML+='<option value="'+sec+'">'+sec+'</option>';});
+    }else{
+        wrap.style.display='none';
+    }
+}
+
+function saveIng(id){
+    var ing=D.ings.find(function(x){return x.id===id;});
+    if(!ing)return;
+    saveState('Edit ingredient');
+    ing.name=document.getElementById('edit-name').value;
+    ing.catId=+document.getElementById('edit-cat').value;
+    ing.areaId=+document.getElementById('edit-area').value||0;
+    ing.subArea=document.getElementById('edit-sub').value;
+    ing.defUnit=document.getElementById('edit-unit').value;
+    ing.standalone=document.getElementById('edit-standalone').checked?1:0;
+    ing.minQty=+document.getElementById('edit-minqty').value||0;
+    closeModal();
+    render();
+}
+
+// ==================== RECIPES ====================
+function renderRecs(c,s){
+    var activeRecs=D.recs.filter(function(r){return !r.archived;});
+    var archivedRecs=D.recs.filter(function(r){return r.archived;});
+    s.textContent=activeRecs.length+' recipes';
+    var html='';
+    
+    // Group by menu category
+    D.menuCats.forEach(function(cat){
+        var catRecs=activeRecs.filter(function(r){return r.catId===cat.id;});
+        if(!catRecs.length)return;
+        
+        html+='<div class="sec" style="color:#fdcb6e">'+cat.name+' ('+catRecs.length+')</div>';
+        catRecs.forEach(function(rec){
+            var isExp=exp['rec-'+rec.id];
+            html+='<div class="card"><div class="card-h" onclick="tog(\'rec-'+rec.id+'\')" style="cursor:pointer"><div><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+' • Yield: '+rec.yield+'%</div></div><span style="color:#a0aec0">'+(isExp?'▲':'▼')+'</span></div>';
+            
+            if(isExp){
+                html+='<div style="margin-top:12px">';
+                // Ingredients
+                html+='<div class="sec ing" style="font-size:calc(11px * var(--font-scale))">Ingredients</div>';
+                if(rec.ings&&rec.ings.length){
+                    rec.ings.forEach(function(ri,idx){
+                        html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" value="'+ri.qty+'" onchange="updRecIng('+rec.id+','+idx+',this.value)" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(11px * var(--font-scale))"><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+ri.unit+'</span><button class="del-btn" onclick="delRecIng('+rec.id+','+idx+')">×</button></div></div>';
+                    });
+                }
+                html+='<button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="margin-top:4px">+ Add Ingredient</button>';
+                
+                // Sub-recipes
+                if(rec.subRecs&&rec.subRecs.length){
+                    html+='<div class="sec" style="font-size:calc(11px * var(--font-scale));color:#fdcb6e;margin-top:12px">Sub-Recipes (×'+rec.subRecs[0].qty+' servings)</div>';
+                    rec.subRecs.forEach(function(sr,idx){
+                        var subRec=D.recs.find(function(r){return r.id===sr.recId;});
+                        html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+getRecName(sr.recId)+' ×'+sr.qty+'</span><button class="del-btn" onclick="delRecSubRec('+rec.id+','+idx+')">×</button></div>';
+                        // Show expanded ingredients from sub-recipe
+                        if(subRec&&subRec.ings&&subRec.ings.length){
+                            html+='<div style="margin-left:16px;border-left:1px solid rgba(253,203,110,.3);padding-left:8px">';
+                            subRec.ings.forEach(function(ing){
+                                var scaledQty=(ing.qty*sr.qty).toFixed(2).replace(/\.?0+$/,'');
+                                html+='<div style="font-size:calc(10px * var(--font-scale));color:#a0aec0;padding:2px 0">• '+getIngName(ing.ingId)+': <b style="color:#fdcb6e">'+scaledQty+' '+ing.unit+'</b></div>';
+                            });
+                            html+='</div>';
+                        }
+                    });
+                }
+                html+='<button class="btn btn-s btn-sm" onclick="addRecSubRec('+rec.id+')" style="margin-top:4px">+ Add Sub-Recipe</button>';
+                
+                // Notes
+                if(rec.notes){
+                    html+='<div class="sec" style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-top:12px">Notes</div><p style="font-size:calc(11px * var(--font-scale));color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px">'+rec.notes+'</p>';
+                }
+                
+                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'recs\','+rec.id+')">📥 Archive</button><button class="del-btn" onclick="deleteRecipe('+rec.id+')" title="Delete">🗑️</button></div>';
+                html+='</div>';
+            }
+            html+='</div>';
+        });
+    });
+    
+    // Uncategorized
+    var uncatRecs=activeRecs.filter(function(r){return !r.catId;});
+    if(uncatRecs.length){
+        html+='<div class="sec" style="color:#636e72">Uncategorized ('+uncatRecs.length+')</div>';
+        uncatRecs.forEach(function(rec){
+            html+='<div class="card"><div class="card-t">'+rec.name+'</div><div class="card-s">'+rec.group+'</div></div>';
+        });
+    }
+    
+    // Archive
+    html+='<div class="archive-header" onclick="toggleArchive(\'recs\')"><span>📥 Archived ('+archivedRecs.length+')</span><span>'+(archiveOpen.recs?'▲':'▼')+'</span></div>';
+    if(archiveOpen.recs&&archivedRecs.length){
+        html+='<div style="margin-top:8px;opacity:.7">';
+        archivedRecs.forEach(function(rec){
+            html+='<div class="card" style="border-left:3px solid #636e72"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t" style="color:#a0aec0">'+rec.name+'</div><div class="card-s">'+rec.group+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="reviveItem(\'recs\','+rec.id+')">📤</button><button class="del-btn" onclick="delItem(\'recs\','+rec.id+')">🗑️</button></div></div></div>';
+        });
+        html+='</div>';
+    }
+    
+    c.innerHTML=html;
+}
+
+function updRecIng(recId,idx,val){
+    var rec=D.recs.find(function(r){return r.id===recId;});
+    if(rec&&rec.ings[idx]){
+        saveState('Update recipe qty');
+        rec.ings[idx].qty=+val||0;
+        render();
+    }
+}
+
+function delRecIng(recId,idx){
+    var rec=D.recs.find(function(r){return r.id===recId;});
+    if(rec){
+        saveState('Remove recipe ingredient');
+        rec.ings.splice(idx,1);
+        render();
+    }
+}
+
+function delRecSubRec(recId,idx){
+    var rec=D.recs.find(function(r){return r.id===recId;});
+    if(rec&&rec.subRecs){
+        saveState('Remove sub-recipe');
+        rec.subRecs.splice(idx,1);
+        render();
+    }
+}
+
+function addRecIng(recId){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Ingredient to Recipe</div>';
+    html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="new-ri-ing" class="form-i">';
+    html+='<option value="">Select ingredient...</option>';
+    D.cats.forEach(function(cat){
+        var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+        if(catIngs.length){
+            html+='<optgroup label="'+cat.name+'">';
+            catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+            html+='</optgroup>';
+        }
+    });
+    var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+    if(uncatIngs.length){
+        html+='<optgroup label="Other">';
+        uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+        html+='</optgroup>';
+    }
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-ri-qty" class="form-i" placeholder="0"></div>';
+    html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-ri-unit" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    html+='</select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRecIng('+recId+')" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveRecIng(recId){
+    var rec=D.recs.find(function(r){return r.id===recId;});
+    if(!rec)return;
+    if(!rec.ings)rec.ings=[];
+    saveState('Add recipe ingredient');
+    rec.ings.push({
+        ingId:+document.getElementById('new-ri-ing').value,
+        qty:+document.getElementById('new-ri-qty').value||0,
+        unit:document.getElementById('new-ri-unit').value
+    });
+    closeModal();
+    render();
+}
+
+function addRecSubRec(recId){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Sub-Recipe</div>';
+    html+='<div class="form-g"><label class="form-l">Recipe</label><select id="new-sr-rec" class="form-i">';
+    D.recs.filter(function(r){return !r.archived&&r.id!==recId;}).forEach(function(r){html+='<option value="'+r.id+'">'+r.name+'</option>';});
+    html+='</select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRecSubRec('+recId+')" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveRecSubRec(recId){
+    var rec=D.recs.find(function(r){return r.id===recId;});
+    if(!rec)return;
+    if(!rec.subRecs)rec.subRecs=[];
+    saveState('Add sub-recipe');
+    rec.subRecs.push({recId:+document.getElementById('new-sr-rec').value});
+    closeModal();
+    render();
+}
+
+function deleteRecipe(id){
+    id=Number(id);
+    var rec=D.recs.find(function(r){return r.id===id;});
+    if(!rec){
+        console.error('Recipe not found:', id);
+        return;
+    }
+    
+    // Check if recipe is used in any menu items
+    var menusUsingRec=[];
+    D.menus.forEach(function(menu){
+        if(menu.recId===id){
+            menusUsingRec.push(menu.name);
+        }
+    });
+    
+    // Check if recipe is used as sub-recipe in other recipes
+    var recipesUsingAsSubRec=[];
+    D.recs.forEach(function(r){
+        if(r.subRecs && r.subRecs.length){
+            var usesRec=r.subRecs.some(function(sr){return Number(sr.recId)===id;});
+            if(usesRec)recipesUsingAsSubRec.push(r.name);
+        }
+    });
+    
+    // Build warning message
+    var warningMsg='';
+    if(menusUsingRec.length>0){
+        warningMsg+='⚠️ This recipe is used in '+menusUsingRec.length+' menu item(s):\n• '+menusUsingRec.slice(0,5).join('\n• ');
+        if(menusUsingRec.length>5)warningMsg+='\n• ...and '+(menusUsingRec.length-5)+' more';
+        warningMsg+='\n\n';
+    }
+    if(recipesUsingAsSubRec.length>0){
+        warningMsg+='⚠️ This recipe is used as a sub-recipe in '+recipesUsingAsSubRec.length+' recipe(s):\n• '+recipesUsingAsSubRec.slice(0,5).join('\n• ');
+        if(recipesUsingAsSubRec.length>5)warningMsg+='\n• ...and '+(recipesUsingAsSubRec.length-5)+' more';
+        warningMsg+='\n\n';
+    }
+    
+    warningMsg+='Are you sure you want to permanently delete "'+rec.name+'"?';
+    if(menusUsingRec.length>0||recipesUsingAsSubRec.length>0){
+        warningMsg+='\n\nThis will remove it from all menu items and recipes.';
+    }
+    
+    if(!confirm(warningMsg))return;
+    
+    saveState('Delete recipe: '+rec.name);
+    
+    // Remove from menu items that use this recipe
+    D.menus.forEach(function(menu){
+        if(menu.recId===id){
+            menu.recId=null;
+        }
+    });
+    
+    // Remove from other recipes that use this as sub-recipe
+    D.recs.forEach(function(r){
+        if(r.subRecs){
+            r.subRecs=r.subRecs.filter(function(sr){return Number(sr.recId)!==id;});
+        }
+    });
+    
+    // Remove the recipe itself
+    D.recs=D.recs.filter(function(r){return Number(r.id)!==id;});
+    
+    // Log the action
+    addLog('Deleted recipe: '+rec.name,'Recipes','');
+    
+    render();
+}
+
+function editRec(id){
+    var rec=D.recs.find(function(r){return r.id===id;});
+    if(!rec)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit '+rec.name+'</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-rec-name" class="form-i" value="'+rec.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="ed-rec-group" class="form-i" value="'+rec.group+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Category</label><select id="ed-rec-cat" class="form-i"><option value="">Uncategorized</option>';
+    D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===rec.catId?' selected':'')+'>'+cat.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Yield %</label><input type="number" id="ed-rec-yield" class="form-i" value="'+rec.yield+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Shelf Life</label><input type="text" id="ed-rec-shelf" class="form-i" value="'+rec.shelfLife+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Notes</label><textarea id="ed-rec-notes" class="form-i" rows="3">'+rec.notes+'</textarea></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRecEdit('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveRecEdit(id){
+    var rec=D.recs.find(function(r){return r.id===id;});
+    if(!rec)return;
+    saveState('Edit recipe');
+    rec.name=document.getElementById('ed-rec-name').value;
+    rec.group=document.getElementById('ed-rec-group').value;
+    rec.catId=+document.getElementById('ed-rec-cat').value||0;
+    rec.yield=+document.getElementById('ed-rec-yield').value||100;
+    rec.shelfLife=document.getElementById('ed-rec-shelf').value;
+    rec.notes=document.getElementById('ed-rec-notes').value;
+    closeModal();
+    render();
+}
+
+// ==================== MENU ====================
+function renderMenu(c,s){
+    var activeMenus=D.menus.filter(function(m){return !m.archived;});
+    var archivedMenus=D.menus.filter(function(m){return m.archived;});
+    s.textContent=activeMenus.length+' menu items';
+    var html='';
+    
+    D.menuCats.forEach(function(cat){
+        var catItems=activeMenus.filter(function(m){return m.catId===cat.id;});
+        if(!catItems.length)return;
+        
+        html+='<div class="sec menu">'+cat.name+' ('+catItems.length+')</div>';
+        catItems.forEach(function(m){
+            var isExp=exp['menu-'+m.id];
+            html+='<div class="card"><div class="card-h" onclick="tog(\'menu-'+m.id+'\')" style="cursor:pointer"><div><div class="card-t">'+m.name+'</div><div class="card-s">Target: '+m.tgt+'</div></div><span style="color:#a0aec0">'+(isExp?'▲':'▼')+'</span></div>';
+            
+            if(isExp){
+                html+='<div style="margin-top:12px">';
+                
+                // Direct ingredients
+                html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec ing" style="margin:0;font-size:calc(11px * var(--font-scale))">Ingredients</div><button class="btn btn-s btn-sm" onclick="addMenuIng('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
+                if(m.ings&&m.ings.length){
+                    m.ings.forEach(function(mi,idx){
+                        html+='<div class="recipe-comp ing"><span class="rec-ing-name">🥬 '+getIngName(mi.ingId)+': '+mi.qty+' '+mi.unit+'</span><button class="del-btn" onclick="delMenuIng('+m.id+','+idx+')">×</button></div>';
+                    });
+                }
+                
+                // Prep items
+                html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="sec prep" style="margin:0;font-size:calc(11px * var(--font-scale))">Prep Items</div><button class="btn btn-s btn-sm" onclick="addMenuPrep('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
+                if(m.preps&&m.preps.length){
+                    m.preps.forEach(function(mp,idx){
+                        var prep=D.preps.find(function(p){return p.id===mp.prepId;});
+                        if(prep){
+                            html+='<div class="recipe-comp prep"><span class="rec-ing-name">👨‍🍳 '+prep.name+': '+mp.qty+'</span><button class="del-btn" onclick="delMenuPrep('+m.id+','+idx+')">×</button></div>';
+                        }
+                    });
+                }
+                
+                // Recipes
+                html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="sec" style="margin:0;font-size:calc(11px * var(--font-scale));color:#fdcb6e">Recipes</div><button class="btn btn-s btn-sm" onclick="addMenuRec('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
+                if(m.recIds&&m.recIds.length){
+                    m.recIds.forEach(function(rid,idx){
+                        var r=D.recs.find(function(x){return x.id===rid;});
+                        if(r){
+                            html+='<div class="recipe-comp rec"><span class="rec-ing-name">📖 '+r.name+'</span><button class="del-btn" onclick="delMenuRec('+m.id+','+idx+')">×</button></div>';
+                        }
+                    });
+                }
+                
+                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editMenuItem('+m.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'menus\','+m.id+')">📥 Archive</button></div>';
+                html+='</div>';
+            }
+            html+='</div>';
+        });
+    });
+    
+    // Archive
+    html+='<div class="archive-header" onclick="toggleArchive(\'menus\')"><span>📥 Archived ('+archivedMenus.length+')</span><span>'+(archiveOpen.menus?'▲':'▼')+'</span></div>';
+    if(archiveOpen.menus&&archivedMenus.length){
+        html+='<div style="margin-top:8px;opacity:.7">';
+        archivedMenus.forEach(function(m){
+            html+='<div class="card" style="border-left:3px solid #636e72"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t" style="color:#a0aec0">'+m.name+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="reviveItem(\'menus\','+m.id+')">📤</button><button class="del-btn" onclick="delItem(\'menus\','+m.id+')">🗑️</button></div></div></div>';
+        });
+        html+='</div>';
+    }
+    
+    c.innerHTML=html;
+}
+
+function addMenuIng(menuId){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Ingredient to Menu Item</div>';
+    html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="new-mi-ing" class="form-i">';
+    html+='<option value="">Select ingredient...</option>';
+    D.cats.forEach(function(cat){
+        var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+        if(catIngs.length){
+            html+='<optgroup label="'+cat.name+'">';
+            catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+            html+='</optgroup>';
+        }
+    });
+    var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+    if(uncatIngs.length){
+        html+='<optgroup label="Other">';
+        uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+        html+='</optgroup>';
+    }
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-mi-qty" class="form-i" placeholder="0"></div>';
+    html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-mi-unit" class="form-i">';
+    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    html+='</select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuIng('+menuId+')" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveMenuIng(menuId){
+    var menu=D.menus.find(function(m){return m.id===menuId;});
+    if(!menu)return;
+    if(!menu.ings)menu.ings=[];
+    saveState('Add menu ingredient');
+    menu.ings.push({
+        ingId:+document.getElementById('new-mi-ing').value,
+        qty:+document.getElementById('new-mi-qty').value||0,
+        unit:document.getElementById('new-mi-unit').value
+    });
+    closeModal();
+    render();
+}
+
+function delMenuIng(menuId,idx){
+    var menu=D.menus.find(function(m){return m.id===menuId;});
+    if(menu&&menu.ings){saveState('Remove menu ingredient');menu.ings.splice(idx,1);render();}
+}
+
+function addMenuPrep(menuId){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Prep Item to Menu Item</div>';
+    html+='<div class="form-g"><label class="form-l">Prep Item</label><select id="new-mp-prep" class="form-i">';
+    D.preps.forEach(function(p){html+='<option value="'+p.id+'">'+p.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-mp-qty" class="form-i" placeholder="1" value="1"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuPrep('+menuId+')" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveMenuPrep(menuId){
+    var menu=D.menus.find(function(m){return m.id===menuId;});
+    if(!menu)return;
+    if(!menu.preps)menu.preps=[];
+    saveState('Add menu prep');
+    menu.preps.push({
+        prepId:+document.getElementById('new-mp-prep').value,
+        qty:+document.getElementById('new-mp-qty').value||1
+    });
+    closeModal();
+    render();
+}
+
+function delMenuPrep(menuId,idx){
+    var menu=D.menus.find(function(m){return m.id===menuId;});
+    if(menu&&menu.preps){saveState('Remove menu prep');menu.preps.splice(idx,1);render();}
+}
+
+function addMenuRec(menuId){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Recipe to Menu Item</div>';
+    html+='<div class="form-g"><label class="form-l">Recipe</label><select id="new-mr-rec" class="form-i">';
+    D.recs.filter(function(r){return !r.archived;}).forEach(function(r){html+='<option value="'+r.id+'">'+r.name+'</option>';});
+    html+='</select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuRec('+menuId+')" style="flex:1">Add</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveMenuRec(menuId){
+    var menu=D.menus.find(function(m){return m.id===menuId;});
+    if(!menu)return;
+    if(!menu.recIds)menu.recIds=[];
+    saveState('Add menu recipe');
+    menu.recIds.push(+document.getElementById('new-mr-rec').value);
+    closeModal();
+    render();
+}
+
+function delMenuRec(menuId,idx){
+    var menu=D.menus.find(function(m){return m.id===menuId;});
+    if(menu&&menu.recIds){saveState('Remove menu recipe');menu.recIds.splice(idx,1);render();}
+}
+
+function editMenuItem(id){
+    var menu=D.menus.find(function(m){return m.id===id;});
+    if(!menu)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit '+menu.name+'</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-menu-name" class="form-i" value="'+menu.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Category</label><select id="ed-menu-cat" class="form-i">';
+    D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===menu.catId?' selected':'')+'>'+cat.name+'</option>';});
+    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="ed-menu-tgt" class="form-i" value="'+menu.tgt+'"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuEdit('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveMenuEdit(id){
+    var menu=D.menus.find(function(m){return m.id===id;});
+    if(!menu)return;
+    saveState('Edit menu item');
+    menu.name=document.getElementById('ed-menu-name').value;
+    menu.catId=+document.getElementById('ed-menu-cat').value;
+    menu.tgt=+document.getElementById('ed-menu-tgt').value||0;
+    closeModal();
+    render();
+}
+
+// ==================== LOG ====================
+function renderLog(c,s){
+    s.textContent='Last 4 weeks';
+    var html='<div class="sec log">Activity Log</div>';
+    
+    if(!D.log.length){
+        html+='<div style="color:#636e72;font-size:calc(12px * var(--font-scale));padding:20px;text-align:center">No activity logged yet.<br>Actions will appear here as you use the app.</div>';
+    }else{
+        // Group by date
+        var byDate={};
+        D.log.forEach(function(l){
+            if(!byDate[l.date])byDate[l.date]=[];
+            byDate[l.date].push(l);
+        });
+        
+        Object.keys(byDate).forEach(function(date){
+            html+='<div class="section-label" style="margin-top:16px">'+date+'</div>';
+            byDate[date].forEach(function(l){
+                html+='<div class="log-item"><div class="log-action">'+l.action+'</div><div class="log-meta">👤 '+l.user+' • 📍 '+l.location+' • 🕐 '+l.time+'</div>'+(l.details?'<div class="log-meta" style="color:#81ecec">'+l.details+'</div>':'')+'</div>';
+            });
+        });
+    }
+    
+    c.innerHTML=html;
+}
+
+// ==================== ADMIN ====================
+function renderAdmin(c,s){
+    s.textContent='Settings';
+    var html='';
+    
+    // Data Management Section
+    html+='<div class="sec">💾 Data Management</div>';
+    html+='<div class="card" style="padding:12px"><div style="display:flex;gap:8px;flex-wrap:wrap">';
+    html+='<button class="btn btn-p btn-sm" onclick="exportData()">📤 Export Data</button>';
+    html+='<button class="btn btn-s btn-sm" onclick="importData()">📥 Import Data</button>';
+    html+='<button class="btn btn-sm" style="background:#e74c3c;color:#fff" onclick="resetData()">🗑️ Reset All</button>';
+    html+='</div><div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#a0aec0">Data auto-saves to browser. Export for backup.</div></div>';
+    
+    // Users
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">👥 Users ('+D.users.length+')<button class="btn btn-p btn-sm" onclick="addUser()">+ Add</button></div>';
+    D.users.forEach(function(u){
+        html+='<div class="card user-card'+(u.role==='employee'?' employee':'')+'"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+u.name+'</div><div class="card-s">'+u.role+' • '+u.email+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editUser('+u.id+')">✏️</button>'+(u.id!==1?'<button class="del-btn" onclick="delUser('+u.id+')">🗑️</button>':'')+'</div></div></div>';
+    });
+    
+    // Storage Locations
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📍 Storage Locations ('+D.areas.length+')<button class="btn btn-p btn-sm" onclick="addArea()">+ Add</button></div>';
+    D.areas.forEach(function(a){
+        html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+a.name+'</div><div class="card-s">'+(a.sections.length?a.sections.join(', '):'No sections')+' • '+(a.prep?'🧊 Prep':'📦 Storage')+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editArea('+a.id+')">✏️</button><button class="del-btn" onclick="delArea('+a.id+')">🗑️</button></div></div></div>';
+    });
+    
+    // Ingredient Categories
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">🏷️ Ingredient Categories ('+D.cats.length+')<button class="btn btn-p btn-sm" onclick="addCat()">+ Add</button></div>';
+    D.cats.forEach(function(cat){
+        html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delCat('+cat.id+')">🗑️</button></div></div></div>';
+    });
+    
+    // Menu Categories
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">🍽️ Menu Categories ('+D.menuCats.length+')<button class="btn btn-p btn-sm" onclick="addMenuCat()">+ Add</button></div>';
+    D.menuCats.forEach(function(cat){
+        html+='<div class="card" style="padding:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="card-t" style="font-size:calc(13px * var(--font-scale))">'+cat.name+'</span><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editMenuCat('+cat.id+')">✏️</button><button class="del-btn" onclick="delMenuCat('+cat.id+')">🗑️</button></div></div></div>';
+    });
+    
+    // Units
+    html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📏 Recipe Units ('+D.units.length+')<button class="btn btn-p btn-sm" onclick="addUnit()">+ Add</button></div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    D.units.forEach(function(u){
+        html+='<span style="background:rgba(255,255,255,.1);padding:4px 8px;border-radius:6px;font-size:calc(11px * var(--font-scale));color:#a0aec0;display:flex;align-items:center;gap:4px">'+u.abbr+' <button style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:10px;padding:0" onclick="delUnit('+u.id+')">✕</button></span>';
+    });
+    html+='</div>';
+    
+    c.innerHTML=html;
+}
+
+function editUser(id){
+    var user=D.users.find(function(u){return u.id===id;});
+    if(!user)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit User</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-user-name" class="form-i" value="'+user.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Email</label><input type="email" id="ed-user-email" class="form-i" value="'+user.email+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Role</label><select id="ed-user-role" class="form-i"><option value="owner"'+(user.role==='owner'?' selected':'')+'>Owner</option><option value="employee"'+(user.role==='employee'?' selected':'')+'>Employee</option></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveUser('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveUser(id){
+    var user=D.users.find(function(u){return u.id===id;});
+    if(!user)return;
+    user.name=document.getElementById('ed-user-name').value;
+    user.email=document.getElementById('ed-user-email').value;
+    user.role=document.getElementById('ed-user-role').value;
+    closeModal();
+    render();
+}
+
+function delUser(id){
+    if(confirm('Delete this user?')){
+        D.users=D.users.filter(function(u){return u.id!==id;});
+        render();
+    }
+}
+
+function editArea(id){
+    var area=D.areas.find(function(a){return a.id===id;});
+    if(!area)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit Storage Location</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-area-name" class="form-i" value="'+area.name+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Sections (comma separated)</label><input type="text" id="ed-area-sec" class="form-i" value="'+area.sections.join(', ')+'"></div>';
+    html+='<div class="form-g"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ed-area-prep"'+(area.prep?' checked':'')+'><span class="form-l" style="margin:0">Prep Area</span></label></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveArea('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveArea(id){
+    var area=D.areas.find(function(a){return a.id===id;});
+    if(!area)return;
+    area.name=document.getElementById('ed-area-name').value;
+    var secStr=document.getElementById('ed-area-sec').value;
+    area.sections=secStr?secStr.split(',').map(function(s){return s.trim();}).filter(function(s){return s;})  :[];
+    area.prep=document.getElementById('ed-area-prep').checked?1:0;
+    closeModal();
+    render();
+}
+
+function editCat(id){
+    var cat=D.cats.find(function(c){return c.id===id;});
+    if(!cat)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-cat-name" class="form-i" value="'+cat.name+'"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveCat('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveCat(id){
+    var cat=D.cats.find(function(c){return c.id===id;});
+    if(!cat)return;
+    cat.name=document.getElementById('ed-cat-name').value;
+    closeModal();
+    render();
+}
+
+function editMenuCat(id){
+    var cat=D.menuCats.find(function(c){return c.id===id;});
+    if(!cat)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Edit Menu Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-mcat-name" class="form-i" value="'+cat.name+'"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuCatEdit('+id+')" style="flex:1">Save</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveMenuCatEdit(id){
+    var cat=D.menuCats.find(function(c){return c.id===id;});
+    if(!cat)return;
+    cat.name=document.getElementById('ed-mcat-name').value;
+    closeModal();
+    render();
+}
+
+// ==================== ADD FUNCTIONS ====================
+function addUser(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add User</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-user-name" class="form-i" placeholder="Enter name"></div>';
+    html+='<div class="form-g"><label class="form-l">Email</label><input type="email" id="new-user-email" class="form-i" placeholder="email@lachona.com"></div>';
+    html+='<div class="form-g"><label class="form-l">Role</label><select id="new-user-role" class="form-i"><option value="employee">Employee</option><option value="owner">Owner</option></select></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewUser()" style="flex:1">Add User</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewUser(){
+    var name=document.getElementById('new-user-name').value.trim();
+    var email=document.getElementById('new-user-email').value.trim();
+    var role=document.getElementById('new-user-role').value;
+    if(!name){alert('Enter a name');return;}
+    var maxId=Math.max.apply(null,D.users.map(function(u){return u.id;}))||0;
+    D.users.push({id:maxId+1,name:name,role:role,email:email,phone:''});
+    closeModal();
+    render();
+}
+
+function addArea(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Storage Location</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-area-name" class="form-i" placeholder="e.g. Walk-in Cooler"></div>';
+    html+='<div class="form-g"><label class="form-l">Sections (comma separated, optional)</label><input type="text" id="new-area-sec" class="form-i" placeholder="e.g. Left, Middle, Right"></div>';
+    html+='<div class="form-g"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="new-area-prep" checked><span class="form-l" style="margin:0">Prep Area (shows in prep tracker)</span></label></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewArea()" style="flex:1">Add Location</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewArea(){
+    var name=document.getElementById('new-area-name').value.trim();
+    if(!name){alert('Enter a name');return;}
+    var secStr=document.getElementById('new-area-sec').value;
+    var sections=secStr?secStr.split(',').map(function(s){return s.trim();}).filter(function(s){return s;}):[];
+    var prep=document.getElementById('new-area-prep').checked?1:0;
+    var maxId=Math.max.apply(null,D.areas.map(function(a){return a.id;}))||0;
+    D.areas.push({id:maxId+1,name:name,sections:sections,prep:prep});
+    closeModal();
+    render();
+}
+
+function addCat(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Ingredient Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-cat-name" class="form-i" placeholder="e.g. Seafood"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewCat()" style="flex:1">Add Category</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewCat(){
+    var name=document.getElementById('new-cat-name').value.trim();
+    if(!name){alert('Enter a name');return;}
+    var maxId=Math.max.apply(null,D.cats.map(function(c){return c.id;}))||0;
+    D.cats.push({id:maxId+1,name:name});
+    closeModal();
+    render();
+}
+
+function addMenuCat(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Menu Category</div>';
+    html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-mcat-name" class="form-i" placeholder="e.g. Specials"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewMenuCat()" style="flex:1">Add Category</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewMenuCat(){
+    var name=document.getElementById('new-mcat-name').value.trim();
+    if(!name){alert('Enter a name');return;}
+    var maxId=Math.max.apply(null,D.menuCats.map(function(c){return c.id;}))||0;
+    D.menuCats.push({id:maxId+1,name:name});
+    closeModal();
+    render();
+}
+
+function addUnit(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Recipe Unit</div>';
+    html+='<div class="form-g"><label class="form-l">Full Name</label><input type="text" id="new-unit-name" class="form-i" placeholder="e.g. milliliter"></div>';
+    html+='<div class="form-g"><label class="form-l">Abbreviation</label><input type="text" id="new-unit-abbr" class="form-i" placeholder="e.g. ml"></div>';
+    html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewUnit()" style="flex:1">Add Unit</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function saveNewUnit(){
+    var name=document.getElementById('new-unit-name').value.trim();
+    var abbr=document.getElementById('new-unit-abbr').value.trim();
+    if(!name||!abbr){alert('Enter both name and abbreviation');return;}
+    var maxId=Math.max.apply(null,D.units.map(function(u){return u.id;}))||0;
+    D.units.push({id:maxId+1,name:name,abbr:abbr});
+    closeModal();
+    render();
+}
+
+// ==================== DELETE FUNCTIONS ====================
+function delArea(id){
+    // Check if area is in use
+    var inUse=D.ings.some(function(i){return i.areaId===id;})||D.inv.some(function(i){return i.areaId===id;});
+    if(inUse){
+        alert('Cannot delete: This location is used by ingredients or inventory items.');
+        return;
+    }
+    if(confirm('Delete this storage location?')){
+        D.areas=D.areas.filter(function(a){return a.id!==id;});
+        render();
+    }
+}
+
+function delCat(id){
+    var inUse=D.ings.some(function(i){return i.catId===id;});
+    if(inUse){
+        alert('Cannot delete: This category is used by ingredients.');
+        return;
+    }
+    if(confirm('Delete this ingredient category?')){
+        D.cats=D.cats.filter(function(c){return c.id!==id;});
+        render();
+    }
+}
+
+function delMenuCat(id){
+    var inUse=D.menus.some(function(m){return m.catId===id;});
+    if(inUse){
+        alert('Cannot delete: This category is used by menu items.');
+        return;
+    }
+    if(confirm('Delete this menu category?')){
+        D.menuCats=D.menuCats.filter(function(c){return c.id!==id;});
+        render();
+    }
+}
+
+function delUnit(id){
+    // Check if unit is in use in recipes
+    var inUse=D.recs.some(function(r){
+        return r.ings.some(function(i){return i.unit===D.units.find(function(u){return u.id===id;})?.abbr;});
+    });
+    if(inUse){
+        alert('Cannot delete: This unit is used in recipes.');
+        return;
+    }
+    if(confirm('Delete this unit?')){
+        D.units=D.units.filter(function(u){return u.id!==id;});
+        render();
+    }
+}
+
+// ==================== DATA MANAGEMENT ====================
+function exportData(){
+    var dataToExport={
+        version:DATA_VERSION,
+        exportDate:new Date().toISOString(),
+        data:{
+            users:D.users,
+            areas:D.areas,
+            cats:D.cats,
+            menuCats:D.menuCats,
+            units:D.units,
+            ings:D.ings,
+            inv:D.inv,
+            shopping:D.shopping,
+            preps:D.preps,
+            recs:D.recs,
+            menus:D.menus,
+            log:D.log
+        }
+    };
+    var json=JSON.stringify(dataToExport,null,2);
+    var blob=new Blob([json],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='restaurant-oracle-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function importData(){
+    var input=document.createElement('input');
+    input.type='file';
+    input.accept='.json';
+    input.onchange=function(e){
+        var file=e.target.files[0];
+        if(!file)return;
+        var reader=new FileReader();
+        reader.onload=function(evt){
+            try{
+                var imported=JSON.parse(evt.target.result);
+                if(!imported.data){
+                    alert('Invalid backup file format');
+                    return;
+                }
+                if(confirm('This will replace ALL your current data with the imported backup. Continue?')){
+                    Object.keys(imported.data).forEach(function(key){
+                        if(D.hasOwnProperty(key)){
+                            D[key]=imported.data[key];
+                        }
+                    });
+                    saveAllData();
+                    render();
+                    alert('Data imported successfully!');
+                }
+            }catch(err){
+                alert('Error reading backup file: '+err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function resetData(){
+    if(confirm('⚠️ WARNING: This will DELETE ALL your data and restore defaults.\n\nThis cannot be undone!\n\nAre you sure?')){
+        if(confirm('Final confirmation: Delete everything and reset to defaults?')){
+            localStorage.removeItem('ro_allData');
+            localStorage.removeItem('ro_dataVersion');
+            location.reload();
+        }
+    }
+}
+
+// ==================== COMMON FUNCTIONS ====================
+function tog(id){exp[id]=!exp[id];render();}
+function togAdd(id){addOpen[id]=!addOpen[id];render();}
+function toggleArchive(type){archiveOpen[type]=!archiveOpen[type];render();}
+
+function archiveItem(col,id){
+    saveState('Archive item');
+    if(col==='ings'){var item=D.ings.find(function(x){return x.id===id;});if(item)item.archived=1;}
+    else if(col==='recs'){var item=D.recs.find(function(x){return x.id===id;});if(item)item.archived=1;}
+    else if(col==='menus'){var item=D.menus.find(function(x){return x.id===id;});if(item)item.archived=1;}
+    render();
+}
+
+function reviveItem(col,id){
+    saveState('Restore item');
+    if(col==='ings'){var item=D.ings.find(function(x){return x.id===id;});if(item)item.archived=0;}
+    else if(col==='recs'){var item=D.recs.find(function(x){return x.id===id;});if(item)item.archived=0;}
+    else if(col==='menus'){var item=D.menus.find(function(x){return x.id===id;});if(item)item.archived=0;}
+    render();
+}
+
+function delItem(col,id){
+    if(!confirm('Permanently delete this item?'))return;
+    saveState('Delete item');
+    if(col==='ings')D.ings=D.ings.filter(function(x){return x.id!==id;});
+    else if(col==='recs')D.recs=D.recs.filter(function(x){return x.id!==id;});
+    else if(col==='menus')D.menus=D.menus.filter(function(x){return x.id!==id;});
+    render();
+}
+
+function closeModal(){document.getElementById('modal-o').classList.remove('open');}
+
+function openAdd(){
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add New</div>';
+    
+    if(tab==='inventory'){
+        html+='<p style="color:#a0aec0;font-size:calc(12px * var(--font-scale))">Expand a storage area and use the "+ Add Ingredient" button inside.</p>';
+        html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:12px">Got it</button>';
+    }else if(tab==='shopping'){
+        html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="add-shop-ing" class="form-i">';
+        html+='<option value="">Select ingredient...</option>';
+        D.cats.forEach(function(cat){
+            var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
+            if(catIngs.length){
+                html+='<optgroup label="'+cat.name+'">';
+                catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                html+='</optgroup>';
+            }
+        });
+        var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
+        if(uncatIngs.length){
+            html+='<optgroup label="Other">';
+            uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+            html+='</optgroup>';
+        }
+        html+='</select></div>';
+        html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="add-shop-qty" class="form-i" placeholder="0"></div>';
+        html+='<div class="form-g"><label class="form-l">Unit</label><select id="add-shop-unit" class="form-i">';
+        D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+        html+='</select></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addShopItem()" style="flex:1">Add</button></div>';
+    }else if(tab==='prep'){
+        html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-prep-name" class="form-i" placeholder="Prep item name"></div>';
+        html+='<div class="form-g"><label class="form-l">Recipe (optional)</label><select id="add-prep-rec" class="form-i"><option value="">None</option>';
+        D.recs.filter(function(r){return !r.archived;}).forEach(function(r){html+='<option value="'+r.id+'">'+r.name+'</option>';});
+        html+='</select></div>';
+        html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="add-prep-tgt" class="form-i" placeholder="0"></div>';
+        html+='<div class="form-g"><label class="form-l">Unit</label><select id="add-prep-unit" class="form-i">';
+        D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+        html+='</select></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addPrepItem()" style="flex:1">Add</button></div>';
+    }else if(tab==='ingredients'){
+        html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-name" class="form-i" placeholder="Ingredient name"></div>';
+        html+='<div class="form-g"><label class="form-l">Category</label><select id="add-cat" class="form-i">';
+        D.cats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
+        html+='</select></div>';
+        html+='<div class="form-g"><label class="form-l">Storage Area</label><select id="add-area" class="form-i" onchange="updateSubAreaOptions()">';
+        html+='<option value="0">-- Not assigned --</option>';
+        D.areas.forEach(function(area){html+='<option value="'+area.id+'">'+area.name+'</option>';});
+        html+='</select></div>';
+        html+='<div class="form-g" id="sub-area-group" style="display:none"><label class="form-l">Sub-Area / Section</label><select id="add-sub-area" class="form-i"><option value="">-- None --</option></select></div>';
+        html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="add-unit" class="form-i">';
+        D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+        html+='</select></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addIng()" style="flex:1">Add</button></div>';
+    }else if(tab==='recipes'){
+        html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-rec-name" class="form-i" placeholder="Recipe name"></div>';
+        html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="add-rec-group" class="form-i" placeholder="e.g. Mix, Filling, Dough"></div>';
+        html+='<div class="form-g"><label class="form-l">Category</label><select id="add-rec-cat" class="form-i"><option value="">Uncategorized</option>';
+        D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
+        html+='</select></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addRec()" style="flex:1">Add</button></div>';
+    }else if(tab==='menu'){
+        html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-menu-name" class="form-i" placeholder="Menu item name"></div>';
+        html+='<div class="form-g"><label class="form-l">Category</label><select id="add-menu-cat" class="form-i">';
+        D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
+        html+='</select></div>';
+        html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="add-menu-tgt" class="form-i" placeholder="0"></div>';
+        html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addMenuItem()" style="flex:1">Add</button></div>';
+    }
+    
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
+function addShopItem(){
+    var ingId=+document.getElementById('add-shop-ing').value;
+    var qty=+document.getElementById('add-shop-qty').value;
+    var unit=document.getElementById('add-shop-unit').value;
+    if(!ingId||!qty){alert('Fill all fields');return;}
+    saveState('Add to shopping list');
+    D.shopping.push({id:nid++,ingId:ingId,qty:qty,unit:unit,checked:0,savedForLater:0});
+    closeModal();
+    render();
+}
+
+function addPrepItem(){
+    var name=document.getElementById('add-prep-name').value;
+    var recId=+document.getElementById('add-prep-rec').value||0;
+    var tgt=+document.getElementById('add-prep-tgt').value||0;
+    var unit=document.getElementById('add-prep-unit').value;
+    if(!name){alert('Enter a name');return;}
+    saveState('Add prep item');
+    D.preps.push({id:nid++,name:name,recId:recId,onHand:0,tgt:tgt,unit:unit});
+    closeModal();
+    render();
+}
+
+function updateSubAreaOptions(){
+    var areaId=+document.getElementById('add-area').value;
+    var subAreaGroup=document.getElementById('sub-area-group');
+    var subAreaSelect=document.getElementById('add-sub-area');
+    
+    if(!areaId){
+        subAreaGroup.style.display='none';
+        return;
+    }
+    
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    if(area && area.sections && area.sections.length > 0){
+        subAreaGroup.style.display='block';
+        var opts='<option value="">-- None --</option>';
+        area.sections.forEach(function(s){opts+='<option value="'+s+'">'+s+'</option>';});
+        subAreaSelect.innerHTML=opts;
+    }else{
+        subAreaGroup.style.display='none';
+    }
+}
+
+function addIng(){
+    var name=document.getElementById('add-name').value;
+    var catId=+document.getElementById('add-cat').value;
+    var areaId=+document.getElementById('add-area').value||0;
+    var subAreaEl=document.getElementById('add-sub-area');
+    var subArea=subAreaEl ? subAreaEl.value : '';
+    var defUnit=document.getElementById('add-unit').value;
+    if(!name){alert('Enter a name');return;}
+    saveState('Add ingredient');
+    D.ings.push({id:nid++,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:0,minQty:0});
+    closeModal();
+    render();
+}
+
+function addRec(){
+    var name=document.getElementById('add-rec-name').value;
+    var group=document.getElementById('add-rec-group').value;
+    var catId=+document.getElementById('add-rec-cat').value||0;
+    if(!name){alert('Enter a name');return;}
+    saveState('Add recipe');
+    D.recs.push({id:nid++,name:name,group:group,catId:catId,yield:100,shelfLife:'',notes:'',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0});
+    closeModal();
+    render();
+}
+
+function addMenuItem(){
+    var name=document.getElementById('add-menu-name').value;
+    var catId=+document.getElementById('add-menu-cat').value;
+    var tgt=+document.getElementById('add-menu-tgt').value||0;
+    if(!name){alert('Enter a name');return;}
+    saveState('Add menu item');
+    D.menus.push({id:nid++,name:name,catId:catId,tgt:tgt,unitId:1,ings:[],preps:[],recIds:[],archived:0});
+    closeModal();
+    render();
+}
+
+// Initialize
+var DATA_VERSION=3; // Increment when default data structure changes
+
+document.addEventListener('DOMContentLoaded',async function(){
+    // Load font scale from localStorage
+    try{
+        var savedScale=localStorage.getItem('ro_fontScale');
+        if(savedScale){D.fontScale=+savedScale;}
+    }catch(e){}
+    
+    // Check URL for password recovery tokens BEFORE initializing auth
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    var queryParams = new URLSearchParams(window.location.search);
+    if(hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery'){
+        window.isPasswordRecovery = true;
+        console.log('Password recovery detected in URL');
+    }
+    
+    // Initialize Supabase (uses dynamic import)
+    var supabaseReady = await initSupabase();
+    
+    // Check for existing Supabase session
+    if(supabaseReady && supabase){
+        // Listen for auth state changes
+        supabase.auth.onAuthStateChange(onAuthStateChange);
+        
+        // Check current session
+        var session = await supabase.auth.getSession();
+        if(session.data.session){
+            onAuthStateChange('SIGNED_IN', session.data.session);
+        }else{
+            // No session - show login screen
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+        }
+        
+        // Auto-sync every hour (3600000ms = 1 hour)
+        setInterval(function(){
+            if(currentAuthUser && supabase){
+                console.log('Auto-sync triggered (hourly)');
+                syncNow();
+            }
+        }, 3600000);
+    }else{
+        // Supabase not available - use local mode
+        console.log('Supabase not available, using local mode');
+        loadAllDataLocal();
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        render();
+    }
+    
+    updateScrollHints();
+    document.getElementById('tabs-wrap').addEventListener('scroll',updateScrollHints);
+});
+
+function loadAllDataLocal(){
+    try{
+        var savedData=localStorage.getItem('ro_allData');
+        var savedVersion=localStorage.getItem('ro_dataVersion');
+        if(savedData){
+            var parsed=JSON.parse(savedData);
+            // Merge saved data with defaults (keeps new items from app updates)
+            mergeData(parsed);
+        }
+        var savedScale=localStorage.getItem('ro_fontScale');
+        if(savedScale){D.fontScale=+savedScale;}
+    }catch(e){console.error('Load error:',e);}
+}
+
+function mergeData(saved){
+    // For simple settings, use saved values
+    if(saved.autoAddToInv!==undefined)D.autoAddToInv=saved.autoAddToInv;
+    
+    // For arrays that user modifies (inv, shopping, preps changes), use saved
+    if(saved.inv)D.inv=saved.inv;
+    if(saved.shopping)D.shopping=saved.shopping;
+    if(saved.log)D.log=saved.log;
+    
+    // For preps, merge: keep saved onHand values but add new default preps
+    if(saved.preps){
+        var savedPrepIds=saved.preps.map(function(p){return p.id;});
+        var defaultPreps=D.preps.filter(function(p){return savedPrepIds.indexOf(p.id)===-1;});
+        saved.preps.forEach(function(sp){
+            var existing=D.preps.find(function(p){return p.id===sp.id;});
+            if(existing){
+                existing.onHand=sp.onHand;
+                existing.tgt=sp.tgt;
+            }
+        });
+        defaultPreps.forEach(function(p){D.preps.push(p);});
+    }
+    
+    // For config arrays (users, areas, cats, menuCats, units), merge new defaults with saved edits
+    ['users','areas','cats','menuCats','units'].forEach(function(key){
+        if(saved[key]){
+            var savedIds=saved[key].map(function(x){return x.id;});
+            // Keep all saved items
+            D[key]=saved[key];
+            // Add any new default items not in saved
+            var defaultItems=getDefaultData()[key]||[];
+            defaultItems.forEach(function(item){
+                if(savedIds.indexOf(item.id)===-1){
+                    D[key].push(item);
+                }
+            });
+        }
+    });
+    
+    // For ings, recs, menus - merge: saved user additions + default items
+    ['ings','recs','menus'].forEach(function(key){
+        if(saved[key]){
+            var savedIds=saved[key].map(function(x){return x.id;});
+            var defaultItems=getDefaultData()[key]||[];
+            // Start with saved data
+            D[key]=saved[key];
+            // Add any new default items
+            defaultItems.forEach(function(item){
+                if(savedIds.indexOf(item.id)===-1){
+                    D[key].push(item);
+                }
+            });
+        }
+    });
+}
+
+function getDefaultData(){
+    // Returns fresh copy of default data for merging
+    return {
+        users:[{id:1,name:'Owner',role:'owner',email:'owner@lachona.com',phone:''},{id:2,name:'Maria',role:'employee',email:'maria@lachona.com',phone:''}],
+        areas:[{id:1,name:'Oven Fridge',sections:[],prep:1},{id:2,name:'Dairy Fridge',sections:[],prep:1},{id:3,name:'Prep Fridge',sections:['Left','Middle','Right'],prep:1},{id:4,name:'Main Prep Table',sections:[],prep:1},{id:5,name:'Oven Prep Table',sections:[],prep:1},{id:6,name:'Dishwasher',sections:[],prep:0},{id:7,name:'Sheeter',sections:[],prep:0},{id:8,name:'Freezer',sections:[],prep:1},{id:9,name:'Hallway Fridge',sections:[],prep:1},{id:10,name:'Stairs',sections:[],prep:0},{id:11,name:'Wine Display',sections:['Left Column','Top Row','Right Column'],prep:0},{id:12,name:'Left Wine Fridge',sections:[],prep:1},{id:13,name:'Right Wine Fridge',sections:[],prep:1}],
+        cats:[{id:1,name:'Meat'},{id:2,name:'Produce'},{id:3,name:'Dairy'},{id:4,name:'Dry Goods'},{id:5,name:'Liquids'},{id:6,name:'Supplies'},{id:7,name:'Bar/Spirits'},{id:8,name:'Bar/Wine'},{id:9,name:'Bar/Mixers'}],
+        menuCats:[{id:1,name:'Empanadas'},{id:2,name:'Ensalada'},{id:3,name:'Tapas'},{id:4,name:'Soup'},{id:5,name:'Desserts'},{id:6,name:'Red Wine'},{id:7,name:'White & Sparkling'},{id:8,name:'Cocktails'},{id:9,name:'Brunch'},{id:10,name:'Beverages'},{id:11,name:'Sides'}],
+        units:D.units,
+        ings:[], // Will be populated from current D.ings
+        recs:[],
+        menus:[],
+        preps:[]
+    };
+}
+
+function saveAllData(){
+    // Always save to localStorage as backup (fast)
+    saveAllDataLocal();
+}
+
+function saveAllDataLocal(){
+    try{
+        var dataToSave={
+            users:D.users,
+            areas:D.areas,
+            cats:D.cats,
+            menuCats:D.menuCats,
+            units:D.units,
+            ings:D.ings,
+            inv:D.inv,
+            shopping:D.shopping,
+            preps:D.preps,
+            recs:D.recs,
+            menus:D.menus,
+            log:D.log,
+            autoAddToInv:D.autoAddToInv
+        };
+        localStorage.setItem('ro_allData',JSON.stringify(dataToSave));
+        localStorage.setItem('ro_dataVersion',DATA_VERSION);
+    }catch(e){console.error('Local save error:',e);}
+}
+
+var saveDebounceTimer=null;
+var pendingSupabaseSave=false;
+
+// Only call this when data actually changes (from saveState)
+function queueSupabaseSave(){
+    if(!supabase||!currentAuthUser)return;
+    pendingSupabaseSave=true;
+    
+    // Debounce - wait 3 seconds of inactivity before saving to cloud
+    if(saveDebounceTimer)clearTimeout(saveDebounceTimer);
+    saveDebounceTimer=setTimeout(async function(){
+        if(!pendingSupabaseSave)return;
+        pendingSupabaseSave=false;
+        
+        showSyncStatus('syncing');
+        try{
+            // Save all tables in parallel
+            await Promise.all([
+                supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
+                supabase.from('cats').upsert(D.cats),
+                supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+                supabase.from('units').upsert(D.units),
+                supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
+                supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
+                supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
+                supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
+                supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
+                supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
+                supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
+            ]);
+            showSyncStatus('synced');
+        }catch(err){
+            console.error('Supabase save error:',err);
+            showSyncStatus('offline');
+        }
+    },3000); // Wait 3 seconds of inactivity before cloud save
+}
+
+// Save to localStorage after render (fast), queue cloud save only on data changes
+var origRender=render;
+render=function(){
+    origRender();
+    saveAllDataLocal(); // Fast local save only
+};
+
+document.getElementById('modal-o').addEventListener('click',function(e){if(e.target.id==='modal-o')closeModal();});
+
+function scrollTabs(dir){
+    var wrap=document.getElementById('tabs-wrap');
+    wrap.scrollBy({left:dir*120,behavior:'smooth'});
+}
+
+function updateScrollHints(){
+    // Always keep arrows visible
+    var wrap=document.getElementById('tabs-wrap');
+    var left=document.getElementById('scroll-left');
+    var right=document.getElementById('scroll-right');
+    if(left)left.style.opacity='1';
+    if(right)right.style.opacity='1';
+}
+
+function toggleFontControl(){
+    var bar=document.getElementById('font-control-bar');
+    bar.classList.toggle('open');
+}
+
+function setFontScale(val){
+    D.fontScale=+val;
+    document.getElementById('font-scale-val').textContent=(D.fontScale*100).toFixed(0)+'%';
+    document.getElementById('font-slider').value=val;
+    try{localStorage.setItem('ro_fontScale',val);}catch(e){}
+    render();
+}
+</script>
+</body>
+</html>
