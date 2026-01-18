@@ -770,28 +770,173 @@ async function syncNow(){
         return;
     }
     
+    // If no snapshot yet, do initial full sync
+    if(!syncedSnapshot){
+        console.log('No snapshot, doing full initial sync...');
+        showSyncStatus('syncing');
+        try{
+            var results = await Promise.all([
+                supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
+                supabase.from('cats').upsert(D.cats),
+                supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+                supabase.from('rec_cats').upsert((D.recCats||[]).map(function(c){return{id:c.id,name:c.name};})),
+                supabase.from('units').upsert(D.units),
+                supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
+                supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
+                supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
+                supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
+                supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
+                supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
+                supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
+            ]);
+            console.log('Full sync results:', results);
+            takeSyncSnapshot();
+            clearChangeLog();
+            showSyncStatus('synced');
+            return;
+        }catch(err){
+            console.error('Full sync error:',err);
+            showSyncStatus('offline');
+            alert('Sync failed: '+err.message);
+            return;
+        }
+    }
+    
+    // Use differential sync - only sync changes
     showSyncStatus('syncing');
-    console.log('Starting sync...');
+    console.log('Starting differential sync...');
+    
+    // Detect changes
+    detectAllChanges();
+    
+    if(!hasChanges()){
+        console.log('No changes to sync');
+        showSyncStatus('synced');
+        return;
+    }
+    
+    console.log('Syncing changes:', JSON.stringify({
+        areas: changeLog.areas.size,
+        cats: changeLog.cats.size,
+        menuCats: changeLog.menuCats.size,
+        recCats: changeLog.recCats.size,
+        units: changeLog.units.size,
+        ings: changeLog.ings.size,
+        inv: changeLog.inv.size,
+        shopping: changeLog.shopping.size,
+        preps: changeLog.preps.size,
+        recs: changeLog.recs.size,
+        menus: changeLog.menus.size,
+        settings: changeLog.settings
+    }));
     
     try{
-        // Save all current data to Supabase
-        var results = await Promise.all([
-            supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
-            supabase.from('cats').upsert(D.cats),
-            supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
-            supabase.from('rec_cats').upsert((D.recCats||[]).map(function(c){return{id:c.id,name:c.name};})),
-            supabase.from('units').upsert(D.units),
-            supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
-            supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
-            supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
-            supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
-            supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
-            supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
-            supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
-        ]);
+        var promises = [];
+        
+        // Only sync tables that have changes
+        if(changeLog.areas.size > 0){
+            var items = getChangedItems('areas', D.areas, mapAreaToDb);
+            if(items.length) promises.push(supabase.from('areas').upsert(items));
+        }
+        if(deleteLog.areas.size > 0){
+            promises.push(supabase.from('areas').delete().in('id', getDeletedIds('areas')));
+        }
+        
+        if(changeLog.cats.size > 0){
+            var items = getChangedItems('cats', D.cats);
+            if(items.length) promises.push(supabase.from('cats').upsert(items));
+        }
+        if(deleteLog.cats.size > 0){
+            promises.push(supabase.from('cats').delete().in('id', getDeletedIds('cats')));
+        }
+        
+        if(changeLog.menuCats.size > 0){
+            var items = getChangedItems('menuCats', D.menuCats, function(c){return{id:c.id,name:c.name};});
+            if(items.length) promises.push(supabase.from('menu_cats').upsert(items));
+        }
+        if(deleteLog.menuCats.size > 0){
+            promises.push(supabase.from('menu_cats').delete().in('id', getDeletedIds('menuCats')));
+        }
+        
+        if(changeLog.recCats.size > 0){
+            var items = getChangedItems('recCats', D.recCats||[], function(c){return{id:c.id,name:c.name};});
+            if(items.length) promises.push(supabase.from('rec_cats').upsert(items));
+        }
+        if(deleteLog.recCats.size > 0){
+            promises.push(supabase.from('rec_cats').delete().in('id', getDeletedIds('recCats')));
+        }
+        
+        if(changeLog.units.size > 0){
+            var items = getChangedItems('units', D.units);
+            if(items.length) promises.push(supabase.from('units').upsert(items));
+        }
+        if(deleteLog.units.size > 0){
+            promises.push(supabase.from('units').delete().in('id', getDeletedIds('units')));
+        }
+        
+        if(changeLog.ings.size > 0){
+            var items = getChangedItems('ings', D.ings, mapIngToDb);
+            if(items.length) promises.push(supabase.from('ings').upsert(items));
+        }
+        if(deleteLog.ings.size > 0){
+            promises.push(supabase.from('ings').delete().in('id', getDeletedIds('ings')));
+        }
+        
+        if(changeLog.inv.size > 0){
+            var items = getChangedItems('inv', D.inv, mapInvToDb);
+            if(items.length) promises.push(supabase.from('inv').upsert(items));
+        }
+        if(deleteLog.inv.size > 0){
+            promises.push(supabase.from('inv').delete().in('id', getDeletedIds('inv')));
+        }
+        
+        if(changeLog.shopping.size > 0){
+            var items = getChangedItems('shopping', D.shopping, mapShoppingToDb);
+            if(items.length) promises.push(supabase.from('shopping').upsert(items));
+        }
+        if(deleteLog.shopping.size > 0){
+            promises.push(supabase.from('shopping').delete().in('id', getDeletedIds('shopping')));
+        }
+        
+        if(changeLog.preps.size > 0){
+            var items = getChangedItems('preps', D.preps, mapPrepToDb);
+            if(items.length) promises.push(supabase.from('preps').upsert(items));
+        }
+        if(deleteLog.preps.size > 0){
+            promises.push(supabase.from('preps').delete().in('id', getDeletedIds('preps')));
+        }
+        
+        if(changeLog.recs.size > 0){
+            var items = getChangedItems('recs', D.recs, mapRecToDb);
+            if(items.length) promises.push(supabase.from('recs').upsert(items));
+        }
+        if(deleteLog.recs.size > 0){
+            promises.push(supabase.from('recs').delete().in('id', getDeletedIds('recs')));
+        }
+        
+        if(changeLog.menus.size > 0){
+            var items = getChangedItems('menus', D.menus, mapMenuToDb);
+            if(items.length) promises.push(supabase.from('menus').upsert(items));
+        }
+        if(deleteLog.menus.size > 0){
+            promises.push(supabase.from('menus').delete().in('id', getDeletedIds('menus')));
+        }
+        
+        if(changeLog.settings){
+            promises.push(supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false}));
+        }
+        
+        if(promises.length === 0){
+            console.log('No sync operations needed');
+            showSyncStatus('synced');
+            return;
+        }
+        
+        console.log('Executing', promises.length, 'sync operations...');
+        var results = await Promise.all(promises);
         console.log('Sync results:', results);
         
-        // Update snapshot so change tracking works correctly
+        // Update snapshot and clear change log
         takeSyncSnapshot();
         clearChangeLog();
         
@@ -3479,9 +3624,17 @@ function getDeletedIds(table){
 
 // Only call this when data actually changes (from saveState)
 function queueSupabaseSave(){
-    if(!supabase||!currentAuthUser)return;
-    if(!syncedSnapshot) return; // Wait until initial load completes
+    console.log('queueSupabaseSave called, supabase:', !!supabase, 'currentAuthUser:', !!currentAuthUser, 'syncedSnapshot:', !!syncedSnapshot);
+    if(!supabase||!currentAuthUser){
+        console.log('queueSupabaseSave: no supabase or user, skipping');
+        return;
+    }
+    if(!syncedSnapshot){
+        console.log('queueSupabaseSave: no snapshot yet, skipping');
+        return;
+    }
     pendingSupabaseSave=true;
+    showSyncStatus('unsaved');
     
     // Debounce - wait 2 seconds of inactivity before saving to cloud
     if(saveDebounceTimer)clearTimeout(saveDebounceTimer);
@@ -3493,6 +3646,7 @@ function queueSupabaseSave(){
         detectAllChanges();
         
         if(!hasChanges()){
+            console.log('No changes detected, showing synced');
             showSyncStatus('synced');
             return;
         }
