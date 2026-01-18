@@ -1951,7 +1951,11 @@ function renderRecs(c,s){
                 html+='<div class="sec ing" style="font-size:calc(11px * var(--font-scale))">Ingredients</div>';
                 if(rec.ings&&rec.ings.length){
                     rec.ings.forEach(function(ri,idx){
-                        html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" value="'+ri.qty+'" onchange="updRecIng('+rec.id+','+idx+',this.value)" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(11px * var(--font-scale))"><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+ri.unit+'</span><button class="del-btn" onclick="delRecIng('+rec.id+','+idx+')">×</button></div></div>';
+                        html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" value="'+ri.qty+'" onchange="updRecIng('+rec.id+','+idx+',this.value)" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(11px * var(--font-scale))"><select onchange="updRecIngUnit('+rec.id+','+idx+',this.value)" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#a0aec0;font-size:calc(10px * var(--font-scale))">';
+                        D.units.forEach(function(u){
+                            html+='<option value="'+u.abbr+'"'+(u.abbr===ri.unit?' selected':'')+'>'+u.abbr+'</option>';
+                        });
+                        html+='</select><button class="del-btn" onclick="delRecIng('+rec.id+','+idx+')">×</button></div></div>';
                     });
                 }
                 html+='<button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="margin-top:4px">+ Add Ingredient</button>';
@@ -2014,6 +2018,15 @@ function updRecIng(recId,idx,val){
     if(rec&&rec.ings[idx]){
         saveState('Update recipe qty');
         rec.ings[idx].qty=+val||0;
+        render();
+    }
+}
+
+function updRecIngUnit(recId,idx,unit){
+    var rec=D.recs.find(function(r){return r.id===recId;});
+    if(rec&&rec.ings[idx]){
+        saveState('Update recipe ingredient unit');
+        rec.ings[idx].unit=unit;
         render();
     }
 }
