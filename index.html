@@ -57,6 +57,7 @@
         .sync-status.syncing{display:block;background:rgba(253,203,110,.2);color:#fdcb6e}
         .sync-status.synced{display:block;background:rgba(0,184,148,.2);color:#00b894}
         .sync-status.offline{display:block;background:rgba(214,48,49,.2);color:#ff7675}
+        .sync-status.unsaved{display:block;background:rgba(116,185,255,.2);color:#74b9ff}
         .user-menu{position:relative}
         .user-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00b894,#00cec9);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
         .user-dropdown{position:absolute;top:44px;right:0;background:#2d2d4a;border-radius:12px;padding:8px;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:none;z-index:50}
@@ -685,28 +686,34 @@ async function saveToSupabase(table,data,isDelete){
 }
 
 async function syncNow(){
-    if(!supabase||!currentAuthUser)return;
+    if(!supabase||!currentAuthUser){
+        alert('Not connected to cloud. Please sign in.');
+        return;
+    }
     
     showSyncStatus('syncing');
     
-    // Process sync queue
-    while(syncQueue.length>0){
-        var item=syncQueue.shift();
-        try{
-            if(item.isDelete){
-                await supabase.from(item.table).delete().eq('id',item.data.id);
-            }else{
-                await supabase.from(item.table).upsert(item.data);
-            }
-        }catch(err){
-            syncQueue.unshift(item);
-            break;
-        }
+    try{
+        // Save all current data to Supabase
+        await Promise.all([
+            supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
+            supabase.from('cats').upsert(D.cats),
+            supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+            supabase.from('units').upsert(D.units),
+            supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
+            supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
+            supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
+            supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
+            supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
+            supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
+            supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
+        ]);
+        showSyncStatus('synced');
+    }catch(err){
+        console.error('Sync error:',err);
+        showSyncStatus('offline');
+        alert('Sync failed: '+err.message);
     }
-    
-    // Full reload
-    await loadFromSupabase();
-    render();
 }
 
 function setupRealtimeSync(){
@@ -735,6 +742,7 @@ function showSyncStatus(status){
     if(status==='syncing')el.textContent='⏳ Syncing...';
     else if(status==='synced')el.textContent='✓ Synced';
     else if(status==='offline')el.textContent='⚠ Offline';
+    else if(status==='unsaved')el.textContent='● Unsaved';
     
     // Hide after 2 seconds if synced
     if(status==='synced'){
@@ -745,7 +753,7 @@ function showSyncStatus(status){
 // Online/offline handling
 window.addEventListener('online',function(){
     isOnline=true;
-    syncNow();
+    // Don't auto-sync, let user do it manually
 });
 window.addEventListener('offline',function(){
     isOnline=false;
@@ -1001,8 +1009,8 @@ function saveState(actionName){
     if(undoHistory.length>5)undoHistory.shift();
     updateUndoButton();
     
-    // Queue cloud save (debounced)
-    queueSupabaseSave();
+    // Mark that we have unsaved changes
+    showSyncStatus('unsaved');
 }
 
 function undoAction(){
@@ -2709,6 +2717,14 @@ document.addEventListener('DOMContentLoaded',async function(){
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('app-container').classList.add('hidden');
         }
+        
+        // Auto-sync every hour (3600000ms = 1 hour)
+        setInterval(function(){
+            if(currentAuthUser && supabase){
+                console.log('Auto-sync triggered (hourly)');
+                syncNow();
+            }
+        }, 3600000);
     }else{
         // Supabase not available - use local mode
         console.log('Supabase not available, using local mode');
