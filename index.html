@@ -779,6 +779,7 @@ async function syncNow(){
             supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
             supabase.from('cats').upsert(D.cats),
             supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+            supabase.from('rec_cats').upsert((D.recCats||[]).map(function(c){return{id:c.id,name:c.name};})),
             supabase.from('units').upsert(D.units),
             supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
             supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
@@ -789,6 +790,11 @@ async function syncNow(){
             supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
         ]);
         console.log('Sync results:', results);
+        
+        // Update snapshot so change tracking works correctly
+        takeSyncSnapshot();
+        clearChangeLog();
+        
         showSyncStatus('synced');
         console.log('Sync complete');
     }catch(err){
@@ -3474,6 +3480,7 @@ function getDeletedIds(table){
 // Only call this when data actually changes (from saveState)
 function queueSupabaseSave(){
     if(!supabase||!currentAuthUser)return;
+    if(!syncedSnapshot) return; // Wait until initial load completes
     pendingSupabaseSave=true;
     
     // Debounce - wait 2 seconds of inactivity before saving to cloud
@@ -3621,7 +3628,8 @@ function queueSupabaseSave(){
 var origRender=render;
 render=function(){
     origRender();
-    saveAllDataLocal(); // Fast local save only
+    saveAllDataLocal(); // Fast local save
+    queueSupabaseSave(); // Queue cloud sync (debounced)
 };
 
 document.getElementById('modal-o').addEventListener('click',function(e){if(e.target.id==='modal-o')closeModal();});
