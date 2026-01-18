@@ -290,6 +290,17 @@
     <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
 </div>
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ==================== EARLY PASSWORD RECOVERY CHECK ====================
+// Check IMMEDIATELY before anything else runs - Supabase will clear the hash
+(function(){
+    var hash = window.location.hash;
+    console.log('Early URL check - Hash:', hash);
+    if(hash && (hash.indexOf('type=recovery') !== -1 || hash.indexOf('type%3Drecovery') !== -1)){
+        console.log('Password recovery detected early!');
+        sessionStorage.setItem('ro_password_recovery', 'true');
+    }
+})();
+
 // ==================== SUPABASE CONFIG ====================
 var SUPABASE_URL='https://quoqhfbibsmsdicrddym.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1b3FoZmJpYnNtc2RpY3JkZHltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2Njc5MDUsImV4cCI6MjA4NDI0MzkwNX0.DaqF9ToMtgqdNZJfpj-nueGJBeQSq_Gutkl2bXhqhpo';
@@ -482,16 +493,22 @@ document.addEventListener('click',function(e){
 async function onAuthStateChange(event,session){
     console.log('Auth event:', event, 'Session:', !!session);
     
-    // Check URL for recovery tokens (type=recovery in hash or query)
+    // Check for password recovery - check multiple sources
     var hashParams = new URLSearchParams(window.location.hash.substring(1));
     var queryParams = new URLSearchParams(window.location.search);
     var isRecoveryInUrl = hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery';
+    var isRecoveryInSession = sessionStorage.getItem('ro_password_recovery') === 'true';
+    
+    console.log('Recovery check - URL:', isRecoveryInUrl, 'Session:', isRecoveryInSession, 'Event:', event);
     
     // Handle password recovery - show update password form
     // This must be checked FIRST, even if session exists
-    if(event === 'PASSWORD_RECOVERY' || isRecoveryInUrl || window.isPasswordRecovery){
-        window.isPasswordRecovery = true;
+    if(event === 'PASSWORD_RECOVERY' || isRecoveryInUrl || isRecoveryInSession || window.isPasswordRecovery){
         console.log('Password recovery mode activated');
+        // Clear the flag so it doesn't trigger again after password update
+        sessionStorage.removeItem('ro_password_recovery');
+        window.isPasswordRecovery = false;
+        
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
         // Show update password form
@@ -1001,7 +1018,7 @@ var D={
     log:[]
 };
 
-var tab='inventory',nid=300,exp={},addOpen={},pendingPurchase=null,archiveOpen={ings:0,recs:0,menus:0};
+var tab='inventory',nid=300,exp={},addOpen={},pendingPurchase=null,archiveOpen={ings:0,recs:0,menus:0},adminSectionsOpen={dataManagement:0};
 var undoHistory=[];
 
 // ==================== UNDO SYSTEM ====================
@@ -2225,13 +2242,15 @@ function renderAdmin(c,s){
     s.textContent='Settings';
     var html='';
     
-    // Data Management Section
-    html+='<div class="sec">💾 Data Management</div>';
-    html+='<div class="card" style="padding:12px"><div style="display:flex;gap:8px;flex-wrap:wrap">';
-    html+='<button class="btn btn-p btn-sm" onclick="exportData()">📤 Export Data</button>';
-    html+='<button class="btn btn-s btn-sm" onclick="importData()">📥 Import Data</button>';
-    html+='<button class="btn btn-sm" style="background:#e74c3c;color:#fff" onclick="resetData()">🗑️ Reset All</button>';
-    html+='</div><div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#a0aec0">Data auto-saves to browser. Export for backup.</div></div>';
+    // Data Management Section (collapsed by default)
+    html+='<div class="archive-header" onclick="toggleAdminSection(\'dataManagement\')" style="margin-bottom:8px"><span>💾 Data Management</span><span>'+(adminSectionsOpen.dataManagement?'▲':'▼')+'</span></div>';
+    if(adminSectionsOpen.dataManagement){
+        html+='<div class="card" style="padding:12px;margin-bottom:16px"><div style="display:flex;gap:8px;flex-wrap:wrap">';
+        html+='<button class="btn btn-p btn-sm" onclick="exportData()">📤 Export Data</button>';
+        html+='<button class="btn btn-s btn-sm" onclick="importData()">📥 Import Data</button>';
+        html+='<button class="btn btn-sm" style="background:#e74c3c;color:#fff" onclick="resetData()">🗑️ Reset All</button>';
+        html+='</div><div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#a0aec0">Data auto-saves to browser. Export for backup.</div></div>';
+    }
     
     // Users
     html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">👥 Users ('+D.users.length+')<button class="btn btn-p btn-sm" onclick="addUser()">+ Add</button></div>';
@@ -2595,6 +2614,7 @@ function resetData(){
 function tog(id){exp[id]=!exp[id];render();}
 function togAdd(id){addOpen[id]=!addOpen[id];render();}
 function toggleArchive(type){archiveOpen[type]=!archiveOpen[type];render();}
+function toggleAdminSection(section){adminSectionsOpen[section]=!adminSectionsOpen[section];render();}
 
 function archiveItem(col,id){
     saveState('Archive item');
@@ -2788,11 +2808,13 @@ document.addEventListener('DOMContentLoaded',async function(){
     }catch(e){}
     
     // Check URL for password recovery tokens BEFORE initializing auth
+    // Also check sessionStorage (set by early script before Supabase clears URL)
     var hashParams = new URLSearchParams(window.location.hash.substring(1));
     var queryParams = new URLSearchParams(window.location.search);
-    if(hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery'){
+    var isRecoveryInSession = sessionStorage.getItem('ro_password_recovery') === 'true';
+    if(hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery' || isRecoveryInSession){
         window.isPasswordRecovery = true;
-        console.log('Password recovery detected in URL');
+        console.log('Password recovery detected (URL or session)');
     }
     
     // Initialize Supabase (uses dynamic import)
