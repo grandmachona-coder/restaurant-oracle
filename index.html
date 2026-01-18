@@ -467,25 +467,44 @@ async function signUp(){
     document.getElementById('signup-btn').textContent='Create Account';
 }
 
-async function signOut(){
+function signOut(){
     console.log('signOut called');
-    try{
-        if(!supabase){
-            console.error('Supabase not available');
-            alert('Error: Not connected to authentication service');
-            return;
-        }
-        console.log('Calling supabase.auth.signOut...');
-        await supabase.auth.signOut();
+    if(!supabase){
+        console.error('Supabase not available');
+        alert('Error: Not connected to authentication service');
+        return;
+    }
+    
+    console.log('Calling supabase.auth.signOut...');
+    supabase.auth.signOut().then(function(){
         console.log('Sign out successful');
         currentAuthUser=null;
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('app-container').classList.add('hidden');
-        document.getElementById('user-dropdown').classList.remove('open');
-    }catch(err){
+        
+        // Clear any Supabase auth data from localStorage
+        Object.keys(localStorage).forEach(function(key){
+            if(key.startsWith('sb-')){
+                localStorage.removeItem(key);
+            }
+        });
+        
+        // Clear session storage too
+        sessionStorage.clear();
+        
+        // Reload page to ensure clean state
+        window.location.reload();
+    }).catch(function(err){
         console.error('Sign out error:',err);
         alert('Sign out failed: '+err.message);
-    }
+        
+        // Force clear and reload anyway
+        Object.keys(localStorage).forEach(function(key){
+            if(key.startsWith('sb-')){
+                localStorage.removeItem(key);
+            }
+        });
+        sessionStorage.clear();
+        window.location.reload();
+    });
 }
 
 function toggleUserMenu(){
