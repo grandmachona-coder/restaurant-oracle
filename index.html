@@ -1603,11 +1603,16 @@ function renderIngs(c,s){
 
 function deleteIngredient(id){
     id=Number(id); // Ensure id is a number
-    var ing=D.ings.find(function(x){return x.id===id;});
+    console.log('deleteIngredient called with id:', id);
+    
+    var ing=D.ings.find(function(x){return Number(x.id)===id;});
     if(!ing){
-        console.error('Ingredient not found:', id);
+        console.error('Ingredient not found:', id, 'Available IDs:', D.ings.map(function(i){return i.id;}));
+        alert('Ingredient not found!');
         return;
     }
+    
+    console.log('Found ingredient:', ing.name);
     
     // Check if ingredient is used in any recipes
     var recipesUsingIng=[];
@@ -1647,7 +1652,10 @@ function deleteIngredient(id){
     
     if(!confirm(warningMsg))return;
     
-    saveState('Delete ingredient: '+ing.name);
+    console.log('User confirmed deletion of:', ing.name);
+    var ingName=ing.name;
+    
+    saveState('Delete ingredient: '+ingName);
     
     // Remove from recipes
     D.recs.forEach(function(rec){
@@ -1670,10 +1678,26 @@ function deleteIngredient(id){
     D.shopping=D.shopping.filter(function(s){return Number(s.ingId)!==id;});
     
     // Remove the ingredient itself
+    var beforeCount=D.ings.length;
     D.ings=D.ings.filter(function(i){return Number(i.id)!==id;});
+    console.log('Ingredients: '+beforeCount+' -> '+D.ings.length);
     
     // Log the action
-    addLog('Deleted ingredient: '+ing.name,'Ingredients','');
+    addLog('Deleted ingredient: '+ingName,'Ingredients','');
+    
+    // Delete from Supabase if connected
+    if(supabase && currentAuthUser){
+        console.log('Deleting from Supabase...');
+        supabase.from('ings').delete().eq('id', id).then(function(res){
+            console.log('Supabase ings delete result:', res);
+        });
+        supabase.from('inv').delete().eq('ing_id', id).then(function(res){
+            console.log('Supabase inv delete result:', res);
+        });
+        supabase.from('shopping').delete().eq('ing_id', id).then(function(res){
+            console.log('Supabase shopping delete result:', res);
+        });
+    }
     
     render();
 }
@@ -1912,16 +1936,17 @@ function saveRecSubRec(recId){
 
 function deleteRecipe(id){
     id=Number(id);
-    var rec=D.recs.find(function(r){return r.id===id;});
+    var rec=D.recs.find(function(r){return Number(r.id)===id;});
     if(!rec){
         console.error('Recipe not found:', id);
+        alert('Recipe not found!');
         return;
     }
     
     // Check if recipe is used in any menu items
     var menusUsingRec=[];
     D.menus.forEach(function(menu){
-        if(menu.recId===id){
+        if(Number(menu.recId)===id){
             menusUsingRec.push(menu.name);
         }
     });
@@ -1955,11 +1980,12 @@ function deleteRecipe(id){
     
     if(!confirm(warningMsg))return;
     
-    saveState('Delete recipe: '+rec.name);
+    var recName=rec.name;
+    saveState('Delete recipe: '+recName);
     
     // Remove from menu items that use this recipe
     D.menus.forEach(function(menu){
-        if(menu.recId===id){
+        if(Number(menu.recId)===id){
             menu.recId=null;
         }
     });
@@ -1975,7 +2001,14 @@ function deleteRecipe(id){
     D.recs=D.recs.filter(function(r){return Number(r.id)!==id;});
     
     // Log the action
-    addLog('Deleted recipe: '+rec.name,'Recipes','');
+    addLog('Deleted recipe: '+recName,'Recipes','');
+    
+    // Delete from Supabase if connected
+    if(supabase && currentAuthUser){
+        supabase.from('recs').delete().eq('id', id).then(function(res){
+            console.log('Supabase recs delete result:', res);
+        });
+    }
     
     render();
 }
