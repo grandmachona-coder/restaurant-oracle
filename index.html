@@ -467,55 +467,19 @@ async function signUp(){
     document.getElementById('signup-btn').textContent='Create Account';
 }
 
-var signingOut = false;
 function signOut(){
-    if(signingOut){
-        console.log('Sign out already in progress');
-        return;
-    }
-    signingOut = true;
     console.log('signOut called');
     
     // Close dropdown immediately
     document.getElementById('user-dropdown').classList.remove('open');
     
-    if(!supabase){
-        console.error('Supabase not available');
-        alert('Error: Not connected to authentication service');
-        signingOut = false;
-        return;
-    }
-    
-    console.log('Calling supabase.auth.signOut...');
-    supabase.auth.signOut().then(function(){
-        console.log('Sign out successful');
-        currentAuthUser=null;
-        
-        // Clear any Supabase auth data from localStorage
-        Object.keys(localStorage).forEach(function(key){
-            if(key.startsWith('sb-')){
-                localStorage.removeItem(key);
-            }
-        });
-        
-        // Clear session storage too
-        sessionStorage.clear();
-        
-        // Reload page to ensure clean state
-        window.location.reload();
-    }).catch(function(err){
-        console.error('Sign out error:',err);
-        
-        // Force clear and reload anyway
-        currentAuthUser=null;
-        Object.keys(localStorage).forEach(function(key){
-            if(key.startsWith('sb-')){
-                localStorage.removeItem(key);
-            }
-        });
-        sessionStorage.clear();
-        window.location.reload();
+    // Don't wait for Supabase - just clear local auth and reload
+    currentAuthUser = null;
+    Object.keys(localStorage).forEach(function(key){
+        if(key.startsWith('sb-')) localStorage.removeItem(key);
     });
+    sessionStorage.clear();
+    location.reload();
 }
 
 function toggleUserMenu(){
@@ -683,7 +647,7 @@ async function loadFromSupabase(){
         D.recs=(recs.data||[]).map(mapRecFromDb);
         D.menus=(menus.data||[]).map(mapMenuFromDb);
         D.log=(log.data||[]).map(mapLogFromDb);
-        console.log('Data loaded from Supabase - recs:', D.recs.length, 'First rec:', D.recs[0]?.name);
+        console.log('Data mapped, recs:', D.recs.length, 'recCats:', D.recCats.length);
         
         // Migrate menu data to new format if needed
         migrateMenuData();
@@ -3765,20 +3729,10 @@ function queueSupabaseSave(){
             
             if(changeLog.recs.size > 0){
                 var items = getChangedItems('recs', D.recs, mapRecToDb);
-                console.log('Syncing recs:', items.length, 'items', items);
-                if(items.length) promises.push(supabase.from('recs').upsert(items).then(function(res){
-                    if(res.error) console.error('recs upsert error:', res.error);
-                    else console.log('recs upsert success:', res.data);
-                    return res;
-                }));
+                if(items.length) promises.push(supabase.from('recs').upsert(items));
             }
             if(deleteLog.recs.size > 0){
-                var ids = getDeletedIds('recs');
-                console.log('Deleting recs:', ids);
-                promises.push(supabase.from('recs').delete().in('id', ids).then(function(res){
-                    if(res.error) console.error('recs delete error:', res.error);
-                    return res;
-                }));
+                promises.push(supabase.from('recs').delete().in('id', getDeletedIds('recs')));
             }
             
             if(changeLog.menus.size > 0){
