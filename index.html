@@ -254,7 +254,7 @@
                     <div class="user-dropdown" id="user-dropdown">
                         <div class="user-dropdown-header">
                             <div class="user-dropdown-name" id="user-name">User</div>
-                            <div class="user-dropdown-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3144425443715449505c415d541f525e5c">[email&#160;protected]</a></div>
+                            <div class="user-dropdown-email" id="user-email">user@example.com</div>
                         </div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();syncNow()">🔄 Sync Now</div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();exportData()">📤 Export Backup</div>
@@ -289,7 +289,7 @@
     </div>
     <div class="modal-o" id="modal-o"><div class="modal" id="modal"></div></div>
 </div>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ==================== EARLY PASSWORD RECOVERY CHECK ====================
 // Check IMMEDIATELY before anything else runs - Supabase will clear the hash
 (function(){
@@ -467,11 +467,22 @@ async function signUp(){
     document.getElementById('signup-btn').textContent='Create Account';
 }
 
+var signingOut = false;
 function signOut(){
+    if(signingOut){
+        console.log('Sign out already in progress');
+        return;
+    }
+    signingOut = true;
     console.log('signOut called');
+    
+    // Close dropdown immediately
+    document.getElementById('user-dropdown').classList.remove('open');
+    
     if(!supabase){
         console.error('Supabase not available');
         alert('Error: Not connected to authentication service');
+        signingOut = false;
         return;
     }
     
@@ -494,9 +505,9 @@ function signOut(){
         window.location.reload();
     }).catch(function(err){
         console.error('Sign out error:',err);
-        alert('Sign out failed: '+err.message);
         
         // Force clear and reload anyway
+        currentAuthUser=null;
         Object.keys(localStorage).forEach(function(key){
             if(key.startsWith('sb-')){
                 localStorage.removeItem(key);
