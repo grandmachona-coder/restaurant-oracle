@@ -28,22 +28,22 @@
         body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a3a);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
         
         /* Login Screen - Warm Coral/Peach Theme with Dark Mode inputs */
-        .login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:40px 20px;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#f5c97a 0%,#f5a76c 25%,#e8846b 50%,#e07b65 75%,#d4725f 100%)}
+        .login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:40px 20px;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 50%,#0a0a1a 100%)}
         .login-screen.hidden{display:none}
-        .login-logo{width:100%;max-width:340px;height:auto;margin-bottom:16px;border-radius:20px}
-        .login-title{font-size:28px;font-weight:700;color:#2d3436;margin-bottom:8px;text-shadow:0 1px 2px rgba(0,0,0,.1)}
-        .login-subtitle{font-size:14px;color:#4a3f3a;margin-bottom:32px;text-align:center}
-        .login-box{width:100%;max-width:340px;background:rgba(30,30,50,.95);border:1px solid rgba(232,132,107,.3);border-radius:20px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+        .login-logo{width:100%;max-width:340px;height:auto;margin-bottom:16px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+        .login-title{font-size:28px;font-weight:700;color:#e0e6ed;margin-bottom:8px;text-shadow:0 2px 4px rgba(0,0,0,.3)}
+        .login-subtitle{font-size:14px;color:#a0aec0;margin-bottom:32px;text-align:center}
+        .login-box{width:100%;max-width:340px;background:rgba(26,26,46,.95);border:1px solid rgba(162,155,254,.2);border-radius:20px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
         .login-tabs{display:flex;margin-bottom:20px;background:rgba(0,0,0,.3);border-radius:10px;padding:4px}
         .login-tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;color:#a0aec0;cursor:pointer;border-radius:8px;transition:all .2s}
-        .login-tab.active{background:linear-gradient(135deg,#e8846b,#f5a76c);color:#fff}
+        .login-tab.active{background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff}
         .login-form{display:none}
         .login-form.active{display:block}
         .login-input{width:100%;padding:14px 16px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e0e6ed;font-size:14px;margin-bottom:12px}
-        .login-input:focus{outline:none;border-color:#e8846b;box-shadow:0 0 0 3px rgba(232,132,107,.3)}
+        .login-input:focus{outline:none;border-color:#a29bfe;box-shadow:0 0 0 3px rgba(162,155,254,.3)}
         .login-input::placeholder{color:#636e72}
-        .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#e8846b,#f5a76c);border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
-        .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(232,132,107,.4)}
+        .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
+        .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(162,155,254,.4)}
         .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
         .login-error{background:rgba(214,48,49,.2);color:#ff7675;padding:12px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
         .login-error.show{display:block}
@@ -166,6 +166,7 @@
         .add-form{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
         .add-form.open{display:block}
         .inv-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:background .2s}
+        .inv-item.prep-item{background:rgba(108,92,231,.15);border-left:3px solid #6c5ce7}
         .inv-item:hover{background:rgba(108,92,231,.2)}
         .inv-item-name{font-size:calc(13px * var(--font-scale));color:#e0e6ed}
         .inv-item-sub{font-size:calc(10px * var(--font-scale));color:#a0aec0;margin-left:4px}
@@ -202,7 +203,7 @@
             <input type="password" class="login-input" id="signin-password" placeholder="Password">
             <button class="login-btn" onclick="signIn()" id="signin-btn">Sign In</button>
             <div style="text-align:center;margin-top:12px">
-                <a href="#" onclick="showResetPassword();return false;" style="color:#f5a76c;font-size:13px;text-decoration:none">Forgot Password?</a>
+                <a href="#" onclick="showResetPassword();return false;" style="color:#a29bfe;font-size:13px;text-decoration:none">Forgot Password?</a>
             </div>
         </div>
         
@@ -675,7 +676,7 @@ async function loadFromSupabase(){
 // Field mapping functions (database snake_case to local camelCase)
 function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0};}
 function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:0,minQty:i.par||0,cost:i.cost||0};}
-function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id,qty:i.qty||0,unit:i.unit||'ea'};}
+function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,qty:i.qty||0,unit:i.unit||'ea'};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id};}
 function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',outputMode:r.output_mode||'auto',manualQty:r.manual_qty||0,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0};}
@@ -685,7 +686,7 @@ function mapLogFromDb(l){return{id:l.id,action:l.action,location:l.location||'',
 // Mapping functions for saving (local camelCase to database snake_case)
 function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep};}
 function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,par:i.minQty,cost:i.cost||0};}
-function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId,qty:i.qty,unit:i.unit};}
+function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,qty:i.qty,unit:i.unit};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId};}
 function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived};}
@@ -1546,9 +1547,17 @@ function renderInv(c,s){
             html+='<div style="margin-top:12px">';
             // Main area items
             areaItems.forEach(function(inv){
-                var ing=D.ings.find(function(x){return x.id===inv.ingId;});
-                if(ing){
-                    html+='<div class="inv-item" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
+                var itemName='',isPrep=false;
+                if(inv.ingId){
+                    var ing=D.ings.find(function(x){return x.id===inv.ingId;});
+                    itemName=ing?ing.name:'Unknown';
+                }else if(inv.recId){
+                    var rec=D.recs.find(function(r){return r.id===inv.recId;});
+                    itemName=rec?'🍳 '+rec.name:'Unknown Prep';
+                    isPrep=true;
+                }
+                if(itemName){
+                    html+='<div class="inv-item'+(isPrep?' prep-item':'')+'" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+itemName+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
                     D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
                     html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
                 }
@@ -1559,9 +1568,17 @@ function renderInv(c,s){
                     html+='<div class="section-label">'+sec+'</div><div class="sub-area">';
                     if(subItems[sec]&&subItems[sec].length){
                         subItems[sec].forEach(function(inv){
-                            var ing=D.ings.find(function(x){return x.id===inv.ingId;});
-                            if(ing){
-                                html+='<div class="inv-item" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+ing.name+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
+                            var itemName='',isPrep=false;
+                            if(inv.ingId){
+                                var ing=D.ings.find(function(x){return x.id===inv.ingId;});
+                                itemName=ing?ing.name:'Unknown';
+                            }else if(inv.recId){
+                                var rec=D.recs.find(function(r){return r.id===inv.recId;});
+                                itemName=rec?'🍳 '+rec.name:'Unknown Prep';
+                                isPrep=true;
+                            }
+                            if(itemName){
+                                html+='<div class="inv-item'+(isPrep?' prep-item':'')+'" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+itemName+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
                                 D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
                                 html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
                             }
@@ -1573,22 +1590,40 @@ function renderInv(c,s){
                 });
             }
             // Add form toggle
-            html+='<div class="add-toggle" onclick="togAdd(\'area-'+area.id+'\')"><span class="add-toggle-t">+ Add Ingredient</span></div>';
+            html+='<div class="add-toggle" onclick="togAdd(\'area-'+area.id+'\')"><span class="add-toggle-t">+ Add Item</span></div>';
             html+='<div class="add-form'+(addOpen['area-'+area.id]?' open':'')+'">';
-            html+='<select id="sel-'+area.id+'" class="form-i" style="margin-bottom:8px"><option value="">Select ingredient...</option>';
+            html+='<select id="sel-'+area.id+'" class="form-i" style="margin-bottom:8px" onchange="onInvItemSelect('+area.id+')"><option value="">Select item...</option>';
+            // Ingredients section
+            html+='<optgroup label="── INGREDIENTS ──">';
             D.cats.forEach(function(cat){
                 var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
                 if(catIngs.length){
-                    html+='<optgroup label="'+cat.name+'">';
-                    catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                    html+='<optgroup label="  '+cat.name+'">';
+                    catIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
                     html+='</optgroup>';
                 }
             });
             // Uncategorized ingredients
             var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
             if(uncatIngs.length){
-                html+='<optgroup label="Other">';
-                uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
+                html+='<optgroup label="  Other">';
+                uncatIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
+                html+='</optgroup>';
+            }
+            html+='</optgroup>';
+            // Prep items (recipes used in menus)
+            var usedRecIds=[];
+            D.menus.filter(function(m){return !m.archived;}).forEach(function(m){
+                if(m.recs&&m.recs.length){
+                    m.recs.forEach(function(mr){if(usedRecIds.indexOf(mr.recId)===-1)usedRecIds.push(mr.recId);});
+                }
+            });
+            if(usedRecIds.length){
+                html+='<optgroup label="── PREP ITEMS ──">';
+                usedRecIds.forEach(function(recId){
+                    var rec=D.recs.find(function(r){return r.id===recId;});
+                    if(rec)html+='<option value="rec-'+rec.id+'">🍳 '+rec.name+'</option>';
+                });
                 html+='</optgroup>';
             }
             html+='</select>';
@@ -1610,7 +1645,7 @@ function renderInv(c,s){
 }
 
 function addToArea(areaId){
-    var ingId=+document.getElementById('sel-'+areaId).value;
+    var selVal=document.getElementById('sel-'+areaId).value;
     var qty=+document.getElementById('qty-'+areaId).value;
     var unit=document.getElementById('unit-'+areaId).value;
     var area=D.areas.find(function(a){return a.id===areaId;});
@@ -1619,13 +1654,47 @@ function addToArea(areaId){
         var subEl=document.getElementById('sub-'+areaId);
         if(subEl)subArea=subEl.value;
     }
-    if(!ingId||!qty){alert('Select ingredient and enter quantity');return;}
+    if(!selVal||!qty){alert('Select item and enter quantity');return;}
+    
+    // Parse selection - could be "ing-123" or "rec-456"
+    var parts=selVal.split('-');
+    var itemType=parts[0];
+    var itemId=+parts[1];
+    var invItem={id:nid++,areaId:areaId,subArea:subArea,ingId:0,recId:0,qty:qty,unit:unit};
+    var itemName='';
+    
+    if(itemType==='ing'){
+        invItem.ingId=itemId;
+        itemName=getIngName(itemId);
+    }else if(itemType==='rec'){
+        invItem.recId=itemId;
+        var rec=D.recs.find(function(r){return r.id===itemId;});
+        itemName=rec?rec.name:'Recipe';
+    }
     
     saveState('Add to '+getAreaName(areaId,subArea));
-    D.inv.push({id:nid++,areaId:areaId,subArea:subArea,ingId:ingId,qty:qty,unit:unit});
-    logAction('Added to inventory',getAreaName(areaId,subArea),getIngName(ingId)+': '+qty+' '+unit);
+    D.inv.push(invItem);
+    logAction('Added to inventory',getAreaName(areaId,subArea),itemName+': '+qty+' '+unit);
     addOpen['area-'+areaId]=false;
     render();
+}
+
+function onInvItemSelect(areaId){
+    // Optional: auto-set unit based on selected item
+    var selVal=document.getElementById('sel-'+areaId).value;
+    if(!selVal)return;
+    var parts=selVal.split('-');
+    var itemType=parts[0];
+    var itemId=+parts[1];
+    var unitSel=document.getElementById('unit-'+areaId);
+    if(itemType==='ing'){
+        var ing=D.ings.find(function(i){return i.id===itemId;});
+        if(ing&&ing.defUnit){
+            for(var i=0;i<unitSel.options.length;i++){
+                if(unitSel.options[i].value===ing.defUnit){unitSel.selectedIndex=i;break;}
+            }
+        }
+    }
 }
 
 function updInv(id,v){
@@ -1634,8 +1703,15 @@ function updInv(id,v){
         saveState('Update qty');
         var oldQty=i.qty;
         i.qty=+v||0;
-        var ing=D.ings.find(function(x){return x.id===i.ingId;});
-        logAction('Updated quantity',getAreaName(i.areaId,i.subArea),(ing?ing.name:'')+': '+oldQty+' → '+i.qty);
+        var itemName='';
+        if(i.ingId){
+            var ing=D.ings.find(function(x){return x.id===i.ingId;});
+            itemName=ing?ing.name:'';
+        }else if(i.recId){
+            var rec=D.recs.find(function(r){return r.id===i.recId;});
+            itemName=rec?rec.name:'';
+        }
+        logAction('Updated quantity',getAreaName(i.areaId,i.subArea),itemName+': '+oldQty+' → '+i.qty);
         render();
     }
 }
@@ -1649,7 +1725,10 @@ function delInv(id){
     var i=D.inv.find(function(x){return x.id===id;});
     if(i&&confirm('Remove from inventory?')){
         saveState('Remove from inventory');
-        logAction('Removed from inventory',getAreaName(i.areaId,i.subArea),getIngName(i.ingId));
+        var itemName='';
+        if(i.ingId)itemName=getIngName(i.ingId);
+        else if(i.recId){var rec=D.recs.find(function(r){return r.id===i.recId;});itemName=rec?rec.name:'';}
+        logAction('Removed from inventory',getAreaName(i.areaId,i.subArea),itemName);
         D.inv=D.inv.filter(function(x){return x.id!==id;});
         render();
     }
@@ -1658,9 +1737,16 @@ function delInv(id){
 function editInvItem(id){
     var inv=D.inv.find(function(x){return x.id===id;});
     if(!inv)return;
-    var ing=D.ings.find(function(x){return x.id===inv.ingId;});
+    var itemName='';
+    if(inv.ingId){
+        var ing=D.ings.find(function(x){return x.id===inv.ingId;});
+        itemName=ing?ing.name:'Unknown';
+    }else if(inv.recId){
+        var rec=D.recs.find(function(r){return r.id===inv.recId;});
+        itemName=rec?'🍳 '+rec.name:'Unknown Prep';
+    }
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
-    var html='<div class="modal-t">Move '+ing.name+'</div>';
+    var html='<div class="modal-t">Move '+itemName+'</div>';
     html+='<div class="form-g"><label class="form-l">Current Location</label><div style="padding:8px;background:rgba(0,0,0,.2);border-radius:6px;color:#a0aec0;font-size:calc(12px * var(--font-scale))">'+getAreaName(inv.areaId,inv.subArea)+'</div></div>';
     html+='<div class="form-g"><label class="form-l">Move To</label><select id="move-area" class="form-i" onchange="updateSubAreaOptions()">';
     D.areas.forEach(function(a){html+='<option value="'+a.id+'"'+(a.id===inv.areaId?' selected':'')+'>'+a.name+'</option>';});
@@ -1899,33 +1985,83 @@ function confirmAddToInv(){
 
 // ==================== PREP STATUS ====================
 function renderPrep(c,s){
-    s.textContent=D.preps.length+' prep items';
-    var sorted=D.preps.slice().sort(function(a,b){
-        var da=a.onHand-a.tgt,db=b.onHand-b.tgt;
-        return da-db;
+    // Calculate prep requirements from Menu items
+    var prepNeeds={};// recId -> {name, totalNeeded, unit, usedIn:[]}
+    
+    D.menus.filter(function(m){return !m.archived;}).forEach(function(menu){
+        if(menu.recs&&menu.recs.length){
+            menu.recs.forEach(function(mr){
+                var rec=D.recs.find(function(r){return r.id===mr.recId;});
+                if(rec){
+                    if(!prepNeeds[mr.recId]){
+                        prepNeeds[mr.recId]={name:rec.name,totalNeeded:0,unit:mr.unit||'ea',usedIn:[]};
+                    }
+                    var needed=(menu.tgt||0)*(mr.qty||1);
+                    prepNeeds[mr.recId].totalNeeded+=needed;
+                    prepNeeds[mr.recId].usedIn.push(menu.name+' ('+menu.tgt+'×'+mr.qty+')');
+                }
+            });
+        }
     });
     
-    var html='';
-    sorted.forEach(function(prep){
-        var diff=prep.onHand-prep.tgt;
-        var status=getStatusTxt(prep.onHand,prep.tgt);
-        var color=getStatusColor(prep.onHand,prep.tgt);
-        html+='<div class="card"><div class="card-h"><div><div class="card-t">'+prep.name+'</div><div class="card-s">Target: '+prep.tgt+' '+prep.unit+'</div></div><span class="status-badge status-'+status.toLowerCase()+'">'+status+'</span></div>';
-        html+='<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand:</span><input type="number" value="'+prep.onHand+'" onchange="updPrep('+prep.id+',this.value)" style="width:60px;padding:6px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;text-align:center;font-size:calc(14px * var(--font-scale))"><span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">'+prep.unit+'</span><span style="margin-left:auto;font-weight:600;color:'+(color==='green'?'#00b894':color==='yellow'?'#fdcb6e':'#d63031')+'">'+(diff>=0?'+':'')+diff+'</span></div></div>';
+    // Convert to array and get on-hand from inventory
+    var prepList=[];
+    Object.keys(prepNeeds).forEach(function(recIdStr){
+        var recId=+recIdStr;
+        var need=prepNeeds[recId];
+        // Find on-hand in inventory (items with recId)
+        var onHand=0;
+        D.inv.forEach(function(inv){
+            if(inv.recId===recId)onHand+=inv.qty;
+        });
+        prepList.push({
+            recId:recId,
+            name:need.name,
+            target:need.totalNeeded,
+            unit:need.unit,
+            onHand:onHand,
+            usedIn:need.usedIn
+        });
     });
+    
+    // Sort by difference (most critical first)
+    prepList.sort(function(a,b){
+        return (a.onHand-a.target)-(b.onHand-b.target);
+    });
+    
+    s.textContent=prepList.length+' prep items';
+    
+    var html='';
+    if(!prepList.length){
+        html+='<div class="card" style="text-align:center;color:#a0aec0">';
+        html+='<div style="font-size:calc(14px * var(--font-scale));margin-bottom:8px">No prep items yet</div>';
+        html+='<div style="font-size:calc(11px * var(--font-scale))">Add recipes to menu items to see prep requirements here.</div>';
+        html+='</div>';
+    }else{
+        prepList.forEach(function(prep){
+            var diff=prep.onHand-prep.target;
+            var status=getStatusTxt(prep.onHand,prep.target);
+            var color=getStatusColor(prep.onHand,prep.target);
+            html+='<div class="card">';
+            html+='<div class="card-h"><div><div class="card-t">🍳 '+prep.name+'</div>';
+            html+='<div class="card-s">Target: '+prep.target+' '+prep.unit+' • Used in: '+prep.usedIn.length+' menu items</div></div>';
+            html+='<span class="status-badge status-'+status.toLowerCase()+'">'+status+'</span></div>';
+            html+='<div style="display:flex;align-items:center;gap:8px;margin-top:8px">';
+            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand:</span>';
+            html+='<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">'+prep.onHand+' '+prep.unit+'</span>';
+            html+='<span style="margin-left:auto;font-weight:600;color:'+(color==='green'?'#00b894':color==='yellow'?'#fdcb6e':'#d63031')+'">'+(diff>=0?'+':'')+diff+'</span>';
+            html+='</div>';
+            html+='<div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#636e72">'+prep.usedIn.join(', ')+'</div>';
+            html+='</div>';
+        });
+        html+='<div style="text-align:center;margin-top:16px;padding:12px;background:rgba(108,92,231,.1);border-radius:8px;font-size:calc(11px * var(--font-scale));color:#a29bfe">';
+        html+='💡 Update on-hand quantities in the <strong>Inventory</strong> tab';
+        html+='</div>';
+    }
     c.innerHTML=html;
 }
 
-function updPrep(id,v){
-    var p=D.preps.find(function(x){return x.id===id;});
-    if(p){
-        saveState('Update prep qty');
-        var old=p.onHand;
-        p.onHand=+v||0;
-        logAction('Updated prep qty','Prep',p.name+': '+old+' → '+p.onHand);
-        render();
-    }
-}
+// updPrep no longer needed - prep is calculated, not manual
 
 // ==================== INGREDIENTS ====================
 function renderIngs(c,s){
@@ -3248,7 +3384,7 @@ function openAdd(){
     var html='<div class="modal-t">Add New</div>';
     
     if(tab==='inventory'){
-        html+='<p style="color:#a0aec0;font-size:calc(12px * var(--font-scale))">Expand a storage area and use the "+ Add Ingredient" button inside.</p>';
+        html+='<p style="color:#a0aec0;font-size:calc(12px * var(--font-scale))">Expand a storage area and use the "+ Add Item" button inside.</p>';
         html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:12px">Got it</button>';
     }else if(tab==='shopping'){
         html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="add-shop-ing" class="form-i">';
