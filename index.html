@@ -636,6 +636,7 @@ async function loadFromSupabase(){
     console.log('loadFromSupabase starting...');
     try{
         // Load all tables - rec_cats might not exist yet, handle separately
+        console.log('Fetching main tables...');
         var [areas,cats,menuCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
             supabase.from('areas').select('*').order('id'),
             supabase.from('cats').select('*').order('id'),
@@ -649,11 +650,13 @@ async function loadFromSupabase(){
             supabase.from('menus').select('*').order('id'),
             supabase.from('log').select('*').order('created_at',{ascending:false}).limit(100)
         ]);
+        console.log('Main tables fetched');
         
         // Try to load rec_cats separately (table might not exist)
         var recCats = {data: []};
         try {
             recCats = await supabase.from('rec_cats').select('*').order('id');
+            console.log('rec_cats fetched:', recCats.data?.length || 0);
         } catch(e) {
             console.log('rec_cats table not found, using defaults');
         }
@@ -665,6 +668,7 @@ async function loadFromSupabase(){
             return loadFromSupabase(); // Reload after migration
         }
         
+        console.log('Mapping data to local format...');
         // Map database fields to local format
         D.areas=areas.data.map(mapAreaFromDb);
         D.cats=cats.data||[];
@@ -679,6 +683,7 @@ async function loadFromSupabase(){
         D.recs=(recs.data||[]).map(mapRecFromDb);
         D.menus=(menus.data||[]).map(mapMenuFromDb);
         D.log=(log.data||[]).map(mapLogFromDb);
+        console.log('Data mapped, recs:', D.recs.length, 'recCats:', D.recCats.length);
         
         // Migrate menu data to new format if needed
         migrateMenuData();
@@ -781,16 +786,15 @@ async function syncNow(){
         return;
     }
     
-    // If no snapshot yet, do initial full sync
-    if(!syncedSnapshot){
-        console.log('No snapshot, doing full initial sync...');
+    // If initial load not complete, do full sync
+    if(!initialLoadComplete){
+        console.log('Initial load not complete, doing full sync...');
         showSyncStatus('syncing');
         try{
             var results = await Promise.all([
                 supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
                 supabase.from('cats').upsert(D.cats),
                 supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
-                supabase.from('rec_cats').upsert((D.recCats||[]).map(function(c){return{id:c.id,name:c.name};})),
                 supabase.from('units').upsert(D.units),
                 supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
                 supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
@@ -1239,6 +1243,7 @@ var undoHistory=[];
 // ==================== UNDO SYSTEM ====================
 // Snapshot of last synced state - compare against this
 var syncedSnapshot = null;
+var initialLoadComplete = false;
 
 function takeSyncSnapshot(){
     console.log('takeSyncSnapshot called');
@@ -1257,7 +1262,8 @@ function takeSyncSnapshot(){
             units: JSON.stringify(D.units),
             autoAddToInv: D.autoAddToInv
         };
-        console.log('takeSyncSnapshot complete, syncedSnapshot:', !!syncedSnapshot);
+        initialLoadComplete = true;
+        console.log('takeSyncSnapshot complete, initialLoadComplete:', initialLoadComplete);
     } catch(e) {
         console.error('takeSyncSnapshot error:', e);
     }
@@ -3641,14 +3647,11 @@ function getDeletedIds(table){
 
 // Only call this when data actually changes (from saveState)
 function queueSupabaseSave(){
-    console.log('queueSupabaseSave called, supabase:', !!supabase, 'currentAuthUser:', !!currentAuthUser, 'syncedSnapshot:', !!syncedSnapshot);
     if(!supabase||!currentAuthUser){
-        console.log('queueSupabaseSave: no supabase or user, skipping');
         return;
     }
-    if(!syncedSnapshot){
-        console.log('queueSupabaseSave: no snapshot yet, skipping');
-        return;
+    if(!initialLoadComplete){
+        return; // Don't try to sync until initial load is done
     }
     pendingSupabaseSave=true;
     showSyncStatus('unsaved');
