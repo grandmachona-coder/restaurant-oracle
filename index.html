@@ -2840,13 +2840,14 @@ function renderRecs(c,s){
                     rec.subRecs.forEach(function(sr,idx){
                         var subRec=D.recs.find(function(r){return r.id===sr.recId;});
                         html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+getRecName(sr.recId)+' ×'+sr.qty+'</span><button class="del-btn" onclick="delRecSubRec('+rec.id+','+idx+')">×</button></div>';
-                        // Show expanded ingredients from sub-recipe
+                        // Show expanded ingredients from sub-recipe with edit link
                         if(subRec&&subRec.ings&&subRec.ings.length){
                             html+='<div style="margin-left:16px;border-left:1px solid rgba(253,203,110,.3);padding-left:8px">';
                             subRec.ings.forEach(function(ing){
                                 var scaledQty=(ing.qty*sr.qty).toFixed(2).replace(/\.?0+$/,'');
                                 html+='<div style="font-size:calc(10px * var(--font-scale));color:#a0aec0;padding:2px 0">• '+getIngName(ing.ingId)+': <b style="color:#fdcb6e">'+scaledQty+' '+ing.unit+'</b></div>';
                             });
+                            html+='<button class="btn btn-s btn-sm" onclick="tog(\'rec-'+subRec.id+'\');scrollToRec('+subRec.id+')" style="margin-top:4px;font-size:calc(9px * var(--font-scale))">✏️ Edit '+subRec.name+' ingredients</button>';
                             html+='</div>';
                         }
                     });
@@ -2912,6 +2913,15 @@ function delRecIng(recId,idx){
         rec.ings.splice(idx,1);
         render();
     }
+}
+
+function scrollToRec(recId){
+    setTimeout(function(){
+        var el=document.querySelector('[onclick*="tog(\'rec-'+recId+'\')"]');
+        if(el){
+            el.scrollIntoView({behavior:'smooth',block:'center'});
+        }
+    },100);
 }
 
 function delRecSubRec(recId,idx){
