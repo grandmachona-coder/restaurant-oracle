@@ -1790,54 +1790,11 @@ function renderInv(c,s){
             html+='<div class="add-toggle" onclick="togAdd(\'area-'+area.id+'\')"><span class="add-toggle-t">+ Add Item</span></div>';
             html+='<div class="add-form'+(addOpen['area-'+area.id]?' open':'')+'">';
             // Combined search/select using datalist for better UX
-            html+='<div style="position:relative"><input type="text" id="inv-search-'+area.id+'" class="form-i" placeholder="🔍 Type to search or select..." style="margin-bottom:8px" oninput="filterInvItems('+area.id+',this.value)" onfocus="showInvDropdown('+area.id+')" autocomplete="off">';
+            html+='<div style="position:relative"><input type="text" id="inv-search-'+area.id+'" class="form-i" placeholder="🔍 Search items..." style="margin-bottom:8px" oninput="filterInvItems('+area.id+',this.value)" autocomplete="off">';
             html+='<div id="inv-dropdown-'+area.id+'" class="inv-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:250px;overflow-y:auto;background:#2d2d4a;border:1px solid rgba(255,255,255,.2);border-radius:8px;z-index:100;margin-top:-4px">';
             html+=buildInvDropdownItems(area.id,'');
             html+='</div></div>';
             html+='<input type="hidden" id="sel-'+area.id+'" value="">';
-            // Ingredients section
-            html+='<optgroup label="── INGREDIENTS ──">';
-            D.cats.forEach(function(cat){
-                var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
-                if(catIngs.length){
-                    html+='<optgroup label="  '+cat.name+'">';
-                    catIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
-                    html+='</optgroup>';
-                }
-            });
-            // Uncategorized ingredients
-            var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
-            if(uncatIngs.length){
-                html+='<optgroup label="  Other">';
-                uncatIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
-                html+='</optgroup>';
-            }
-            html+='</optgroup>';
-            // Prep items (recipes used in menus)
-            var usedRecIds=[];
-            D.menus.filter(function(m){return !m.archived;}).forEach(function(m){
-                if(m.recs&&m.recs.length){
-                    m.recs.forEach(function(mr){if(usedRecIds.indexOf(mr.recId)===-1)usedRecIds.push(mr.recId);});
-                }
-            });
-            if(usedRecIds.length){
-                html+='<optgroup label="── PREP ITEMS (Recipes) ──">';
-                usedRecIds.forEach(function(recId){
-                    var rec=D.recs.find(function(r){return r.id===recId;});
-                    if(rec)html+='<option value="rec-'+rec.id+'">🍳 '+rec.name+'</option>';
-                });
-                html+='</optgroup>';
-            }
-            // Menu items marked as Prep
-            var prepMenus=D.menus.filter(function(m){return !m.archived && m.includeInPrep;});
-            if(prepMenus.length){
-                html+='<optgroup label="── PREP ITEMS (Menu) ──">';
-                prepMenus.forEach(function(menu){
-                    html+='<option value="menu-'+menu.id+'">🍽️ '+menu.name+'</option>';
-                });
-                html+='</optgroup>';
-            }
-            html+='</select>';
             if(area.sections.length){
                 html+='<select id="sub-'+area.id+'" class="form-i" style="margin-bottom:8px"><option value="">Main Area</option>';
                 area.sections.forEach(function(sec){html+='<option value="'+sec+'">'+sec+'</option>';});
@@ -2100,8 +2057,12 @@ function hideInvDropdown(areaId){
 function filterInvItems(areaId, searchTerm){
     var dropdown=document.getElementById('inv-dropdown-'+areaId);
     if(dropdown){
-        dropdown.innerHTML=buildInvDropdownItems(areaId, searchTerm);
-        dropdown.style.display='block';
+        if(searchTerm && searchTerm.trim()){
+            dropdown.innerHTML=buildInvDropdownItems(areaId, searchTerm);
+            dropdown.style.display='block';
+        } else {
+            dropdown.style.display='none';
+        }
     }
 }
 
