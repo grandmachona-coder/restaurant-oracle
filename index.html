@@ -1720,6 +1720,62 @@ function renderInv(c,s){
             html+='<div style="display:flex;gap:8px"><input type="number" id="qty-'+area.id+'" class="form-i" placeholder="Qty" style="flex:1"><select id="unit-'+area.id+'" class="form-i" style="flex:1">';
             D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
             html+='</select></div>';
+            // Unit conversion section (shown when ingredient selected)
+            html+='<div id="conv-'+area.id+'" style="display:none;margin-top:8px;padding:10px;background:rgba(108,92,231,0.1);border-radius:6px;border-left:3px solid #6c5ce7">';
+            html+='<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-bottom:6px">📐 Storage → Recipe Unit Conversion</div>';
+            html+='<div style="font-size:calc(9px * var(--font-scale));color:#636e72;margin-bottom:8px;font-style:italic">*Recipe units = Total listed per item on pkg</div>';
+            // Dropdown of existing conversions grouped by category
+            html+='<select id="conv-select-'+area.id+'" class="form-i" style="margin-bottom:8px;font-size:calc(11px * var(--font-scale))" onchange="onConvSelect('+area.id+')">';
+            html+='<option value="">Select existing or create new...</option>';
+            // Group conversions by ingredient category
+            if(D.conversions && D.conversions.length){
+                D.cats.forEach(function(cat){
+                    var catConvs=D.conversions.filter(function(conv){
+                        var ing=D.ings.find(function(i){return i.id===conv.ingId;});
+                        return ing && ing.catId===cat.id;
+                    });
+                    if(catConvs.length){
+                        html+='<optgroup label="'+cat.name+'">';
+                        catConvs.forEach(function(conv){
+                            var ing=D.ings.find(function(i){return i.id===conv.ingId;});
+                            var ingName=ing?ing.name:'Unknown';
+                            html+='<option value="'+conv.id+'">'+ingName+': 1 '+conv.storageUnit+' = '+conv.factor+' '+conv.recipeUnit+'</option>';
+                        });
+                        html+='</optgroup>';
+                    }
+                });
+                // Uncategorized
+                var uncatConvs=D.conversions.filter(function(conv){
+                    var ing=D.ings.find(function(i){return i.id===conv.ingId;});
+                    return ing && !ing.catId;
+                });
+                if(uncatConvs.length){
+                    html+='<optgroup label="Other">';
+                    uncatConvs.forEach(function(conv){
+                        var ing=D.ings.find(function(i){return i.id===conv.ingId;});
+                        var ingName=ing?ing.name:'Unknown';
+                        html+='<option value="'+conv.id+'">'+ingName+': 1 '+conv.storageUnit+' = '+conv.factor+' '+conv.recipeUnit+'</option>';
+                    });
+                    html+='</optgroup>';
+                }
+            }
+            html+='<option value="new">➕ Create New Conversion</option>';
+            html+='</select>';
+            // Create new conversion fields (hidden by default)
+            html+='<div id="conv-new-'+area.id+'" style="display:none">';
+            html+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">';
+            html+='<span style="font-size:calc(11px * var(--font-scale));color:#a0aec0">Storage:</span>';
+            html+='<input type="number" id="stor-qty-'+area.id+'" class="form-i" value="1" style="width:40px;font-size:calc(11px * var(--font-scale))">';
+            html+='<input type="text" id="stor-unit-'+area.id+'" class="form-i" placeholder="bottle" style="width:70px;font-size:calc(11px * var(--font-scale))">';
+            html+='</div>';
+            html+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+            html+='<span style="font-size:calc(11px * var(--font-scale));color:#a0aec0">Recipe:</span>';
+            html+='<input type="number" id="rec-qty-'+area.id+'" class="form-i" placeholder="25" style="width:50px;font-size:calc(11px * var(--font-scale))">';
+            html+='<select id="rec-unit-'+area.id+'" class="form-i" style="width:70px;font-size:calc(11px * var(--font-scale))">';
+            D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+            html+='</select>';
+            html+='</div>';
+            html+='</div></div>';
             html+='<button class="btn btn-p" onclick="addToArea('+area.id+')" style="width:100%;margin-top:8px">Add</button>';
             html+='</div>';
             html+='</div>';
@@ -1740,23 +1796,44 @@ function addToArea(areaId){
         if(subEl)subArea=subEl.value;
     }
     if(!selVal||!qty){alert('Select item and enter quantity');return;}
-    
+
     // Parse selection - could be "ing-123" or "rec-456"
     var parts=selVal.split('-');
     var itemType=parts[0];
     var itemId=+parts[1];
     var invItem={id:nid++,areaId:areaId,subArea:subArea,ingId:0,recId:0,qty:qty,unit:unit};
     var itemName='';
-    
+
     if(itemType==='ing'){
         invItem.ingId=itemId;
         itemName=getIngName(itemId);
+
+        // Check for unit conversion - create if provided and doesn't exist
+        var existingConv=D.conversions?D.conversions.find(function(c){return c.ingId===itemId;}):null;
+        if(!existingConv){
+            var storUnit=document.getElementById('stor-unit-'+areaId);
+            var convFactor=document.getElementById('conv-factor-'+areaId);
+            var recUnit=document.getElementById('rec-unit-'+areaId);
+            if(storUnit&&convFactor&&recUnit&&storUnit.value&&convFactor.value){
+                if(!D.conversions)D.conversions=[];
+                var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+                D.conversions.push({
+                    id:maxConvId+1,
+                    ingId:itemId,
+                    storageUnit:storUnit.value,
+                    factor:+convFactor.value,
+                    recipeUnit:recUnit.value
+                });
+                // Use storage unit for inventory
+                invItem.unit=storUnit.value;
+            }
+        }
     }else if(itemType==='rec'){
         invItem.recId=itemId;
         var rec=D.recs.find(function(r){return r.id===itemId;});
         itemName=rec?rec.name:'Recipe';
     }
-    
+
     saveState('Add to '+getAreaName(areaId,subArea));
     D.inv.push(invItem);
     logAction('Added to inventory',getAreaName(areaId,subArea),itemName+': '+qty+' '+unit);
@@ -1765,20 +1842,86 @@ function addToArea(areaId){
 }
 
 function onInvItemSelect(areaId){
-    // Optional: auto-set unit based on selected item
     var selVal=document.getElementById('sel-'+areaId).value;
-    if(!selVal)return;
+    var convDiv=document.getElementById('conv-'+areaId);
+    var convNewDiv=document.getElementById('conv-new-'+areaId);
+    var convSelect=document.getElementById('conv-select-'+areaId);
+
+    if(!selVal){
+        if(convDiv)convDiv.style.display='none';
+        return;
+    }
     var parts=selVal.split('-');
     var itemType=parts[0];
     var itemId=+parts[1];
     var unitSel=document.getElementById('unit-'+areaId);
+
     if(itemType==='ing'){
         var ing=D.ings.find(function(i){return i.id===itemId;});
-        if(ing&&ing.defUnit){
+        // Check if conversion exists for this ingredient
+        var existingConv=D.conversions?D.conversions.find(function(c){return c.ingId===itemId;}):null;
+
+        if(existingConv){
+            // Has conversion - hide the conversion section entirely, use storage unit
+            if(convDiv)convDiv.style.display='none';
+            // Set unit dropdown to storage unit
             for(var i=0;i<unitSel.options.length;i++){
-                if(unitSel.options[i].value===ing.defUnit){unitSel.selectedIndex=i;break;}
+                if(unitSel.options[i].value===existingConv.storageUnit){unitSel.selectedIndex=i;break;}
+            }
+        }else{
+            // No conversion - show conversion section
+            if(convDiv)convDiv.style.display='block';
+            if(convNewDiv)convNewDiv.style.display='none';
+            if(convSelect)convSelect.value='';
+            // Set default unit if ingredient has one
+            if(ing&&ing.defUnit){
+                for(var i=0;i<unitSel.options.length;i++){
+                    if(unitSel.options[i].value===ing.defUnit){unitSel.selectedIndex=i;break;}
+                }
             }
         }
+    }else{
+        // Recipe/prep item - hide conversion fields
+        if(convDiv)convDiv.style.display='none';
+    }
+}
+
+function onConvSelect(areaId){
+    var convSelect=document.getElementById('conv-select-'+areaId);
+    var convNewDiv=document.getElementById('conv-new-'+areaId);
+    var unitSel=document.getElementById('unit-'+areaId);
+
+    if(!convSelect)return;
+    var val=convSelect.value;
+
+    if(val==='new'){
+        // Show create new fields
+        if(convNewDiv)convNewDiv.style.display='block';
+    }else if(val){
+        // Selected existing conversion - hide new fields, apply conversion's storage unit
+        if(convNewDiv)convNewDiv.style.display='none';
+        var conv=D.conversions?D.conversions.find(function(c){return c.id===+val;}):null;
+        if(conv && unitSel){
+            // Check if storage unit exists in dropdown, if not add it temporarily
+            var found=false;
+            for(var i=0;i<unitSel.options.length;i++){
+                if(unitSel.options[i].value===conv.storageUnit){
+                    unitSel.selectedIndex=i;
+                    found=true;
+                    break;
+                }
+            }
+            if(!found){
+                var opt=document.createElement('option');
+                opt.value=conv.storageUnit;
+                opt.text=conv.storageUnit;
+                unitSel.add(opt);
+                unitSel.value=conv.storageUnit;
+            }
+        }
+    }else{
+        // Nothing selected
+        if(convNewDiv)convNewDiv.style.display='none';
     }
 }
 
