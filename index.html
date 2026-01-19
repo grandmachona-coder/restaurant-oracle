@@ -4867,19 +4867,54 @@ function loadAllDataLocal(){
 }
 
 function mergeData(saved){
-    // Use ALL saved data as-is - user data is the source of truth
-    // Core file updates should never change user data
-    
+    // Merge saved data with defaults - saved data takes priority but defaults fill gaps
+
     if(saved.autoAddToInv!==undefined)D.autoAddToInv=saved.autoAddToInv;
-    
-    // All data arrays - use saved data exactly as-is
-    ['users','areas','cats','menuCats','recCats','units','ings','inv','shopping','preps','recs','menus','log'].forEach(function(key){
-        if(saved[key])D[key]=saved[key];
+
+    // For most arrays - use saved data if it has items, otherwise keep defaults
+    ['users','areas','cats','menuCats','recCats','units','inv','shopping','preps','log'].forEach(function(key){
+        if(saved[key] && saved[key].length > 0) D[key]=saved[key];
     });
-    
+
+    // For ings and recs - merge: keep defaults that aren't in saved, add all from saved
+    // This ensures default recipes/ingredients are never lost
+    if(saved.ings){
+        if(saved.ings.length > 0){
+            // Start with saved data
+            D.ings = saved.ings.slice();
+            // Add any defaults that aren't in saved (by id)
+            var savedIngIds = {};
+            saved.ings.forEach(function(i){ savedIngIds[i.id] = true; });
+            getDefaultData().ings.forEach(function(def){
+                if(!savedIngIds[def.id]) D.ings.push(def);
+            });
+        }
+        // If saved.ings is empty, keep defaults (D.ings already has them)
+    }
+
+    if(saved.recs){
+        if(saved.recs.length > 0){
+            // Start with saved data
+            D.recs = saved.recs.slice();
+            // Add any defaults that aren't in saved (by id)
+            var savedRecIds = {};
+            saved.recs.forEach(function(r){ savedRecIds[r.id] = true; });
+            getDefaultData().recs.forEach(function(def){
+                if(!savedRecIds[def.id]) D.recs.push(def);
+            });
+        }
+        // If saved.recs is empty, keep defaults (D.recs already has them)
+    }
+
+    if(saved.menus){
+        if(saved.menus.length > 0){
+            D.menus = saved.menus;
+        }
+    }
+
     // Initialize recCats if not present
-    if(!D.recCats) D.recCats = [{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
-    
+    if(!D.recCats || !D.recCats.length) D.recCats = [{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
+
     // Migrate menu data to new format if needed
     migrateMenuData();
 }
