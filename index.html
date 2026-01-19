@@ -2755,24 +2755,60 @@ function renderPrep(c,s){
 
     var html = '';
 
-    // ========== Render Menu Prep Section ==========
+    // ========== Render Menu Prep Section (grouped by category) ==========
     if(menuPrepList.length){
         html += '<div class="sec" style="color:#74b9ff">🍽️ Menu Items (' + menuPrepList.length + ')</div>';
-        menuPrepList.forEach(function(item){
-            var diff = item.onHand - item.target;
-            var status = getStatusTxt(item.onHand, item.target);
-            var color = getStatusColor(item.onHand, item.target);
-            html += '<div class="card">';
-            html += '<div class="card-h"><div><div class="card-t">' + item.name + '</div>';
-            html += '<div class="card-s">Target: ' + item.target + ' ' + item.unit + '</div></div>';
-            html += '<span class="status-badge status-' + status.toLowerCase() + '">' + status + '</span></div>';
-            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">';
-            html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Finished:</span>';
-            html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + item.onHand + ' ' + item.unit + '</span>';
-            html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
-            html += '</div>';
-            html += '</div>';
+
+        // Group menu prep items by category
+        D.menuCats.forEach(function(cat){
+            var catItems = menuPrepList.filter(function(item){
+                var menu = D.menus.find(function(m){ return m.id === item.menuId; });
+                return menu && menu.catId === cat.id;
+            });
+            if(!catItems.length) return;
+
+            html += '<div style="color:#74b9ff;font-size:calc(12px * var(--font-scale));font-weight:600;margin:12px 0 8px;padding-left:4px">' + cat.name + ' (' + catItems.length + ')</div>';
+
+            catItems.forEach(function(item){
+                var diff = item.onHand - item.target;
+                var status = getStatusTxt(item.onHand, item.target);
+                var color = getStatusColor(item.onHand, item.target);
+                html += '<div class="card">';
+                html += '<div class="card-h"><div><div class="card-t">' + item.name + '</div>';
+                html += '<div class="card-s">Target: ' + item.target + ' ' + item.unit + '</div></div>';
+                html += '<span class="status-badge status-' + status.toLowerCase() + '">' + status + '</span></div>';
+                html += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">';
+                html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Finished:</span>';
+                html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + item.onHand + ' ' + item.unit + '</span>';
+                html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+                html += '</div>';
+                html += '</div>';
+            });
         });
+
+        // Handle uncategorized items
+        var uncatItems = menuPrepList.filter(function(item){
+            var menu = D.menus.find(function(m){ return m.id === item.menuId; });
+            return !menu || !menu.catId;
+        });
+        if(uncatItems.length){
+            html += '<div style="color:#74b9ff;font-size:calc(12px * var(--font-scale));font-weight:600;margin:12px 0 8px;padding-left:4px">Uncategorized (' + uncatItems.length + ')</div>';
+            uncatItems.forEach(function(item){
+                var diff = item.onHand - item.target;
+                var status = getStatusTxt(item.onHand, item.target);
+                var color = getStatusColor(item.onHand, item.target);
+                html += '<div class="card">';
+                html += '<div class="card-h"><div><div class="card-t">' + item.name + '</div>';
+                html += '<div class="card-s">Target: ' + item.target + ' ' + item.unit + '</div></div>';
+                html += '<span class="status-badge status-' + status.toLowerCase() + '">' + status + '</span></div>';
+                html += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">';
+                html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Finished:</span>';
+                html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + item.onHand + ' ' + item.unit + '</span>';
+                html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+                html += '</div>';
+                html += '</div>';
+            });
+        }
     }
 
     // ========== Render Recipe Prep Section ==========
