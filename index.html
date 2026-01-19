@@ -753,7 +753,7 @@ async function loadFromSupabase(){
 
 // Field mapping functions (database snake_case to local camelCase)
 function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0};}
-function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:0,minQty:i.par||0,cost:i.cost||0};}
+function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:i.standalone||0,minQty:i.par||0,autoShop:i.auto_shop||0,cost:i.cost||0};}
 function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,menuId:i.menu_id||0,qty:i.qty||0,unit:i.unit||'ea'};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id};}
@@ -764,7 +764,7 @@ function mapConvFromDb(c){return{id:c.id,ingId:c.ing_id,storageUnit:c.storage_un
 
 // Mapping functions for saving (local camelCase to database snake_case)
 function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep};}
-function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,par:i.minQty,cost:i.cost||0};}
+function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,standalone:i.standalone,par:i.minQty,auto_shop:i.autoShop,cost:i.cost||0};}
 function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,menu_id:i.menuId||null,qty:i.qty,unit:i.unit};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId};}
@@ -1106,74 +1106,74 @@ var D={
         {id:51,name:'cube',abbr:'cube'},{id:52,name:'pack',abbr:'pack'}
     ],
     ings:[
-        {id:1,name:'Ground Beef',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
-        {id:2,name:'Chicken Breast',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
-        {id:3,name:'Sweet Onion',catId:2,areaId:3,subArea:'Left',defUnit:'lb',archived:0,standalone:0,minQty:0},
-        {id:4,name:'Sweet Red Pepper',catId:2,areaId:3,subArea:'Middle',defUnit:'ea',archived:0,standalone:0,minQty:0},
-        {id:5,name:'Potatoes',catId:2,areaId:3,subArea:'Right',defUnit:'lb',archived:0,standalone:0,minQty:0},
-        {id:6,name:'Cheese',catId:3,areaId:2,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
-        {id:7,name:'Eggs',catId:3,areaId:2,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:24},
-        {id:8,name:'Flour',catId:4,areaId:10,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0},
-        {id:9,name:'Salt',catId:4,areaId:4,subArea:'',defUnit:'lb',archived:0,standalone:1,minQty:2},
-        {id:10,name:'Olive Oil',catId:5,areaId:10,subArea:'',defUnit:'gal',archived:0,standalone:1,minQty:1},
-        {id:11,name:'Carrots',catId:2,areaId:3,subArea:'Left',defUnit:'cup',archived:0,standalone:0,minQty:0},
-        {id:12,name:'Prego Sauce',catId:5,areaId:10,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
-        {id:13,name:'Veg Broth Cubes',catId:4,areaId:4,subArea:'',defUnit:'cube',archived:0,standalone:0,minQty:0},
-        {id:14,name:'Beef Bouillon',catId:4,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
-        {id:15,name:'Chicken Bouillon',catId:4,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
-        {id:16,name:'Paprika',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
-        {id:17,name:'Cumin',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
-        {id:18,name:'Empanada Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
-        {id:19,name:'Chicken Package',catId:1,areaId:8,subArea:'',defUnit:'pack',archived:0,standalone:0,minQty:0},
-        {id:20,name:'Pizza Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
-        {id:21,name:'Green Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0},
-        {id:22,name:'Spanish Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0},
-        {id:23,name:'Oregano',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0},
-        {id:24,name:'Taco Seasoning',catId:4,areaId:4,subArea:'',defUnit:'pkg',archived:0,standalone:0,minQty:0},
-        {id:25,name:'Spinach',catId:2,areaId:3,subArea:'Middle',defUnit:'pkg',archived:0,standalone:0,minQty:0},
-        {id:26,name:'Parmesan Cheese',catId:3,areaId:2,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0},
-        {id:27,name:'Mozzarella Bar',catId:3,areaId:2,subArea:'',defUnit:'bar',archived:0,standalone:0,minQty:0},
-        {id:28,name:'Broccoli',catId:2,areaId:3,subArea:'Right',defUnit:'bag',archived:0,standalone:0,minQty:0},
-        {id:29,name:'Water',catId:5,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0},
-        {id:30,name:'Gin',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:31,name:'Vermouth',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:32,name:'Cointreau',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:33,name:'DOM Benedictine',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:34,name:'Bitters',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:35,name:'Vodka',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:36,name:'Tequila',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:37,name:'Rum',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:38,name:'Fernet',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:39,name:'Rye Whiskey',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:40,name:'XO Brandy',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:41,name:'Amaro di Montenegro',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:42,name:'Campari',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:43,name:'Irish Cream',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:44,name:'Raspberry di Amore',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:45,name:'Simple Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:46,name:'Pancake Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:47,name:'Lemons',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
-        {id:48,name:'Limes',catId:2,areaId:3,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0},
-        {id:49,name:'Strawberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
-        {id:50,name:'Raspberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
-        {id:51,name:'Blackberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0},
-        {id:52,name:'Tomato Juice',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:53,name:'Worcestershire',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:54,name:'Hot Sauce',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:55,name:'Black Pepper',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
-        {id:56,name:'Celery Salt',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
-        {id:57,name:'Bacon',catId:1,areaId:1,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
-        {id:58,name:'Tonic Water',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:59,name:'Club Soda',catId:9,areaId:10,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0},
-        {id:60,name:'Cinnamon',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
-        {id:61,name:'Cinnamon Stick',catId:4,areaId:4,subArea:'',defUnit:'ea',archived:0,standalone:0,minQty:0},
-        {id:62,name:'Orange Juice',catId:9,areaId:3,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:63,name:'Concord Espresso',catId:9,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0},
-        {id:64,name:'LaChona Reserva Blend 2021',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:65,name:'LaChona White Malbec Rose',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:66,name:'LaChona Chardonnay 2022',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:67,name:'LaChona Norte y Sur Malbec',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0},
-        {id:68,name:'LaChona Norte y Sur Cabernet',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0}
+        {id:1,name:'Ground Beef',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:2,name:'Chicken Breast',catId:1,areaId:1,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:3,name:'Sweet Onion',catId:2,areaId:3,subArea:'Left',defUnit:'lb',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:4,name:'Sweet Red Pepper',catId:2,areaId:3,subArea:'Middle',defUnit:'ea',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:5,name:'Potatoes',catId:2,areaId:3,subArea:'Right',defUnit:'lb',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:6,name:'Cheese',catId:3,areaId:2,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:7,name:'Eggs',catId:3,areaId:2,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:24,autoShop:1},
+        {id:8,name:'Flour',catId:4,areaId:10,subArea:'',defUnit:'lb',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:9,name:'Salt',catId:4,areaId:4,subArea:'',defUnit:'lb',archived:0,standalone:1,minQty:2,autoShop:1},
+        {id:10,name:'Olive Oil',catId:5,areaId:10,subArea:'',defUnit:'gal',archived:0,standalone:1,minQty:1,autoShop:1},
+        {id:11,name:'Carrots',catId:2,areaId:3,subArea:'Left',defUnit:'cup',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:12,name:'Prego Sauce',catId:5,areaId:10,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:13,name:'Veg Broth Cubes',catId:4,areaId:4,subArea:'',defUnit:'cube',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:14,name:'Beef Bouillon',catId:4,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:15,name:'Chicken Bouillon',catId:4,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:16,name:'Paprika',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:17,name:'Cumin',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:18,name:'Empanada Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:19,name:'Chicken Package',catId:1,areaId:8,subArea:'',defUnit:'pack',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:20,name:'Pizza Mix Seasoning',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:21,name:'Green Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:22,name:'Spanish Olives',catId:4,areaId:10,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:23,name:'Oregano',catId:4,areaId:4,subArea:'',defUnit:'tbsp',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:24,name:'Taco Seasoning',catId:4,areaId:4,subArea:'',defUnit:'pkg',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:25,name:'Spinach',catId:2,areaId:3,subArea:'Middle',defUnit:'pkg',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:26,name:'Parmesan Cheese',catId:3,areaId:2,subArea:'',defUnit:'jar',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:27,name:'Mozzarella Bar',catId:3,areaId:2,subArea:'',defUnit:'bar',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:28,name:'Broccoli',catId:2,areaId:3,subArea:'Right',defUnit:'bag',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:29,name:'Water',catId:5,areaId:4,subArea:'',defUnit:'cup',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:30,name:'Gin',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:31,name:'Vermouth',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:32,name:'Cointreau',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:33,name:'DOM Benedictine',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:34,name:'Bitters',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:35,name:'Vodka',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:36,name:'Tequila',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:37,name:'Rum',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:38,name:'Fernet',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:39,name:'Rye Whiskey',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:40,name:'XO Brandy',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:41,name:'Amaro di Montenegro',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:42,name:'Campari',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:43,name:'Irish Cream',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:44,name:'Raspberry di Amore',catId:7,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:45,name:'Simple Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:46,name:'Pancake Syrup',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:47,name:'Lemons',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:48,name:'Limes',catId:2,areaId:3,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:49,name:'Strawberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:50,name:'Raspberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:51,name:'Blackberries',catId:2,areaId:3,subArea:'',defUnit:'oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:52,name:'Tomato Juice',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:53,name:'Worcestershire',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:54,name:'Hot Sauce',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:55,name:'Black Pepper',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:56,name:'Celery Salt',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:57,name:'Bacon',catId:1,areaId:1,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:58,name:'Tonic Water',catId:9,areaId:10,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:59,name:'Club Soda',catId:9,areaId:10,subArea:'',defUnit:'ea',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:60,name:'Cinnamon',catId:4,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:61,name:'Cinnamon Stick',catId:4,areaId:4,subArea:'',defUnit:'ea',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:62,name:'Orange Juice',catId:9,areaId:3,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:63,name:'Concord Espresso',catId:9,areaId:4,subArea:'',defUnit:'oz',archived:0,standalone:0,minQty:0,autoShop:0},
+        {id:64,name:'LaChona Reserva Blend 2021',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:65,name:'LaChona White Malbec Rose',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:66,name:'LaChona Chardonnay 2022',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:67,name:'LaChona Norte y Sur Malbec',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0},
+        {id:68,name:'LaChona Norte y Sur Cabernet',catId:8,areaId:12,subArea:'',defUnit:'fl oz',archived:0,standalone:1,minQty:0,autoShop:0}
     ],
     inv:[
         {id:1,areaId:1,ingId:1,qty:10,unit:'lb'},
@@ -2711,10 +2711,14 @@ function calculateShoppingList(silent){
         }
     });
 
-    // ========== STEP 5b: Add standalone ingredients using their minQty target ==========
+    // ========== STEP 5b: Add standalone ingredients using their minQty target (if autoShop enabled) ==========
     Object.keys(standaloneMenuIngIds).forEach(function(ingIdStr){
         var ingId = +ingIdStr;
         var standaloneInfo = standaloneMenuIngIds[ingId];
+
+        // Check if autoShop is enabled for this ingredient
+        var ing = D.ings.find(function(i){return i.id === ingId;});
+        if(!ing || !ing.autoShop) return;
 
         // Use the standalone ingredient's minQty as the target (not multiplied)
         var needed = standaloneInfo.minQty;
@@ -2726,6 +2730,20 @@ function calculateShoppingList(silent){
         // Replace any existing qty with the minQty (don't add to it)
         ingredientNeeds[ingId].qty = needed;
         ingredientNeeds[ingId].sources = [{type:'standalone', name: standaloneInfo.menuName + ' (Standalone Min)', qty: needed}];
+    });
+
+    // ========== STEP 5c: Add ALL standalone ingredients with minQty and autoShop enabled ==========
+    D.ings.filter(function(ing){
+        return !ing.archived && ing.standalone && ing.minQty > 0 && ing.autoShop;
+    }).forEach(function(ing){
+        // Skip if already added via menu link
+        if(ingredientNeeds[ing.id]) return;
+
+        ingredientNeeds[ing.id] = {
+            qty: ing.minQty,
+            unit: ing.defUnit,
+            sources: [{type:'standalone', name: ing.name + ' (Standalone Min)', qty: ing.minQty}]
+        };
     });
 
     // ========== STEP 6: Subtract inventory (with unit conversion) ==========
@@ -3056,7 +3074,8 @@ function renderIngs(c,s){
                 infoLine+=' • On hand: '+onHand+' '+ing.defUnit;
             }
 
-            html+='<div class="card" style="border-left:3px solid #fdcb6e"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+' <span class="standalone-badge">Standalone</span><span class="min-qty-badge">Min: '+ing.minQty+'</span></div><div class="card-s">'+infoLine+'</div></div><div style="display:flex;gap:4px;align-items:center">'+(isLinkedToMenu?'':'<span class="status-badge status-'+status+'">'+(diff>=0?'+':'')+diff+'</span>')+'<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div></div>';
+            var autoShopIcon=ing.autoShop?'<span style="color:#00b894;font-size:calc(10px * var(--font-scale));margin-left:4px" title="Auto-add to Shopping List">🛒</span>':'<span style="color:#636e72;font-size:calc(10px * var(--font-scale));margin-left:4px" title="Not auto-added to Shopping">○</span>';
+            html+='<div class="card" style="border-left:3px solid #fdcb6e"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+' <span class="standalone-badge">Standalone</span><span class="min-qty-badge">Min: '+ing.minQty+'</span>'+autoShopIcon+'</div><div class="card-s">'+infoLine+'</div></div><div style="display:flex;gap:4px;align-items:center">'+(isLinkedToMenu?'':'<span class="status-badge status-'+status+'">'+(diff>=0?'+':'')+diff+'</span>')+'<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div></div>';
         });
     }
     
@@ -3237,6 +3256,7 @@ function editIng(id){
     html+='</select></div>';
     html+='<div class="form-g" style="padding:12px;background:rgba(253,203,110,.1);border-radius:8px;border:1px solid rgba(253,203,110,.3)"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="edit-standalone"'+(ing.standalone?' checked':'')+' onchange="toggleStandaloneFields()"><span style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;font-weight:600">⭐ Standalone Item</span></label><div class="card-s" style="margin-top:4px">Track this item independently with its own minimum quantity</div></div>';
     html+='<div class="form-g" id="min-qty-wrap" style="display:'+(ing.standalone?'block':'none')+'"><label class="form-l">Minimum Required Quantity</label><input type="number" id="edit-minqty" class="form-i" value="'+(ing.minQty||0)+'" placeholder="0"></div>';
+    html+='<div class="form-g" id="auto-shop-wrap" style="display:'+(ing.standalone?'block':'none')+'"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="edit-autoshop"'+(ing.autoShop?' checked':'')+'><span style="font-size:calc(11px * var(--font-scale));color:#00b894">🛒 Auto-add to Shopping List when below minimum</span></label></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveIng('+id+')" style="flex:1">Save</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
@@ -3244,9 +3264,11 @@ function editIng(id){
 }
 
 function toggleStandaloneFields(){
-    var wrap=document.getElementById('min-qty-wrap');
     var cb=document.getElementById('edit-standalone');
-    wrap.style.display=cb.checked?'block':'none';
+    var minWrap=document.getElementById('min-qty-wrap');
+    var autoShopWrap=document.getElementById('auto-shop-wrap');
+    minWrap.style.display=cb.checked?'block':'none';
+    if(autoShopWrap) autoShopWrap.style.display=cb.checked?'block':'none';
 }
 
 function updateEditSubArea(){
@@ -3274,6 +3296,7 @@ function saveIng(id){
     ing.defUnit=document.getElementById('edit-unit').value;
     ing.standalone=document.getElementById('edit-standalone').checked?1:0;
     ing.minQty=+document.getElementById('edit-minqty').value||0;
+    ing.autoShop=document.getElementById('edit-autoshop').checked?1:0;
     closeModal();
     render();
 }
@@ -5040,6 +5063,7 @@ function openAdd(){
         // Stand Alone option
         html+='<div class="form-g" style="padding:12px;background:rgba(253,203,110,.1);border-radius:8px;border:1px solid rgba(253,203,110,.3);margin-top:12px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="add-standalone" onchange="toggleAddStandaloneFields()"><span style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;font-weight:600">⭐ Standalone Item</span></label><div class="card-s" style="margin-top:4px">Track this item independently with its own minimum quantity</div></div>';
         html+='<div class="form-g" id="add-min-qty-wrap" style="display:none"><label class="form-l">Minimum Required Quantity</label><input type="number" id="add-minqty" class="form-i" value="0" placeholder="0"></div>';
+        html+='<div class="form-g" id="add-auto-shop-wrap" style="display:none"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="add-autoshop" checked><span style="font-size:calc(11px * var(--font-scale));color:#00b894">🛒 Auto-add to Shopping List when below minimum</span></label></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addIng()" style="flex:1">Add</button></div>';
     }else if(tab==='recipes'){
         html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-rec-name" class="form-i" placeholder="Recipe name"></div>';
@@ -5106,9 +5130,11 @@ function updateSubAreaOptions(){
 }
 
 function toggleAddStandaloneFields(){
-    var wrap=document.getElementById('add-min-qty-wrap');
     var cb=document.getElementById('add-standalone');
-    if(wrap&&cb)wrap.style.display=cb.checked?'block':'none';
+    var minWrap=document.getElementById('add-min-qty-wrap');
+    var autoShopWrap=document.getElementById('add-auto-shop-wrap');
+    if(minWrap&&cb)minWrap.style.display=cb.checked?'block':'none';
+    if(autoShopWrap&&cb)autoShopWrap.style.display=cb.checked?'block':'none';
 }
 
 function toggleAddConversionFields(){
@@ -5136,10 +5162,12 @@ function addIng(){
     var standalone=standaloneEl && standaloneEl.checked ? 1 : 0;
     var minQtyEl=document.getElementById('add-minqty');
     var minQty=minQtyEl ? +minQtyEl.value || 0 : 0;
+    var autoShopEl=document.getElementById('add-autoshop');
+    var autoShop=autoShopEl && autoShopEl.checked ? 1 : 0;
     if(!name){alert('Enter a name');return;}
     saveState('Add ingredient');
     var ingId=nid++;
-    D.ings.push({id:ingId,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:standalone,minQty:minQty});
+    D.ings.push({id:ingId,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:standalone,minQty:minQty,autoShop:autoShop});
 
     // Check if conversion was specified
     var hasConvEl=document.getElementById('add-has-conversion');
