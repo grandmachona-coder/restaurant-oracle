@@ -4854,13 +4854,16 @@ document.addEventListener('DOMContentLoaded',async function(){
 
 function loadAllDataLocal(){
     try{
+        console.log('loadAllDataLocal called, D.recs before:', D.recs.length);
         var savedData=localStorage.getItem('ro_allData');
         var savedVersion=localStorage.getItem('ro_dataVersion');
         if(savedData){
             var parsed=JSON.parse(savedData);
+            console.log('localStorage has recs:', parsed.recs ? parsed.recs.length : 'undefined');
             // Merge saved data with defaults (keeps new items from app updates)
             mergeData(parsed);
         }
+        console.log('After mergeData, D.recs:', D.recs.length);
         var savedScale=localStorage.getItem('ro_fontScale');
         if(savedScale){D.fontScale=+savedScale;}
     }catch(e){console.error('Load error:',e);}
