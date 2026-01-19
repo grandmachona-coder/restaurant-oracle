@@ -1589,6 +1589,7 @@ function getIngName(id){var i=D.ings.find(function(x){return x.id===id;});return
 function getRecName(id){var r=D.recs.find(function(x){return x.id===id;});return r?r.name:'Unknown';}
 function getPrepName(id){var p=D.preps.find(function(x){return x.id===id;});return p?p.name:'Unknown';}
 function getMenuName(id){var m=D.menus.find(function(x){return x.id===id;});return m?m.name:'Unknown';}
+function getCatName(id){var c=D.cats.find(function(x){return x.id===id;});return c?c.name:'';}
 
 function getStatusColor(oh,tgt){var d=oh-tgt;return d>=0?'green':d>-3?'yellow':'red';}
 function getStatusTxt(oh,tgt){var d=oh-tgt;return d>=0?'STOCKED':d>-3?'LOW':'CRITICAL';}
@@ -2114,7 +2115,16 @@ function renderShop(c,s){
         toBuy.forEach(function(item){
             var ing=D.ings.find(function(x){return x.id===item.ingId;});
             if(ing){
-                html+='<div class="shop-item"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info"><div class="shop-name">'+ing.name+'</div><div class="shop-meta">'+ing.catId+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button></div>';
+                var catName=ing.catId?getCatName(ing.catId):'';
+                html+='<div class="shop-item" style="flex-wrap:wrap"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info" style="flex:1;min-width:120px"><div class="shop-name">'+ing.name+'</div><div class="shop-meta">'+catName+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button>';
+                // Show usedFor info if available
+                if(item.usedFor){
+                    html+='<div style="width:100%;padding:6px 0 0 32px;font-size:calc(10px * var(--font-scale));color:#a0aec0;line-height:1.4">';
+                    html+='<div style="color:#636e72">Need: '+item.totalNeed+' '+item.unit+' | Have: '+(item.onHand||0)+' '+item.unit+'</div>';
+                    html+='<div style="margin-top:2px">'+item.usedFor+'</div>';
+                    html+='</div>';
+                }
+                html+='</div>';
             }
         });
     }else{
@@ -2291,8 +2301,8 @@ function confirmAddToInv(){
 function calculateShoppingList(){
     saveState('Calculate shopping list');
 
-    // Step 1: Calculate recipe needs from Menu items
-    var recipeNeeds = {}; // recId -> total qty needed in recipe output units
+    // Step 1: Calculate recipe needs from Menu items and track sources
+    var recipeNeeds = {}; // recId -> {qty, unit, menuSources:[]}
 
     D.menus.filter(function(m){return !m.archived && m.includeInShop;}).forEach(function(menu){
         // Menu item recipes
@@ -2302,15 +2312,16 @@ function calculateShoppingList(){
                 // Only include recipes that have includeInPrep checked
                 if(rec && rec.includeInPrep){
                     var needed = (menu.tgt || 0) * (mr.qty || 1);
-                    if(!recipeNeeds[mr.recId]) recipeNeeds[mr.recId] = {qty: 0, unit: mr.unit};
+                    if(!recipeNeeds[mr.recId]) recipeNeeds[mr.recId] = {qty: 0, unit: mr.unit, menuSources:[]};
                     recipeNeeds[mr.recId].qty += needed;
+                    recipeNeeds[mr.recId].menuSources.push({name:menu.name, qty:needed});
                 }
             });
         }
     });
 
     // Step 2: Calculate how many batches of each recipe are needed
-    var batchesNeeded = {}; // recId -> batches needed
+    var batchesNeeded = {}; // recId -> {batches, menuSources}
 
     Object.keys(recipeNeeds).forEach(function(recIdStr){
         var recId = +recIdStr;
@@ -2333,24 +2344,27 @@ function calculateShoppingList(){
         // Calculate batches needed (output.qty is per batch)
         var batchQty = output.qty || 1;
         var batches = Math.ceil(shortfall / batchQty);
-        batchesNeeded[recId] = batches;
+        batchesNeeded[recId] = {batches: batches, menuSources: need.menuSources};
     });
 
-    // Step 3: Calculate ingredient needs from recipes
-    var ingredientNeeds = {}; // ingId -> {qty, unit}
+    // Step 3: Calculate ingredient needs from recipes and track sources
+    var ingredientNeeds = {}; // ingId -> {qty, unit, sources:[{type,name,qty}]}
 
     Object.keys(batchesNeeded).forEach(function(recIdStr){
         var recId = +recIdStr;
         var rec = D.recs.find(function(r){return r.id === recId;});
         if(!rec || !rec.ings) return;
 
-        var batches = batchesNeeded[recId];
+        var batchInfo = batchesNeeded[recId];
 
         rec.ings.forEach(function(ri){
             if(!ingredientNeeds[ri.ingId]){
-                ingredientNeeds[ri.ingId] = {qty: 0, unit: ri.unit};
+                ingredientNeeds[ri.ingId] = {qty: 0, unit: ri.unit, sources:[]};
             }
-            ingredientNeeds[ri.ingId].qty += (ri.qty || 0) * batches;
+            var ingQty = (ri.qty || 0) * batchInfo.batches;
+            ingredientNeeds[ri.ingId].qty += ingQty;
+            // Track recipe source with menu context
+            ingredientNeeds[ri.ingId].sources.push({type:'recipe', name:rec.name, qty:ingQty, menus:batchInfo.menuSources});
         });
     });
 
@@ -2359,16 +2373,18 @@ function calculateShoppingList(){
         if(menu.ings && menu.ings.length){
             menu.ings.forEach(function(mi){
                 var needed = (menu.tgt || 0) * (mi.qty || 0);
+                if(needed <= 0) return;
                 if(!ingredientNeeds[mi.ingId]){
-                    ingredientNeeds[mi.ingId] = {qty: 0, unit: mi.unit};
+                    ingredientNeeds[mi.ingId] = {qty: 0, unit: mi.unit, sources:[]};
                 }
                 ingredientNeeds[mi.ingId].qty += needed;
+                ingredientNeeds[mi.ingId].sources.push({type:'menu', name:menu.name, qty:needed});
             });
         }
     });
 
     // Step 5: Subtract what's in inventory
-    var toShop = {}; // ingId -> {qty, unit}
+    var toShop = {}; // ingId -> {qty, unit, sources}
 
     Object.keys(ingredientNeeds).forEach(function(ingIdStr){
         var ingId = +ingIdStr;
@@ -2388,7 +2404,7 @@ function calculateShoppingList(){
 
         var shortfall = need.qty - onHand;
         if(shortfall > 0){
-            toShop[ingId] = {qty: Math.ceil(shortfall * 10) / 10, unit: need.unit};
+            toShop[ingId] = {qty: Math.ceil(shortfall * 10) / 10, unit: need.unit, sources: need.sources, onHand: onHand, totalNeed: need.qty};
         }
     });
 
@@ -2400,23 +2416,42 @@ function calculateShoppingList(){
         var ingId = +ingIdStr;
         var need = toShop[ingId];
 
+        // Build usedFor string from sources
+        var usedFor = need.sources.map(function(s){
+            if(s.type === 'menu') return '🍽️ ' + s.name + ' (' + s.qty + ')';
+            if(s.type === 'recipe'){
+                var menuNames = s.menus.map(function(m){return m.name;}).join(', ');
+                return '📖 ' + s.name + ' → ' + menuNames;
+            }
+            return s.name;
+        }).join('; ');
+
         // Check if already in shopping list
         var existing = D.shopping.find(function(s){return s.ingId === ingId && !s.checked && !s.savedForLater;});
         if(existing){
-            // Update quantity if need is greater
-            if(need.qty > existing.qty){
-                existing.qty = need.qty;
-                existing.unit = need.unit;
-                updated++;
-            }
+            existing.qty = need.qty;
+            existing.unit = need.unit;
+            existing.usedFor = usedFor;
+            existing.onHand = need.onHand;
+            existing.totalNeed = need.totalNeed;
+            updated++;
         } else {
             // Add new item
-            D.shopping.push({id: nid++, ingId: ingId, qty: need.qty, unit: need.unit, checked: 0, savedForLater: 0});
+            D.shopping.push({id: nid++, ingId: ingId, qty: need.qty, unit: need.unit, checked: 0, savedForLater: 0, usedFor: usedFor, onHand: need.onHand, totalNeed: need.totalNeed});
             added++;
         }
     });
 
-    alert('Shopping list calculated!\nAdded: ' + added + ' items\nUpdated: ' + updated + ' items');
+    // Remove items that are no longer needed (have enough inventory now)
+    var removed = 0;
+    D.shopping = D.shopping.filter(function(s){
+        if(s.checked || s.savedForLater) return true; // Keep purchased/saved items
+        if(toShop[s.ingId]) return true; // Still needed
+        removed++;
+        return false; // Remove - no longer needed
+    });
+
+    alert('Shopping list updated!\nAdded: ' + added + '\nUpdated: ' + updated + '\nRemoved: ' + removed);
     render();
 }
 
