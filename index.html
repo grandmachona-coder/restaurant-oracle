@@ -1528,14 +1528,16 @@ function migrateMenuData(){
 }
 
 // ==================== LOG FUNCTIONS ====================
-function logAction(action,location,details){
+function logInventoryChange(item,oldQty,oldUnit,newQty,newUnit){
     var now=new Date();
     D.log.unshift({
         id:nid++,
         user:D.currentUser.name,
-        action:action,
-        location:location,
-        details:details||'',
+        item:item,
+        oldQty:oldQty,
+        oldUnit:oldUnit,
+        newQty:newQty,
+        newUnit:newUnit,
         timestamp:now.toISOString(),
         date:now.toLocaleDateString(),
         time:now.toLocaleTimeString()
@@ -1893,7 +1895,7 @@ function addToArea(areaId){
 
     saveState('Add to '+getAreaName(areaId,subArea));
     D.inv.push(invItem);
-    logAction('Added to inventory',getAreaName(areaId,subArea),itemName+': '+qty+' '+unit);
+    logInventoryChange(itemName,0,unit,qty,unit);
     addOpen['area-'+areaId]=false;
     render();
 }
@@ -1990,6 +1992,7 @@ function updInv(id,v){
     if(i){
         saveState('Update qty');
         var oldQty=i.qty;
+        var oldUnit=i.unit;
         i.qty=+v||0;
         var itemName='';
         if(i.ingId){
@@ -1998,15 +2001,27 @@ function updInv(id,v){
         }else if(i.recId){
             var rec=D.recs.find(function(r){return r.id===i.recId;});
             itemName=rec?rec.name:'';
+        }else if(i.menuId){
+            var menu=D.menus.find(function(m){return m.id===i.menuId;});
+            itemName=menu?menu.name:'';
         }
-        logAction('Updated quantity',getAreaName(i.areaId,i.subArea),itemName+': '+oldQty+' → '+i.qty);
+        logInventoryChange(itemName,oldQty,oldUnit,i.qty,i.unit);
         render();
     }
 }
 
 function updInvUnit(id,v){
     var i=D.inv.find(function(x){return x.id===id;});
-    if(i){i.unit=v;render();}
+    if(i){
+        var oldUnit=i.unit;
+        i.unit=v;
+        var itemName='';
+        if(i.ingId)itemName=getIngName(i.ingId);
+        else if(i.recId)itemName=getRecName(i.recId);
+        else if(i.menuId)itemName=getMenuName(i.menuId);
+        logInventoryChange(itemName,i.qty,oldUnit,i.qty,i.unit);
+        render();
+    }
 }
 
 function delInv(id){
@@ -2015,8 +2030,9 @@ function delInv(id){
         saveState('Remove from inventory');
         var itemName='';
         if(i.ingId)itemName=getIngName(i.ingId);
-        else if(i.recId){var rec=D.recs.find(function(r){return r.id===i.recId;});itemName=rec?rec.name:'';}
-        logAction('Removed from inventory',getAreaName(i.areaId,i.subArea),itemName);
+        else if(i.recId)itemName=getRecName(i.recId);
+        else if(i.menuId)itemName=getMenuName(i.menuId);
+        logInventoryChange(itemName,i.qty,i.unit,0,i.unit);
         D.inv=D.inv.filter(function(x){return x.id!==id;});
         render();
     }
@@ -2066,11 +2082,9 @@ function moveInvItem(id){
     if(!inv)return;
     var newAreaId=+document.getElementById('move-area').value;
     var newSub=document.getElementById('move-sub').value;
-    var oldLoc=getAreaName(inv.areaId,inv.subArea);
     saveState('Move item');
     inv.areaId=newAreaId;
     inv.subArea=newSub;
-    logAction('Moved item',oldLoc+' → '+getAreaName(newAreaId,newSub),getIngName(inv.ingId));
     closeModal();
     render();
 }
@@ -2149,13 +2163,12 @@ function togShop(id){
         saveState(s.checked?'Uncheck item':'Mark purchased');
         s.checked=s.checked?0:1;
         if(s.checked){
-            logAction('Marked as purchased','Shopping List',getIngName(s.ingId));
             // Auto-add to inventory if enabled and ingredient has a location
             if(D.autoAddToInv){
                 var ing=D.ings.find(function(x){return x.id===s.ingId;});
                 if(ing&&ing.areaId){
                     D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
-                    logAction('Auto-added to inventory',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+                    logInventoryChange(ing.name,0,s.unit,s.qty,s.unit);
                     D.shopping=D.shopping.filter(function(x){return x.id!==id;});
                 }
             }
@@ -2174,7 +2187,6 @@ function undoShopCheck(id){
     if(s){
         saveState('Undo purchase check');
         s.checked=0;
-        logAction('Undo purchase','Shopping List',getIngName(s.ingId)+' moved back to To Buy');
         render();
     }
 }
@@ -2206,7 +2218,7 @@ function addToInv(shopId){
     // Check if ingredient has a default location
     if(ing.areaId){
         D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
-        logAction('Added from shopping',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+        logInventoryChange(ing.name,0,s.unit,s.qty,s.unit);
         D.shopping=D.shopping.filter(function(x){return x.id!==shopId;});
         render();
     }else{
@@ -2228,7 +2240,7 @@ function addAllPurchasedToInv(){
         var ing=D.ings.find(function(x){return x.id===s.ingId;});
         if(ing&&ing.areaId){
             D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
-            logAction('Added from shopping',getAreaName(ing.areaId,ing.subArea),ing.name+': '+s.qty+' '+s.unit);
+            logInventoryChange(ing.name,0,s.unit,s.qty,s.unit);
             D.shopping=D.shopping.filter(function(x){return x.id!==s.id;});
             added++;
         }else{
@@ -2269,7 +2281,7 @@ function confirmAddToInv(){
     
     saveState('Add to inventory from shopping');
     D.inv.push({id:nid++,areaId:areaId,subArea:subArea,ingId:s.ingId,qty:s.qty,unit:s.unit});
-    logAction('Added from shopping',getAreaName(areaId,subArea),getIngName(s.ingId)+': '+s.qty+' '+s.unit);
+    logInventoryChange(getIngName(s.ingId),0,s.unit,s.qty,s.unit);
     D.shopping=D.shopping.filter(function(x){return x.id!==pendingPurchase;});
     pendingPurchase=null;
     closeModal();
@@ -2404,7 +2416,6 @@ function calculateShoppingList(){
         }
     });
 
-    logAction('Calculated shopping list', 'Shopping', 'Added: ' + added + ', Updated: ' + updated);
     alert('Shopping list calculated!\nAdded: ' + added + ' items\nUpdated: ' + updated + ' items');
     render();
 }
@@ -2662,10 +2673,7 @@ function deleteIngredient(id){
     var beforeCount=D.ings.length;
     D.ings=D.ings.filter(function(i){return Number(i.id)!==id;});
     console.log('Ingredients: '+beforeCount+' -> '+D.ings.length);
-    
-    // Log the action
-    logAction('Deleted ingredient: '+ingName,'Ingredients','');
-    
+
     // Delete from Supabase if connected
     if(supabase && currentAuthUser){
         console.log('Deleting from Supabase...');
@@ -3020,10 +3028,7 @@ function deleteRecipe(id){
     
     // Remove the recipe itself
     D.recs=D.recs.filter(function(r){return Number(r.id)!==id;});
-    
-    // Log the action
-    logAction('Deleted recipe: '+recName,'Recipes','');
-    
+
     // Delete from Supabase if connected
     if(supabase && currentAuthUser){
         supabase.from('recs').delete().eq('id', id).then(function(res){
@@ -3392,10 +3397,13 @@ function editMenuItem(id){
     html+='<div class="form-g"><label class="form-l">Category</label><select id="ed-menu-cat" class="form-i">';
     D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===menu.catId?' selected':'')+'>'+cat.name+'</option>';});
     html+='</select></div>';
-    html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="ed-menu-tgt" class="form-i" value="'+menu.tgt+'"></div>';
+    html+='<div class="form-g"><label class="form-l">Target Quantity</label><div style="display:flex;gap:8px"><input type="number" id="ed-menu-tgt" class="form-i" value="'+menu.tgt+'" style="flex:1"><select id="ed-menu-unit" class="form-i" style="flex:1">';
+    D.units.forEach(function(u){html+='<option value="'+u.id+'"'+(u.id===menu.unitId?' selected':'')+'>'+u.abbr+'</option>';});
+    html+='</select></div></div>';
     html+='<div class="form-g" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(108,92,231,.1);border-radius:8px"><input type="checkbox" id="ed-menu-shop" '+(menu.includeInShop?'checked':'')+'><label for="ed-menu-shop" style="font-size:calc(13px * var(--font-scale));color:#e0e6ed;cursor:pointer">🛒 Include in Shopping List</label></div>';
     html+='<div class="form-g" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,107,107,.1);border-radius:8px"><input type="checkbox" id="ed-menu-prep" '+(menu.includeInPrep?'checked':'')+'><label for="ed-menu-prep" style="font-size:calc(13px * var(--font-scale));color:#e0e6ed;cursor:pointer">📦 Include in Prep (can be added to Inventory)</label></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuEdit('+id+')" style="flex:1">Save</button></div>';
+    html+='<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.1)"><button class="btn" style="width:100%;background:#e74c3c;color:#fff" onclick="delMenuItem('+id+')">Delete Menu Item</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
 }
@@ -3407,19 +3415,32 @@ function saveMenuEdit(id){
     menu.name=document.getElementById('ed-menu-name').value;
     menu.catId=+document.getElementById('ed-menu-cat').value;
     menu.tgt=+document.getElementById('ed-menu-tgt').value||0;
+    menu.unitId=+document.getElementById('ed-menu-unit').value;
     menu.includeInShop=document.getElementById('ed-menu-shop').checked?1:0;
     menu.includeInPrep=document.getElementById('ed-menu-prep').checked?1:0;
     closeModal();
     render();
 }
 
+function delMenuItem(id){
+    if(!confirm('Delete this menu item? This cannot be undone.'))return;
+    saveState('Delete menu item');
+    var menu=D.menus.find(function(m){return m.id===id;});
+    if(!D.deleteLog)D.deleteLog={};
+    if(!D.deleteLog.menus)D.deleteLog.menus=[];
+    D.deleteLog.menus.push(id);
+    D.menus=D.menus.filter(function(m){return m.id!==id;});
+    closeModal();
+    render();
+}
+
 // ==================== LOG ====================
 function renderLog(c,s){
-    s.textContent='Last 4 weeks';
-    var html='<div class="sec log">Activity Log</div>';
-    
+    s.textContent='Inventory Changes';
+    var html='<div class="sec log">Inventory Log</div>';
+
     if(!D.log.length){
-        html+='<div style="color:#636e72;font-size:calc(12px * var(--font-scale));padding:20px;text-align:center">No activity logged yet.<br>Actions will appear here as you use the app.</div>';
+        html+='<div style="color:#636e72;font-size:calc(12px * var(--font-scale));padding:20px;text-align:center">No inventory changes logged yet.<br>Changes will appear here as you update inventory.</div>';
     }else{
         // Group by date
         var byDate={};
@@ -3427,15 +3448,15 @@ function renderLog(c,s){
             if(!byDate[l.date])byDate[l.date]=[];
             byDate[l.date].push(l);
         });
-        
+
         Object.keys(byDate).forEach(function(date){
             html+='<div class="section-label" style="margin-top:16px">'+date+'</div>';
             byDate[date].forEach(function(l){
-                html+='<div class="log-item"><div class="log-action">'+l.action+'</div><div class="log-meta">👤 '+l.user+' • 📍 '+l.location+' • 🕐 '+l.time+'</div>'+(l.details?'<div class="log-meta" style="color:#81ecec">'+l.details+'</div>':'')+'</div>';
+                html+='<div class="log-item"><div class="log-action">'+l.item+'</div><div class="log-meta">'+l.oldQty+' '+l.oldUnit+' → '+l.newQty+' '+l.newUnit+'</div><div class="log-meta" style="color:#81ecec">👤 '+l.user+' • 🕐 '+l.time+'</div></div>';
             });
         });
     }
-    
+
     c.innerHTML=html;
 }
 
