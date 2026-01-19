@@ -1626,7 +1626,7 @@ function renderInv(c,s){
         area.sections.forEach(function(sec){totalInArea+=subItems[sec]?subItems[sec].length:0;});
         
         var isExp=exp['area-'+area.id];
-        html+='<div class="card"><div class="card-h" onclick="tog(\'area-'+area.id+'\')" style="cursor:pointer"><div><div class="card-t">'+area.name+'</div><div class="card-s">'+(area.prep?'🧊 Prep Area':'📍 Storage')+'</div></div><span class="card-cnt">'+totalInArea+' '+(isExp?'▲':'▼')+'</span></div>';
+        html+='<div class="card"><div class="card-h" onclick="tog(\'area-'+area.id+'\')" style="cursor:pointer"><div><div class="card-t">'+area.name+'</div><div class="card-s">📍 Storage</div></div><span class="card-cnt">'+totalInArea+' '+(isExp?'▲':'▼')+'</span></div>';
         
         if(isExp){
             html+='<div style="margin-top:12px">';
@@ -3258,7 +3258,7 @@ function renderAdmin(c,s){
     // Storage Locations
     html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📍 Storage Locations ('+D.areas.length+')<button class="btn btn-p btn-sm" onclick="addArea()">+ Add</button></div>';
     D.areas.forEach(function(a){
-        html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+a.name+'</div><div class="card-s">'+(a.sections.length?a.sections.join(', '):'No sections')+' • '+(a.prep?'🧊 Prep':'📦 Storage')+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editArea('+a.id+')">✏️</button><button class="del-btn" onclick="delArea('+a.id+')">🗑️</button></div></div></div>';
+        html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+a.name+'</div><div class="card-s">'+(a.sections.length?a.sections.join(', '):'No sections')+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editArea('+a.id+')">✏️</button><button class="del-btn" onclick="delArea('+a.id+')">🗑️</button></div></div></div>';
     });
     
     // Ingredient Categories
@@ -3330,7 +3330,10 @@ function saveUser(id){
 
 function delUser(id){
     if(confirm('Delete this user?')){
+        saveState('Delete user');
         D.users=D.users.filter(function(u){return u.id!==id;});
+        if(!deleteLog.users)deleteLog.users=new Set();
+        deleteLog.users.add(id);
         render();
     }
 }
@@ -3342,7 +3345,6 @@ function editArea(id){
     var html='<div class="modal-t">Edit Storage Location</div>';
     html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-area-name" class="form-i" value="'+area.name+'"></div>';
     html+='<div class="form-g"><label class="form-l">Sections (comma separated)</label><input type="text" id="ed-area-sec" class="form-i" value="'+area.sections.join(', ')+'"></div>';
-    html+='<div class="form-g"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ed-area-prep"'+(area.prep?' checked':'')+'><span class="form-l" style="margin:0">Prep Area</span></label></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveArea('+id+')" style="flex:1">Save</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
@@ -3351,10 +3353,10 @@ function editArea(id){
 function saveArea(id){
     var area=D.areas.find(function(a){return a.id===id;});
     if(!area)return;
+    saveState('Edit storage location');
     area.name=document.getElementById('ed-area-name').value;
     var secStr=document.getElementById('ed-area-sec').value;
     area.sections=secStr?secStr.split(',').map(function(s){return s.trim();}).filter(function(s){return s;})  :[];
-    area.prep=document.getElementById('ed-area-prep').checked?1:0;
     closeModal();
     render();
 }
@@ -3425,7 +3427,6 @@ function addArea(){
     var html='<div class="modal-t">Add Storage Location</div>';
     html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="new-area-name" class="form-i" placeholder="e.g. Walk-in Cooler"></div>';
     html+='<div class="form-g"><label class="form-l">Sections (comma separated, optional)</label><input type="text" id="new-area-sec" class="form-i" placeholder="e.g. Left, Middle, Right"></div>';
-    html+='<div class="form-g"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="new-area-prep" checked><span class="form-l" style="margin:0">Prep Area (shows in prep tracker)</span></label></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewArea()" style="flex:1">Add Location</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
@@ -3434,11 +3435,11 @@ function addArea(){
 function saveNewArea(){
     var name=document.getElementById('new-area-name').value.trim();
     if(!name){alert('Enter a name');return;}
+    saveState('Add storage location');
     var secStr=document.getElementById('new-area-sec').value;
     var sections=secStr?secStr.split(',').map(function(s){return s.trim();}).filter(function(s){return s;}):[];
-    var prep=document.getElementById('new-area-prep').checked?1:0;
     var maxId=Math.max.apply(null,D.areas.map(function(a){return a.id;}))||0;
-    D.areas.push({id:maxId+1,name:name,sections:sections,prep:prep});
+    D.areas.push({id:maxId+1,name:name,sections:sections});
     closeModal();
     render();
 }
@@ -3592,7 +3593,10 @@ function delArea(id){
         return;
     }
     if(confirm('Delete this storage location?')){
+        saveState('Delete storage location');
         D.areas=D.areas.filter(function(a){return a.id!==id;});
+        if(!deleteLog.areas)deleteLog.areas=new Set();
+        deleteLog.areas.add(id);
         render();
     }
 }
@@ -3604,7 +3608,10 @@ function delCat(id){
         return;
     }
     if(confirm('Delete this ingredient category?')){
+        saveState('Delete ingredient category');
         D.cats=D.cats.filter(function(c){return c.id!==id;});
+        if(!deleteLog.cats)deleteLog.cats=new Set();
+        deleteLog.cats.add(id);
         render();
     }
 }
@@ -3616,7 +3623,10 @@ function delMenuCat(id){
         return;
     }
     if(confirm('Delete this menu category?')){
+        saveState('Delete menu category');
         D.menuCats=D.menuCats.filter(function(c){return c.id!==id;});
+        if(!deleteLog.menuCats)deleteLog.menuCats=new Set();
+        deleteLog.menuCats.add(id);
         render();
     }
 }
@@ -3666,7 +3676,10 @@ function delRecCat(id){
         return;
     }
     if(confirm('Delete this recipe category?')){
+        saveState('Delete recipe category');
         D.recCats=D.recCats.filter(function(c){return c.id!==id;});
+        if(!deleteLog.recCats)deleteLog.recCats=new Set();
+        deleteLog.recCats.add(id);
         render();
     }
 }
@@ -3681,7 +3694,10 @@ function delUnit(id){
         return;
     }
     if(confirm('Delete this unit?')){
+        saveState('Delete unit');
         D.units=D.units.filter(function(u){return u.id!==id;});
+        if(!deleteLog.units)deleteLog.units=new Set();
+        deleteLog.units.add(id);
         render();
     }
 }
