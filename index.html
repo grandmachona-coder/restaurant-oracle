@@ -2891,43 +2891,21 @@ function addMenuRec(menuId){
     html+='<div class="form-g"><label class="form-l">Recipe</label><select id="new-mr-rec" class="form-i" onchange="updateMenuRecHint()">';
     D.recs.filter(function(r){return !r.archived;}).forEach(function(r){
         var output = calcRecipeOutput(r);
-        html+='<option value="'+r.id+'" data-unit="'+(r.yieldUnit||output.unit)+'">'+r.name+' (produces '+output.qty+' '+(r.yieldUnit||output.unit)+')</option>';
+        var modeIcon = r.outputMode === 'manual' ? '✏️' : '🔄';
+        html+='<option value="'+r.id+'">'+r.name+' ('+output.qty+' '+(r.yieldUnit||output.unit)+') '+modeIcon+'</option>';
     });
     html+='</select></div>';
     html+='<div id="rec-output-hint" style="padding:8px;background:rgba(253,203,110,.1);border-radius:6px;margin-bottom:12px;font-size:calc(11px * var(--font-scale));color:#fdcb6e"></div>';
 
-    // Output mode toggle
-    html+='<div class="form-g"><label class="form-l">Output Mode</label>';
-    html+='<div style="display:flex;gap:8px;margin-top:4px">';
-    html+='<button type="button" id="btn-mr-yield" class="btn btn-sm btn-p" onclick="toggleMenuRecMode(\'yield\')" style="flex:1;padding:8px">🔄 Yield</button>';
-    html+='<button type="button" id="btn-mr-manual" class="btn btn-sm btn-s" onclick="toggleMenuRecMode(\'manual\')" style="flex:1;padding:8px">✏️ Manual</button>';
-    html+='</div></div>';
-
-    // Yield mode: batches needed
-    html+='<div id="mr-yield-row" style="display:flex;gap:8px">';
+    // Batches needed
+    html+='<div style="display:flex;gap:8px">';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Batches Needed</label><input type="number" id="new-mr-batches" class="form-i" placeholder="1" value="1" step="0.1" min="0.1"></div>';
-    html+='</div>';
-
-    // Manual mode: qty and unit (hidden by default)
-    html+='<div id="mr-manual-row" style="display:none;gap:8px">';
-    html+='<div class="form-g" style="flex:1"><label class="form-l">Quantity Needed</label><input type="number" id="new-mr-qty" class="form-i" placeholder="1" value="1" step="0.1"></div>';
-    html+='<div class="form-g" style="flex:1"><label class="form-l">Unit</label><select id="new-mr-unit" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
-    html+='</select></div>';
     html+='</div>';
 
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuRec('+menuId+')" style="flex:1">Add</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
     updateMenuRecHint();
-}
-
-function toggleMenuRecMode(mode){
-    var isYield = mode === 'yield';
-    document.getElementById('btn-mr-yield').className = 'btn btn-sm ' + (isYield ? 'btn-p' : 'btn-s');
-    document.getElementById('btn-mr-manual').className = 'btn btn-sm ' + (isYield ? 'btn-s' : 'btn-p');
-    document.getElementById('mr-yield-row').style.display = isYield ? 'flex' : 'none';
-    document.getElementById('mr-manual-row').style.display = isYield ? 'none' : 'flex';
 }
 
 function updateMenuRecHint(){
@@ -2938,7 +2916,8 @@ function updateMenuRecHint(){
     var hint=document.getElementById('rec-output-hint');
     if(rec && hint){
         var output = calcRecipeOutput(rec);
-        hint.innerHTML='📖 <b>'+rec.name+'</b> produces <b>'+output.qty+' '+(rec.yieldUnit||output.unit)+'</b> per batch';
+        var modeLabel = rec.outputMode === 'manual' ? '✏️ Manual output' : '🔄 Yield calculation';
+        hint.innerHTML='📖 <b>'+rec.name+'</b> produces <b>'+output.qty+' '+(rec.yieldUnit||output.unit)+'</b> per batch<br><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+modeLabel+'</span>';
     }
 }
 
@@ -2948,29 +2927,14 @@ function saveMenuRec(menuId){
     if(!menu.recs)menu.recs=[];
     saveState('Add menu recipe');
 
-    var isYieldMode = document.getElementById('btn-mr-yield').classList.contains('btn-p');
     var recId = +document.getElementById('new-mr-rec').value;
-    var rec = D.recs.find(function(r){return r.id===recId;});
+    var batches = +document.getElementById('new-mr-batches').value || 1;
 
-    if(isYieldMode){
-        // Yield mode: store batches and use recipe's output unit
-        var batches = +document.getElementById('new-mr-batches').value || 1;
-        var output = calcRecipeOutput(rec);
-        menu.recs.push({
-            recId: recId,
-            qty: batches,
-            unit: 'batch',
-            outputMode: 'yield'
-        });
-    } else {
-        // Manual mode: store custom qty/unit
-        menu.recs.push({
-            recId: recId,
-            qty: +document.getElementById('new-mr-qty').value || 1,
-            unit: document.getElementById('new-mr-unit').value || 'oz',
-            outputMode: 'manual'
-        });
-    }
+    menu.recs.push({
+        recId: recId,
+        qty: batches,
+        unit: 'batch'
+    });
     closeModal();
     render();
 }
