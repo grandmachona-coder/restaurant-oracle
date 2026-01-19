@@ -654,6 +654,39 @@ async function loadFromSupabase(){
             await migrateToSupabase();
             return loadFromSupabase(); // Reload after migration
         }
+
+        // Check for partial data - if key tables are empty but others have data,
+        // merge missing defaults. This handles cases where some tables got wiped.
+        var needsPartialMigration = false;
+        var partialMigrationTables = [];
+
+        // Get default data for comparison
+        var defaultRecs = getDefaultData().recs;
+        var defaultIngs = getDefaultData().ings;
+
+        if((!recs.data || recs.data.length === 0) && defaultRecs.length > 0){
+            needsPartialMigration = true;
+            partialMigrationTables.push('recs');
+        }
+        if((!ings.data || ings.data.length === 0) && defaultIngs.length > 0){
+            needsPartialMigration = true;
+            partialMigrationTables.push('ings');
+        }
+
+        if(needsPartialMigration){
+            console.log('Partial migration needed for:', partialMigrationTables);
+            if(partialMigrationTables.indexOf('ings') >= 0){
+                var ingsMapped = defaultIngs.map(mapIngToDb);
+                await supabase.from('ings').upsert(ingsMapped);
+                ings.data = ingsMapped; // Now in DB format for mapIngFromDb later
+            }
+            if(partialMigrationTables.indexOf('recs') >= 0){
+                var recsMapped = defaultRecs.map(mapRecToDb);
+                await supabase.from('recs').upsert(recsMapped);
+                recs.data = recsMapped; // Now in DB format for mapRecFromDb later
+            }
+            console.log('Partial migration complete');
+        }
         
         console.log('Mapping data to local format...');
         // Map database fields to local format
@@ -687,7 +720,7 @@ async function loadFromSupabase(){
         
         // Migrate menu data to new format if needed
         migrateMenuData();
-        
+
         // Load settings
         var settings=await supabase.from('settings').select('*');
         if(settings.data){
@@ -1250,6 +1283,16 @@ var D={
 
 var tab='inventory',nid=300,exp={},addOpen={},pendingPurchase=null,archiveOpen={ings:0,recs:0,menus:0},adminSectionsOpen={dataManagement:0};
 var undoHistory=[];
+
+// Store a copy of default data before it gets overwritten by Supabase
+var DEFAULT_DATA = {
+    ings: JSON.parse(JSON.stringify(D.ings)),
+    recs: JSON.parse(JSON.stringify(D.recs))
+};
+
+function getDefaultData(){
+    return DEFAULT_DATA;
+}
 
 // ==================== UNDO SYSTEM ====================
 // Snapshot of last synced state - compare against this
