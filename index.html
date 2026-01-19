@@ -708,22 +708,22 @@ async function loadFromSupabase(){
 // Field mapping functions (database snake_case to local camelCase)
 function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0};}
 function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:0,minQty:i.par||0,cost:i.cost||0};}
-function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,qty:i.qty||0,unit:i.unit||'ea'};}
+function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,menuId:i.menu_id||0,qty:i.qty||0,unit:i.unit||'ea'};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id};}
 function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',outputMode:r.output_mode||'auto',manualQty:r.manual_qty||0,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0,includeInPrep:r.include_in_prep===0?0:1};}
-function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],recs:m.recs||[],archived:m.archived||0,includeInShop:m.include_in_shop===0?0:1};}
+function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],recs:m.recs||[],archived:m.archived||0,includeInShop:m.include_in_shop===0?0:1,includeInPrep:m.include_in_prep===0?0:1};}
 function mapLogFromDb(l){return{id:l.id,action:l.action,location:l.location||'',detail:l.detail||'',user:l.user_name||'',time:l.created_at};}
 function mapConvFromDb(c){return{id:c.id,ingId:c.ing_id,storageUnit:c.storage_unit,recipeUnit:c.recipe_unit,factor:c.factor||1};}
 
 // Mapping functions for saving (local camelCase to database snake_case)
 function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep};}
 function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,par:i.minQty,cost:i.cost||0};}
-function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,qty:i.qty,unit:i.unit};}
+function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,menu_id:i.menuId||null,qty:i.qty,unit:i.unit};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId};}
 function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived,include_in_prep:r.includeInPrep};}
-function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,recs:m.recs,archived:m.archived,include_in_shop:m.includeInShop};}
+function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,recs:m.recs,archived:m.archived,include_in_shop:m.includeInShop,include_in_prep:m.includeInPrep};}
 function mapConvToDb(c){return{id:c.id,ing_id:c.ingId,storage_unit:c.storageUnit,recipe_unit:c.recipeUnit,factor:c.factor};}
 
 async function migrateToSupabase(){
@@ -1197,49 +1197,49 @@ var D={
         {id:216,name:'Mategarita Batch',group:'Batch Cocktail',catId:8,yield:5,shelfLife:'3 Days',notes:'Store in Hallway Fridge. Per serving: pour 3.25oz mix, shake w/ ice, strain into sugar-rimmed coupe, float 0.5oz red wine. Fresh lime.',ings:[],preps:[],subRecs:[{recId:116,qty:5}],photos:[],videos:[],archived:0}
     ],
     menus:[
-        {id:1,name:'Abuela Chona',catId:1,tgt:50,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:2,name:'Criolla',catId:1,tgt:30,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:3,name:'Sweet Beef',catId:1,tgt:20,unitId:1,ings:[],recs:[{recId:1,qty:2,unit:'oz'}],archived:0,includeInShop:1},
-        {id:4,name:'Chorizo',catId:1,tgt:25,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:5,name:'Ham & Cheese',catId:1,tgt:30,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:6,name:'Pollo Regular',catId:1,tgt:25,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:7,name:'Pollo Spicy',catId:1,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:8,name:'Espinaca',catId:1,tgt:25,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:9,name:'Humita',catId:1,tgt:20,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:10,name:'Imposter',catId:1,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:11,name:'Ensalada Don Jose',catId:2,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:12,name:'Picadas',catId:3,tgt:5,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:13,name:'Quesos y Frutas',catId:3,tgt:5,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:14,name:'Chimichurri Dip',catId:3,tgt:5,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:15,name:'Papas Rustica',catId:3,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:16,name:'Soup of the Day',catId:4,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:17,name:'Alfajor',catId:5,tgt:20,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:18,name:'Pastelito',catId:5,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:20,name:'Maria Emilia Icon Blend 2020',catId:6,tgt:5,unitId:29,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:21,name:'Gran Reserva Cabernet Franc',catId:6,tgt:5,unitId:29,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:22,name:'Norte y Sur Malbec',catId:6,tgt:8,unitId:29,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:23,name:'Icon Sparkling 2020',catId:7,tgt:8,unitId:29,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:24,name:'Chardonnay 2022',catId:7,tgt:5,unitId:29,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:25,name:'Golden Cup',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:101,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:26,name:'Que Miras Bobo',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:102,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:27,name:'Argentina',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:103,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:28,name:'Buenos Aires Old Fashioned',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:104,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:29,name:'Espresso Martini',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:106,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:34,name:'Fernet Sour',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:105,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:35,name:'Lagrima de Amor',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:107,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:36,name:'La Nieta',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:108,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:37,name:'Mendoza',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:109,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:38,name:'Potion de Amor',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:110,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:39,name:'Red Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:111,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:40,name:'White Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:112,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:41,name:'Bloody Mary',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:113,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:42,name:'Asadors Julep',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:114,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:43,name:'Beso de Frambuesa',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:115,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:44,name:'Mategarita',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:116,qty:1,unit:'ea'}],archived:0,includeInShop:1},
-        {id:30,name:'Breakfast Empanada',catId:9,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:31,name:'Pancakes',catId:9,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:32,name:'Fresh Fruit',catId:11,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1},
-        {id:33,name:'Bacon',catId:11,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1}
+        {id:1,name:'Abuela Chona',catId:1,tgt:50,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:2,name:'Criolla',catId:1,tgt:30,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:3,name:'Sweet Beef',catId:1,tgt:20,unitId:1,ings:[],recs:[{recId:1,qty:2,unit:'oz'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:4,name:'Chorizo',catId:1,tgt:25,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:5,name:'Ham & Cheese',catId:1,tgt:30,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:6,name:'Pollo Regular',catId:1,tgt:25,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:7,name:'Pollo Spicy',catId:1,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:8,name:'Espinaca',catId:1,tgt:25,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:9,name:'Humita',catId:1,tgt:20,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:10,name:'Imposter',catId:1,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:11,name:'Ensalada Don Jose',catId:2,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:12,name:'Picadas',catId:3,tgt:5,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:13,name:'Quesos y Frutas',catId:3,tgt:5,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:14,name:'Chimichurri Dip',catId:3,tgt:5,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:15,name:'Papas Rustica',catId:3,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:16,name:'Soup of the Day',catId:4,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:17,name:'Alfajor',catId:5,tgt:20,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:18,name:'Pastelito',catId:5,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:20,name:'Maria Emilia Icon Blend 2020',catId:6,tgt:5,unitId:29,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:21,name:'Gran Reserva Cabernet Franc',catId:6,tgt:5,unitId:29,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:22,name:'Norte y Sur Malbec',catId:6,tgt:8,unitId:29,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:23,name:'Icon Sparkling 2020',catId:7,tgt:8,unitId:29,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:24,name:'Chardonnay 2022',catId:7,tgt:5,unitId:29,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:25,name:'Golden Cup',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:101,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:26,name:'Que Miras Bobo',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:102,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:27,name:'Argentina',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:103,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:28,name:'Buenos Aires Old Fashioned',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:104,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:29,name:'Espresso Martini',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:106,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:34,name:'Fernet Sour',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:105,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:35,name:'Lagrima de Amor',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:107,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:36,name:'La Nieta',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:108,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:37,name:'Mendoza',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:109,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:38,name:'Potion de Amor',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:110,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:39,name:'Red Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:111,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:40,name:'White Wine Spritzer',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:112,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:41,name:'Bloody Mary',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:113,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:42,name:'Asadors Julep',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:114,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:43,name:'Beso de Frambuesa',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:115,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:44,name:'Mategarita',catId:8,tgt:0,unitId:1,ings:[],recs:[{recId:116,qty:1,unit:'ea'}],archived:0,includeInShop:1,includeInPrep:0},
+        {id:30,name:'Breakfast Empanada',catId:9,tgt:15,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:31,name:'Pancakes',catId:9,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:32,name:'Fresh Fruit',catId:11,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0},
+        {id:33,name:'Bacon',catId:11,tgt:10,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0}
     ],
     conversions:[],
     log:[]
@@ -1586,6 +1586,7 @@ function getAreaName(areaId,subArea){
 function getIngName(id){var i=D.ings.find(function(x){return x.id===id;});return i?i.name:'Unknown';}
 function getRecName(id){var r=D.recs.find(function(x){return x.id===id;});return r?r.name:'Unknown';}
 function getPrepName(id){var p=D.preps.find(function(x){return x.id===id;});return p?p.name:'Unknown';}
+function getMenuName(id){var m=D.menus.find(function(x){return x.id===id;});return m?m.name:'Unknown';}
 
 function getStatusColor(oh,tgt){var d=oh-tgt;return d>=0?'green':d>-3?'yellow':'red';}
 function getStatusTxt(oh,tgt){var d=oh-tgt;return d>=0?'STOCKED':d>-3?'LOW':'CRITICAL';}
@@ -1640,6 +1641,10 @@ function renderInv(c,s){
                     var rec=D.recs.find(function(r){return r.id===inv.recId;});
                     itemName=rec?'🍳 '+rec.name:'Unknown Prep';
                     isPrep=true;
+                }else if(inv.menuId){
+                    var menu=D.menus.find(function(m){return m.id===inv.menuId;});
+                    itemName=menu?'🍽️ '+menu.name:'Unknown Menu';
+                    isPrep=true;
                 }
                 if(itemName){
                     html+='<div class="inv-item'+(isPrep?' prep-item':'')+'" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+itemName+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
@@ -1660,6 +1665,10 @@ function renderInv(c,s){
                             }else if(inv.recId){
                                 var rec=D.recs.find(function(r){return r.id===inv.recId;});
                                 itemName=rec?'🍳 '+rec.name:'Unknown Prep';
+                                isPrep=true;
+                            }else if(inv.menuId){
+                                var menu=D.menus.find(function(m){return m.id===inv.menuId;});
+                                itemName=menu?'🍽️ '+menu.name:'Unknown Menu';
                                 isPrep=true;
                             }
                             if(itemName){
@@ -1704,10 +1713,19 @@ function renderInv(c,s){
                 }
             });
             if(usedRecIds.length){
-                html+='<optgroup label="── PREP ITEMS ──">';
+                html+='<optgroup label="── PREP ITEMS (Recipes) ──">';
                 usedRecIds.forEach(function(recId){
                     var rec=D.recs.find(function(r){return r.id===recId;});
                     if(rec)html+='<option value="rec-'+rec.id+'">🍳 '+rec.name+'</option>';
+                });
+                html+='</optgroup>';
+            }
+            // Menu items marked as Prep
+            var prepMenus=D.menus.filter(function(m){return !m.archived && m.includeInPrep;});
+            if(prepMenus.length){
+                html+='<optgroup label="── PREP ITEMS (Menu) ──">';
+                prepMenus.forEach(function(menu){
+                    html+='<option value="menu-'+menu.id+'">🍽️ '+menu.name+'</option>';
                 });
                 html+='</optgroup>';
             }
@@ -1726,7 +1744,7 @@ function renderInv(c,s){
             html+='<div style="font-size:calc(9px * var(--font-scale));color:#636e72;margin-bottom:8px;font-style:italic">*Recipe units = Total listed per item on pkg</div>';
             // Dropdown of existing conversions grouped by category
             html+='<select id="conv-select-'+area.id+'" class="form-i" style="margin-bottom:8px;font-size:calc(11px * var(--font-scale))" onchange="onConvSelect('+area.id+')">';
-            html+='<option value="">Select existing or create new...</option>';
+            html+='<option value="same">Storage = Recipe Units</option>';
             // Group conversions by ingredient category
             if(D.conversions && D.conversions.length){
                 D.cats.forEach(function(cat){
@@ -1797,11 +1815,11 @@ function addToArea(areaId){
     }
     if(!selVal||!qty){alert('Select item and enter quantity');return;}
 
-    // Parse selection - could be "ing-123" or "rec-456"
+    // Parse selection - could be "ing-123", "rec-456", or "menu-789"
     var parts=selVal.split('-');
     var itemType=parts[0];
     var itemId=+parts[1];
-    var invItem={id:nid++,areaId:areaId,subArea:subArea,ingId:0,recId:0,qty:qty,unit:unit};
+    var invItem={id:nid++,areaId:areaId,subArea:subArea,ingId:0,recId:0,menuId:0,qty:qty,unit:unit};
     var itemName='';
 
     if(itemType==='ing'){
@@ -1856,6 +1874,10 @@ function addToArea(areaId){
         invItem.recId=itemId;
         var rec=D.recs.find(function(r){return r.id===itemId;});
         itemName=rec?rec.name:'Recipe';
+    }else if(itemType==='menu'){
+        invItem.menuId=itemId;
+        var menu=D.menus.find(function(m){return m.id===itemId;});
+        itemName=menu?menu.name:'Menu Item';
     }
 
     saveState('Add to '+getAreaName(areaId,subArea));
@@ -3358,6 +3380,7 @@ function editMenuItem(id){
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="ed-menu-tgt" class="form-i" value="'+menu.tgt+'"></div>';
     html+='<div class="form-g" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(108,92,231,.1);border-radius:8px"><input type="checkbox" id="ed-menu-shop" '+(menu.includeInShop?'checked':'')+'><label for="ed-menu-shop" style="font-size:calc(13px * var(--font-scale));color:#e0e6ed;cursor:pointer">🛒 Include in Shopping List</label></div>';
+    html+='<div class="form-g" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,107,107,.1);border-radius:8px"><input type="checkbox" id="ed-menu-prep" '+(menu.includeInPrep?'checked':'')+'><label for="ed-menu-prep" style="font-size:calc(13px * var(--font-scale));color:#e0e6ed;cursor:pointer">📦 Include in Prep (can be added to Inventory)</label></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuEdit('+id+')" style="flex:1">Save</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
@@ -3371,6 +3394,7 @@ function saveMenuEdit(id){
     menu.catId=+document.getElementById('ed-menu-cat').value;
     menu.tgt=+document.getElementById('ed-menu-tgt').value||0;
     menu.includeInShop=document.getElementById('ed-menu-shop').checked?1:0;
+    menu.includeInPrep=document.getElementById('ed-menu-prep').checked?1:0;
     closeModal();
     render();
 }
@@ -3488,6 +3512,7 @@ function editUser(id){
 function saveUser(id){
     var user=D.users.find(function(u){return u.id===id;});
     if(!user)return;
+    saveState('Edit user');
     user.name=document.getElementById('ed-user-name').value;
     user.email=document.getElementById('ed-user-email').value;
     user.role=document.getElementById('ed-user-role').value;
@@ -3542,6 +3567,7 @@ function editCat(id){
 function saveCat(id){
     var cat=D.cats.find(function(c){return c.id===id;});
     if(!cat)return;
+    saveState('Edit ingredient category');
     cat.name=document.getElementById('ed-cat-name').value;
     closeModal();
     render();
@@ -3561,6 +3587,7 @@ function editMenuCat(id){
 function saveMenuCatEdit(id){
     var cat=D.menuCats.find(function(c){return c.id===id;});
     if(!cat)return;
+    saveState('Edit menu category');
     cat.name=document.getElementById('ed-mcat-name').value;
     closeModal();
     render();
@@ -3583,6 +3610,7 @@ function saveNewUser(){
     var email=document.getElementById('new-user-email').value.trim();
     var role=document.getElementById('new-user-role').value;
     if(!name){alert('Enter a name');return;}
+    saveState('Add user');
     var maxId=Math.max.apply(null,D.users.map(function(u){return u.id;}))||0;
     D.users.push({id:maxId+1,name:name,role:role,email:email,phone:''});
     closeModal();
@@ -3623,6 +3651,7 @@ function addCat(){
 function saveNewCat(){
     var name=document.getElementById('new-cat-name').value.trim();
     if(!name){alert('Enter a name');return;}
+    saveState('Add ingredient category');
     var maxId=Math.max.apply(null,D.cats.map(function(c){return c.id;}))||0;
     D.cats.push({id:maxId+1,name:name});
     closeModal();
@@ -3641,6 +3670,7 @@ function addMenuCat(){
 function saveNewMenuCat(){
     var name=document.getElementById('new-mcat-name').value.trim();
     if(!name){alert('Enter a name');return;}
+    saveState('Add menu category');
     var maxId=Math.max.apply(null,D.menuCats.map(function(c){return c.id;}))||0;
     D.menuCats.push({id:maxId+1,name:name});
     closeModal();
@@ -3745,6 +3775,7 @@ function saveNewUnit(){
     var name=document.getElementById('new-unit-name').value.trim();
     var abbr=document.getElementById('new-unit-abbr').value.trim();
     if(!name||!abbr){alert('Enter both name and abbreviation');return;}
+    saveState('Add unit');
     var maxId=Math.max.apply(null,D.units.map(function(u){return u.id;}))||0;
     D.units.push({id:maxId+1,name:name,abbr:abbr});
     closeModal();
@@ -3810,6 +3841,7 @@ function addRecCat(){
 function saveNewRecCat(){
     var name=document.getElementById('new-rcat-name').value.trim();
     if(!name){alert('Enter a name');return;}
+    saveState('Add recipe category');
     if(!D.recCats) D.recCats = [];
     var maxId=D.recCats.length ? Math.max.apply(null,D.recCats.map(function(c){return c.id;})) : 0;
     D.recCats.push({id:maxId+1,name:name});
@@ -3831,6 +3863,7 @@ function editRecCat(id){
 function saveRecCatEdit(id){
     var cat=D.recCats.find(function(c){return c.id===id;});
     if(!cat)return;
+    saveState('Edit recipe category');
     cat.name=document.getElementById('ed-rcat-name').value;
     closeModal();
     render();
@@ -4128,7 +4161,7 @@ function addMenuItem(){
     var tgt=+document.getElementById('add-menu-tgt').value||0;
     if(!name){alert('Enter a name');return;}
     saveState('Add menu item');
-    D.menus.push({id:nid++,name:name,catId:catId,tgt:tgt,unitId:1,ings:[],recs:[],archived:0,includeInShop:1});
+    D.menus.push({id:nid++,name:name,catId:catId,tgt:tgt,unitId:1,ings:[],recs:[],archived:0,includeInShop:1,includeInPrep:0});
     closeModal();
     render();
 }
