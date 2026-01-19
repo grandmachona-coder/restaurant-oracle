@@ -1641,6 +1641,13 @@ function getPrepName(id){var p=D.preps.find(function(x){return x.id===id;});retu
 function getMenuName(id){var m=D.menus.find(function(x){return x.id===id;});return m?m.name:'Unknown';}
 function getCatName(id){var c=D.cats.find(function(x){return x.id===id;});return c?c.name:'';}
 
+// Get sorted units for dropdown display (alphabetically by abbreviation)
+function getSortedUnits(){
+    return D.units.slice().sort(function(a,b){
+        return a.abbr.toLowerCase().localeCompare(b.abbr.toLowerCase());
+    });
+}
+
 function getStatusColor(oh,tgt){var d=oh-tgt;return d>=0?'green':d>-3?'yellow':'red';}
 function getStatusTxt(oh,tgt){var d=oh-tgt;return d>=0?'STOCKED':d>-3?'LOW':'CRITICAL';}
 
@@ -1701,7 +1708,7 @@ function renderInv(c,s){
                 }
                 if(itemName){
                     html+='<div class="inv-item'+(isPrep?' prep-item':'')+'" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+itemName+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
-                    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+                    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
                     html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
                 }
             });
@@ -1726,7 +1733,7 @@ function renderInv(c,s){
                             }
                             if(itemName){
                                 html+='<div class="inv-item'+(isPrep?' prep-item':'')+'" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+itemName+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
-                                D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+                                getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
                                 html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
                             }
                         });
@@ -1739,6 +1746,8 @@ function renderInv(c,s){
             // Add form toggle
             html+='<div class="add-toggle" onclick="togAdd(\'area-'+area.id+'\')"><span class="add-toggle-t">+ Add Item</span></div>';
             html+='<div class="add-form'+(addOpen['area-'+area.id]?' open':'')+'">';
+            // Search input for filtering items
+            html+='<input type="text" id="inv-search-'+area.id+'" class="form-i" placeholder="🔍 Search items..." style="margin-bottom:8px" oninput="filterInvSelect('+area.id+',this.value)">';
             html+='<select id="sel-'+area.id+'" class="form-i" style="margin-bottom:8px" onchange="onInvItemSelect('+area.id+')"><option value="">Select item...</option>';
             // Ingredients section
             html+='<optgroup label="── INGREDIENTS ──">';
@@ -1789,7 +1798,7 @@ function renderInv(c,s){
                 html+='</select>';
             }
             html+='<div style="display:flex;gap:8px"><input type="number" id="qty-'+area.id+'" class="form-i" placeholder="Qty" style="flex:1"><select id="unit-'+area.id+'" class="form-i" style="flex:1">';
-            D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+            getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
             html+='</select></div>';
             // Unit conversion section (shown when ingredient selected)
             html+='<div id="conv-'+area.id+'" style="display:none;margin-top:8px;padding:10px;background:rgba(108,92,231,0.1);border-radius:6px;border-left:3px solid #6c5ce7">';
@@ -1843,7 +1852,7 @@ function renderInv(c,s){
             html+='<span style="font-size:calc(11px * var(--font-scale));color:#a0aec0">Recipe:</span>';
             html+='<input type="number" id="rec-qty-'+area.id+'" class="form-i" placeholder="25" style="width:50px;font-size:calc(11px * var(--font-scale))">';
             html+='<select id="rec-unit-'+area.id+'" class="form-i" style="width:70px;font-size:calc(11px * var(--font-scale))">';
-            D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+            getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
             html+='</select>';
             html+='</div>';
             html+='</div></div>';
@@ -1949,6 +1958,85 @@ function addToArea(areaId){
     logInventoryChange(itemName,0,unit,qty,unit);
     addOpen['area-'+areaId]=false;
     render();
+}
+
+function filterInvSelect(areaId, searchTerm){
+    var sel=document.getElementById('sel-'+areaId);
+    if(!sel)return;
+    var searchLower=searchTerm.toLowerCase();
+
+    // Store current selection
+    var currentVal=sel.value;
+
+    // Build filtered options
+    var html='<option value="">Select item...</option>';
+
+    // Ingredients section
+    html+='<optgroup label="── INGREDIENTS ──">';
+    D.cats.forEach(function(cat){
+        var catIngs=D.ings.filter(function(i){
+            return !i.archived && i.catId===cat.id &&
+                   (!searchTerm || i.name.toLowerCase().indexOf(searchLower)!==-1);
+        });
+        if(catIngs.length){
+            html+='<optgroup label="  '+cat.name+'">';
+            catIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
+            html+='</optgroup>';
+        }
+    });
+    // Uncategorized ingredients
+    var uncatIngs=D.ings.filter(function(i){
+        return !i.archived && !i.catId &&
+               (!searchTerm || i.name.toLowerCase().indexOf(searchLower)!==-1);
+    });
+    if(uncatIngs.length){
+        html+='<optgroup label="  Other">';
+        uncatIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
+        html+='</optgroup>';
+    }
+    html+='</optgroup>';
+
+    // Prep items (recipes used in menus)
+    var usedRecIds=[];
+    D.menus.filter(function(m){return !m.archived;}).forEach(function(m){
+        if(m.recs&&m.recs.length){
+            m.recs.forEach(function(mr){if(usedRecIds.indexOf(mr.recId)===-1)usedRecIds.push(mr.recId);});
+        }
+    });
+    var filteredRecs=usedRecIds.filter(function(recId){
+        var rec=D.recs.find(function(r){return r.id===recId;});
+        return rec && (!searchTerm || rec.name.toLowerCase().indexOf(searchLower)!==-1);
+    });
+    if(filteredRecs.length){
+        html+='<optgroup label="── PREP ITEMS (Recipes) ──">';
+        filteredRecs.forEach(function(recId){
+            var rec=D.recs.find(function(r){return r.id===recId;});
+            if(rec)html+='<option value="rec-'+rec.id+'">🍳 '+rec.name+'</option>';
+        });
+        html+='</optgroup>';
+    }
+
+    // Menu items marked as Prep
+    var prepMenus=D.menus.filter(function(m){
+        return !m.archived && m.includeInPrep &&
+               (!searchTerm || m.name.toLowerCase().indexOf(searchLower)!==-1);
+    });
+    if(prepMenus.length){
+        html+='<optgroup label="── PREP ITEMS (Menu) ──">';
+        prepMenus.forEach(function(menu){
+            html+='<option value="menu-'+menu.id+'">🍽️ '+menu.name+'</option>';
+        });
+        html+='</optgroup>';
+    }
+
+    sel.innerHTML=html;
+
+    // Restore selection if still exists
+    if(currentVal){
+        for(var i=0;i<sel.options.length;i++){
+            if(sel.options[i].value===currentVal){sel.selectedIndex=i;break;}
+        }
+    }
 }
 
 function onInvItemSelect(areaId){
@@ -2545,6 +2633,9 @@ function calculateShoppingList(silent){
     });
 
     // ========== STEP 5: Add direct ingredients from Menu items ==========
+    // Track standalone ingredients linked to menus (we'll handle them separately)
+    var standaloneMenuIngIds = {};
+
     Object.keys(menuNeeds).forEach(function(menuIdStr){
         var menuId = +menuIdStr;
         var menuNeed = menuNeeds[menuId];
@@ -2552,6 +2643,19 @@ function calculateShoppingList(silent){
 
         if(menu.ings && menu.ings.length){
             menu.ings.forEach(function(mi){
+                var ing = D.ings.find(function(i){return i.id === mi.ingId;});
+
+                // If this is a standalone ingredient, DON'T multiply by menu needs
+                // Just mark it so we use its minQty target instead
+                if(ing && ing.standalone){
+                    standaloneMenuIngIds[mi.ingId] = {
+                        menuName: menu.name,
+                        minQty: ing.minQty || 0,
+                        unit: ing.defUnit || mi.unit
+                    };
+                    return; // Skip the normal multiplication
+                }
+
                 var needed = menuNeed.needed * (mi.qty || 0);
                 if(needed <= 0) return;
                 if(!ingredientNeeds[mi.ingId]){
@@ -2561,6 +2665,23 @@ function calculateShoppingList(silent){
                 ingredientNeeds[mi.ingId].sources.push({type:'menu', name: menu.name, qty: needed});
             });
         }
+    });
+
+    // ========== STEP 5b: Add standalone ingredients using their minQty target ==========
+    Object.keys(standaloneMenuIngIds).forEach(function(ingIdStr){
+        var ingId = +ingIdStr;
+        var standaloneInfo = standaloneMenuIngIds[ingId];
+
+        // Use the standalone ingredient's minQty as the target (not multiplied)
+        var needed = standaloneInfo.minQty;
+        if(needed <= 0) return;
+
+        if(!ingredientNeeds[ingId]){
+            ingredientNeeds[ingId] = {qty: 0, unit: standaloneInfo.unit, sources:[]};
+        }
+        // Replace any existing qty with the minQty (don't add to it)
+        ingredientNeeds[ingId].qty = needed;
+        ingredientNeeds[ingId].sources = [{type:'standalone', name: standaloneInfo.menuName + ' (Standalone Min)', qty: needed}];
     });
 
     // ========== STEP 6: Subtract inventory (with unit conversion) ==========
@@ -2872,11 +2993,26 @@ function renderIngs(c,s){
     if(standaloneIngs.length){
         html+='<div class="sec" style="color:#fdcb6e">⭐ Standalone Items ('+standaloneIngs.length+')</div>';
         standaloneIngs.forEach(function(ing){
+            // Check if this standalone ingredient is linked to a menu item
+            var linkedMenus=D.menus.filter(function(m){
+                return !m.archived && m.ings && m.ings.some(function(mi){return mi.ingId===ing.id;});
+            });
+            var isLinkedToMenu=linkedMenus.length>0;
+
             var invItem=D.inv.find(function(x){return x.ingId===ing.id;});
             var onHand=invItem?invItem.qty:0;
             var diff=onHand-ing.minQty;
             var status=diff>=0?'stocked':diff>-3?'low':'critical';
-            html+='<div class="card" style="border-left:3px solid #fdcb6e"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+' <span class="standalone-badge">Standalone</span><span class="min-qty-badge">Min: '+ing.minQty+'</span></div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • On hand: '+onHand+' '+ing.defUnit+'</div></div><div style="display:flex;gap:4px;align-items:center"><span class="status-badge status-'+status+'">'+(diff>=0?'+':'')+diff+'</span><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div></div>';
+
+            // Build the info line - if linked to menu, don't show inventory qty
+            var infoLine='📍 '+getAreaName(ing.areaId,ing.subArea);
+            if(isLinkedToMenu){
+                infoLine+=' • 🍽️ Menu Item: '+linkedMenus.map(function(m){return m.name;}).join(', ');
+            }else{
+                infoLine+=' • On hand: '+onHand+' '+ing.defUnit;
+            }
+
+            html+='<div class="card" style="border-left:3px solid #fdcb6e"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+' <span class="standalone-badge">Standalone</span><span class="min-qty-badge">Min: '+ing.minQty+'</span></div><div class="card-s">'+infoLine+'</div></div><div style="display:flex;gap:4px;align-items:center">'+(isLinkedToMenu?'':'<span class="status-badge status-'+status+'">'+(diff>=0?'+':'')+diff+'</span>')+'<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div></div>';
         });
     }
     
@@ -3053,7 +3189,7 @@ function editIng(id){
     html+='</select></div>';
     html+='<div class="form-g" id="edit-sub-wrap"><label class="form-l">Section</label><select id="edit-sub" class="form-i"><option value="">Main Area</option></select></div>';
     html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="edit-unit" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===ing.defUnit?' selected':'')+'>'+u.name+' ('+u.abbr+')</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===ing.defUnit?' selected':'')+'>'+u.name+' ('+u.abbr+')</option>';});
     html+='</select></div>';
     html+='<div class="form-g" style="padding:12px;background:rgba(253,203,110,.1);border-radius:8px;border:1px solid rgba(253,203,110,.3)"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="edit-standalone"'+(ing.standalone?' checked':'')+' onchange="toggleStandaloneFields()"><span style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;font-weight:600">⭐ Standalone Item</span></label><div class="card-s" style="margin-top:4px">Track this item independently with its own minimum quantity</div></div>';
     html+='<div class="form-g" id="min-qty-wrap" style="display:'+(ing.standalone?'block':'none')+'"><label class="form-l">Minimum Required Quantity</label><input type="number" id="edit-minqty" class="form-i" value="'+(ing.minQty||0)+'" placeholder="0"></div>';
@@ -3125,7 +3261,7 @@ function renderRecs(c,s){
                 if(rec.ings&&rec.ings.length){
                     rec.ings.forEach(function(ri,idx){
                         html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" value="'+ri.qty+'" onchange="updRecIng('+rec.id+','+idx+',this.value)" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(11px * var(--font-scale))"><select onchange="updRecIngUnit('+rec.id+','+idx+',this.value)" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#a0aec0;font-size:calc(10px * var(--font-scale))">';
-                        D.units.forEach(function(u){
+                        getSortedUnits().forEach(function(u){
                             html+='<option value="'+u.abbr+'"'+(u.abbr===ri.unit?' selected':'')+'>'+u.abbr+'</option>';
                         });
                         html+='</select><button class="del-btn" onclick="delRecIng('+rec.id+','+idx+')">×</button></div></div>';
@@ -3254,7 +3390,7 @@ function addRecIng(recId){
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-ri-qty" class="form-i" placeholder="0"></div>';
     html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-ri-unit" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRecIng('+recId+')" style="flex:1">Add</button></div>';
     m.innerHTML=html;
@@ -3407,7 +3543,7 @@ function editRec(id){
     html+='<div class="form-g" style="flex:1"><label class="form-l">Yield %</label><input type="number" id="ed-rec-yield" class="form-i" value="'+rec.yield+'" min="1" max="100"></div>';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Output Unit</label><select id="ed-rec-yieldunit" class="form-i">';
     html+='<option value=""'+((!rec.yieldUnit)?' selected':'')+'>Auto ('+output.unit+')</option>';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(rec.yieldUnit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(rec.yieldUnit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
     
@@ -3415,7 +3551,7 @@ function editRec(id){
     html+='<div id="manual-row" style="display:'+(isManual?'flex':'none')+';gap:8px">';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Output Quantity</label><input type="number" id="ed-rec-manualqty" class="form-i" value="'+(rec.manualQty||'')+'" step="0.1" placeholder="e.g. 100" oninput="updateOutputDisplay()"></div>';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Output Unit</label><select id="ed-rec-manualunit" class="form-i" onchange="updateOutputDisplay()">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+((rec.yieldUnit===u.abbr||(isManual && !rec.yieldUnit && u.abbr==='ea'))?' selected':'')+'>'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+((rec.yieldUnit===u.abbr||(isManual && !rec.yieldUnit && u.abbr==='ea'))?' selected':'')+'>'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
     
@@ -3570,7 +3706,7 @@ function addMenuIng(menuId){
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-mi-qty" class="form-i" placeholder="0"></div>';
     html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-mi-unit" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuIng('+menuId+')" style="flex:1">Add</button></div>';
     m.innerHTML=html;
@@ -3605,7 +3741,7 @@ function addMenuPrep(menuId){
     html+='<div style="display:flex;gap:8px">';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Quantity</label><input type="number" id="new-mp-qty" class="form-i" placeholder="1" value="1" step="0.1"></div>';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Unit</label><select id="new-mp-unit" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuPrep('+menuId+')" style="flex:1">Add</button></div>';
@@ -3669,7 +3805,7 @@ function addMenuRec(menuId){
     html+='<div style="display:flex;gap:8px">';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Quantity Needed</label><input type="number" id="new-mr-qty" class="form-i" placeholder="1" value="1" step="0.1"></div>';
     html+='<div class="form-g" style="flex:1"><label class="form-l">Unit</label><select id="new-mr-unit" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
 
@@ -3742,7 +3878,7 @@ function editMenuItem(id){
     D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===menu.catId?' selected':'')+'>'+cat.name+'</option>';});
     html+='</select></div>';
     html+='<div class="form-g"><label class="form-l">Target Quantity</label><div style="display:flex;gap:8px"><input type="number" id="ed-menu-tgt" class="form-i" value="'+menu.tgt+'" style="flex:1"><select id="ed-menu-unit" class="form-i" style="flex:1">';
-    D.units.forEach(function(u){html+='<option value="'+u.id+'"'+(u.id===menu.unitId?' selected':'')+'>'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.id+'"'+(u.id===menu.unitId?' selected':'')+'>'+u.abbr+'</option>';});
     html+='</select></div></div>';
     html+='<div class="form-g" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(108,92,231,.1);border-radius:8px"><input type="checkbox" id="ed-menu-shop" '+(menu.includeInShop?'checked':'')+'><label for="ed-menu-shop" style="font-size:calc(13px * var(--font-scale));color:#e0e6ed;cursor:pointer">🛒 Include in Shopping List</label></div>';
     html+='<div class="form-g" style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,107,107,.1);border-radius:8px"><input type="checkbox" id="ed-menu-prep" '+(menu.includeInPrep?'checked':'')+'><label for="ed-menu-prep" style="font-size:calc(13px * var(--font-scale));color:#e0e6ed;cursor:pointer">📦 Include in Prep (can be added to Inventory)</label></div>';
@@ -3883,7 +4019,7 @@ function renderAdmin(c,s){
     // Units
     html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center">📏 Recipe Units ('+D.units.length+')<button class="btn btn-p btn-sm" onclick="addUnit()">+ Add</button></div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
-    D.units.forEach(function(u){
+    getSortedUnits().forEach(function(u){
         html+='<span style="background:rgba(255,255,255,.1);padding:4px 8px;border-radius:6px;font-size:calc(11px * var(--font-scale));color:#a0aec0;display:flex;align-items:center;gap:4px">'+u.abbr+' <button style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:10px;padding:0" onclick="delUnit('+u.id+')">✕</button></span>';
     });
     html+='</div>';
@@ -4089,7 +4225,7 @@ function addConversion(){
     html+='<span style="color:#a0aec0;padding-top:20px">=</span>';
     html+='<div style="flex:1"><label class="form-l">Factor</label><input type="number" id="conv-factor" class="form-i" placeholder="e.g. 18"></div>';
     html+='<div style="flex:1"><label class="form-l">Recipe Unit</label><select id="conv-recipe" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
     html+='<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:12px">Example: 1 box = 18 cups means you buy boxes but recipes use cups</div>';
@@ -4129,7 +4265,7 @@ function editConversion(id){
     html+='<span style="color:#a0aec0;padding-top:20px">=</span>';
     html+='<div style="flex:1"><label class="form-l">Factor</label><input type="number" id="conv-factor" class="form-i" value="'+conv.factor+'"></div>';
     html+='<div style="flex:1"><label class="form-l">Recipe Unit</label><select id="conv-recipe" class="form-i">';
-    D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===conv.recipeUnit?' selected':'')+'>'+u.abbr+'</option>';});
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===conv.recipeUnit?' selected':'')+'>'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
     html+='<div style="display:flex;gap:8px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveConversionEdit('+id+')" style="flex:1">Save</button></div>';
@@ -4707,7 +4843,7 @@ function openAdd(){
         html+='</select></div>';
         html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="add-shop-qty" class="form-i" placeholder="0"></div>';
         html+='<div class="form-g"><label class="form-l">Unit</label><select id="add-shop-unit" class="form-i">';
-        D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+        getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
         html+='</select></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addShopItem()" style="flex:1">Add</button></div>';
     }else if(tab==='prep'){
@@ -4717,7 +4853,7 @@ function openAdd(){
         html+='</select></div>';
         html+='<div class="form-g"><label class="form-l">Target Quantity</label><input type="number" id="add-prep-tgt" class="form-i" placeholder="0"></div>';
         html+='<div class="form-g"><label class="form-l">Unit</label><select id="add-prep-unit" class="form-i">';
-        D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+        getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
         html+='</select></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addPrepItem()" style="flex:1">Add</button></div>';
     }else if(tab==='ingredients'){
@@ -4731,8 +4867,11 @@ function openAdd(){
         html+='</select></div>';
         html+='<div class="form-g" id="sub-area-group" style="display:none"><label class="form-l">Sub-Area / Section</label><select id="add-sub-area" class="form-i"><option value="">-- None --</option></select></div>';
         html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="add-unit" class="form-i">';
-        D.units.forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
+        getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
         html+='</select></div>';
+        // Stand Alone option
+        html+='<div class="form-g" style="padding:12px;background:rgba(253,203,110,.1);border-radius:8px;border:1px solid rgba(253,203,110,.3)"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="add-standalone" onchange="toggleAddStandaloneFields()"><span style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;font-weight:600">⭐ Standalone Item</span></label><div class="card-s" style="margin-top:4px">Track this item independently with its own minimum quantity</div></div>';
+        html+='<div class="form-g" id="add-min-qty-wrap" style="display:none"><label class="form-l">Minimum Required Quantity</label><input type="number" id="add-minqty" class="form-i" value="0" placeholder="0"></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addIng()" style="flex:1">Add</button></div>';
     }else if(tab==='recipes'){
         html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-rec-name" class="form-i" placeholder="Recipe name"></div>';
@@ -4781,12 +4920,12 @@ function updateSubAreaOptions(){
     var areaId=+document.getElementById('add-area').value;
     var subAreaGroup=document.getElementById('sub-area-group');
     var subAreaSelect=document.getElementById('add-sub-area');
-    
+
     if(!areaId){
         subAreaGroup.style.display='none';
         return;
     }
-    
+
     var area=D.areas.find(function(a){return a.id===areaId;});
     if(area && area.sections && area.sections.length > 0){
         subAreaGroup.style.display='block';
@@ -4798,6 +4937,12 @@ function updateSubAreaOptions(){
     }
 }
 
+function toggleAddStandaloneFields(){
+    var wrap=document.getElementById('add-min-qty-wrap');
+    var cb=document.getElementById('add-standalone');
+    if(wrap&&cb)wrap.style.display=cb.checked?'block':'none';
+}
+
 function addIng(){
     var name=document.getElementById('add-name').value;
     var catId=+document.getElementById('add-cat').value;
@@ -4805,9 +4950,13 @@ function addIng(){
     var subAreaEl=document.getElementById('add-sub-area');
     var subArea=subAreaEl ? subAreaEl.value : '';
     var defUnit=document.getElementById('add-unit').value;
+    var standaloneEl=document.getElementById('add-standalone');
+    var standalone=standaloneEl && standaloneEl.checked ? 1 : 0;
+    var minQtyEl=document.getElementById('add-minqty');
+    var minQty=minQtyEl ? +minQtyEl.value || 0 : 0;
     if(!name){alert('Enter a name');return;}
     saveState('Add ingredient');
-    D.ings.push({id:nid++,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:0,minQty:0});
+    D.ings.push({id:nid++,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:standalone,minQty:minQty});
     closeModal();
     render();
 }
