@@ -2118,10 +2118,18 @@ function renderShop(c,s){
                 var catName=ing.catId?getCatName(ing.catId):'';
                 html+='<div class="shop-item" style="flex-wrap:wrap"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info" style="flex:1;min-width:120px"><div class="shop-name">'+ing.name+'</div><div class="shop-meta">'+catName+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button>';
                 // Show usedFor info if available
-                if(item.usedFor){
+                if(item.usedFor || item.totalNeed){
                     html+='<div style="width:100%;padding:6px 0 0 32px;font-size:calc(10px * var(--font-scale));color:#a0aec0;line-height:1.4">';
-                    html+='<div style="color:#636e72">Need: '+item.totalNeed+' '+item.unit+' | Have: '+(item.onHand||0)+' '+item.unit+'</div>';
-                    html+='<div style="margin-top:2px">'+item.usedFor+'</div>';
+                    // Show recipe units if different from shopping units
+                    var recipeUnit = item.recipeUnit || item.unit;
+                    var recipeQty = item.recipeQty || item.totalNeed || item.qty;
+                    if(recipeUnit !== item.unit){
+                        html+='<div style="color:#fdcb6e">Recipe needs: '+recipeQty+' '+recipeUnit+'</div>';
+                    }
+                    html+='<div style="color:#636e72">Need: '+(item.totalNeed||item.qty)+' '+recipeUnit+' | Have: '+(item.onHand||0)+' '+recipeUnit+'</div>';
+                    if(item.usedFor){
+                        html+='<div style="margin-top:2px">'+item.usedFor+'</div>';
+                    }
                     html+='</div>';
                 }
                 html+='</div>';
@@ -2298,30 +2306,108 @@ function confirmAddToInv(){
     render();
 }
 
-function calculateShoppingList(){
+// Helper: Recursively expand a recipe to get all ingredients (handles sub-recipes)
+function expandRecipeIngredients(recId, multiplier, visited, sources){
+    if(!visited) visited = {};
+    if(visited[recId]) return []; // Prevent infinite recursion
+    visited[recId] = true;
+
+    var rec = D.recs.find(function(r){return r.id === recId;});
+    if(!rec) return [];
+
+    var ingredients = [];
+
+    // Add direct ingredients
+    if(rec.ings && rec.ings.length){
+        rec.ings.forEach(function(ri){
+            ingredients.push({
+                ingId: ri.ingId,
+                qty: (ri.qty || 0) * multiplier,
+                unit: ri.unit,
+                source: sources || rec.name
+            });
+        });
+    }
+
+    // Recursively expand sub-recipes
+    if(rec.subRecs && rec.subRecs.length){
+        rec.subRecs.forEach(function(sr){
+            var subIngs = expandRecipeIngredients(sr.recId, (sr.qty || 1) * multiplier, visited, sources || rec.name);
+            ingredients = ingredients.concat(subIngs);
+        });
+    }
+
+    return ingredients;
+}
+
+// Helper: Convert quantity between units using conversions
+function convertToRecipeUnits(ingId, qty, fromUnit){
+    var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null;
+    if(!conv) return {qty: qty, unit: fromUnit};
+
+    // If fromUnit is storage unit, convert to recipe units
+    if(fromUnit === conv.storageUnit){
+        return {qty: qty * conv.factor, unit: conv.recipeUnit};
+    }
+    return {qty: qty, unit: fromUnit};
+}
+
+function convertToStorageUnits(ingId, qty, fromUnit){
+    var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null;
+    if(!conv) return {qty: qty, unit: fromUnit};
+
+    // If fromUnit is recipe unit, convert to storage units
+    if(fromUnit === conv.recipeUnit){
+        return {qty: qty / conv.factor, unit: conv.storageUnit};
+    }
+    return {qty: qty, unit: fromUnit};
+}
+
+function calculateShoppingList(silent){
     saveState('Calculate shopping list');
 
-    // Step 1: Calculate recipe needs from Menu items and track sources
-    var recipeNeeds = {}; // recId -> {qty, unit, menuSources:[]}
+    // ========== STEP 1: Calculate Menu needs (subtract finished menu items) ==========
+    var menuNeeds = {}; // menuId -> {needed, unit, name}
 
     D.menus.filter(function(m){return !m.archived && m.includeInShop;}).forEach(function(menu){
-        // Menu item recipes
+        var target = menu.tgt || 0;
+
+        // Subtract finished menu items from inventory (menuId)
+        var onHandMenu = 0;
+        D.inv.forEach(function(inv){
+            if(inv.menuId === menu.id) onHandMenu += inv.qty;
+        });
+
+        var needed = target - onHandMenu;
+        if(needed > 0){
+            menuNeeds[menu.id] = {needed: needed, original: target, onHand: onHandMenu, name: menu.name, menu: menu};
+        }
+    });
+
+    // ========== STEP 2: Calculate Recipe needs from Menu items ==========
+    var recipeNeeds = {}; // recId -> {qty, unit, menuSources:[]}
+
+    Object.keys(menuNeeds).forEach(function(menuIdStr){
+        var menuId = +menuIdStr;
+        var menuNeed = menuNeeds[menuId];
+        var menu = menuNeed.menu;
+
         if(menu.recs && menu.recs.length){
             menu.recs.forEach(function(mr){
                 var rec = D.recs.find(function(r){return r.id === mr.recId;});
                 // Only include recipes that have includeInPrep checked
                 if(rec && rec.includeInPrep){
-                    var needed = (menu.tgt || 0) * (mr.qty || 1);
+                    var needed = menuNeed.needed * (mr.qty || 1);
                     if(!recipeNeeds[mr.recId]) recipeNeeds[mr.recId] = {qty: 0, unit: mr.unit, menuSources:[]};
                     recipeNeeds[mr.recId].qty += needed;
-                    recipeNeeds[mr.recId].menuSources.push({name:menu.name, qty:needed});
+                    recipeNeeds[mr.recId].menuSources.push({name: menu.name, qty: needed});
                 }
             });
         }
     });
 
-    // Step 2: Calculate how many batches of each recipe are needed
-    var batchesNeeded = {}; // recId -> {batches, menuSources}
+    // ========== STEP 3: Calculate batches needed (subtract prep inventory) ==========
+    var batchesNeeded = {}; // recId -> {batches, menuSources, recName}
 
     Object.keys(recipeNeeds).forEach(function(recIdStr){
         var recId = +recIdStr;
@@ -2344,47 +2430,54 @@ function calculateShoppingList(){
         // Calculate batches needed (output.qty is per batch)
         var batchQty = output.qty || 1;
         var batches = Math.ceil(shortfall / batchQty);
-        batchesNeeded[recId] = {batches: batches, menuSources: need.menuSources};
+        batchesNeeded[recId] = {batches: batches, menuSources: need.menuSources, recName: rec.name};
     });
 
-    // Step 3: Calculate ingredient needs from recipes and track sources
-    var ingredientNeeds = {}; // ingId -> {qty, unit, sources:[{type,name,qty}]}
+    // ========== STEP 4: Calculate ingredient needs (with sub-recipe expansion) ==========
+    var ingredientNeeds = {}; // ingId -> {qty, unit, sources:[]}
 
     Object.keys(batchesNeeded).forEach(function(recIdStr){
         var recId = +recIdStr;
-        var rec = D.recs.find(function(r){return r.id === recId;});
-        if(!rec || !rec.ings) return;
-
         var batchInfo = batchesNeeded[recId];
 
-        rec.ings.forEach(function(ri){
-            if(!ingredientNeeds[ri.ingId]){
-                ingredientNeeds[ri.ingId] = {qty: 0, unit: ri.unit, sources:[]};
+        // Expand recipe including all sub-recipes
+        var allIngs = expandRecipeIngredients(recId, batchInfo.batches, {}, batchInfo.recName);
+
+        allIngs.forEach(function(ing){
+            if(!ingredientNeeds[ing.ingId]){
+                ingredientNeeds[ing.ingId] = {qty: 0, unit: ing.unit, sources:[]};
             }
-            var ingQty = (ri.qty || 0) * batchInfo.batches;
-            ingredientNeeds[ri.ingId].qty += ingQty;
-            // Track recipe source with menu context
-            ingredientNeeds[ri.ingId].sources.push({type:'recipe', name:rec.name, qty:ingQty, menus:batchInfo.menuSources});
+            ingredientNeeds[ing.ingId].qty += ing.qty;
+            ingredientNeeds[ing.ingId].sources.push({
+                type: 'recipe',
+                name: ing.source,
+                qty: ing.qty,
+                menus: batchInfo.menuSources
+            });
         });
     });
 
-    // Step 4: Add direct ingredients from Menu items
-    D.menus.filter(function(m){return !m.archived && m.includeInShop;}).forEach(function(menu){
+    // ========== STEP 5: Add direct ingredients from Menu items ==========
+    Object.keys(menuNeeds).forEach(function(menuIdStr){
+        var menuId = +menuIdStr;
+        var menuNeed = menuNeeds[menuId];
+        var menu = menuNeed.menu;
+
         if(menu.ings && menu.ings.length){
             menu.ings.forEach(function(mi){
-                var needed = (menu.tgt || 0) * (mi.qty || 0);
+                var needed = menuNeed.needed * (mi.qty || 0);
                 if(needed <= 0) return;
                 if(!ingredientNeeds[mi.ingId]){
                     ingredientNeeds[mi.ingId] = {qty: 0, unit: mi.unit, sources:[]};
                 }
                 ingredientNeeds[mi.ingId].qty += needed;
-                ingredientNeeds[mi.ingId].sources.push({type:'menu', name:menu.name, qty:needed});
+                ingredientNeeds[mi.ingId].sources.push({type:'menu', name: menu.name, qty: needed});
             });
         }
     });
 
-    // Step 5: Subtract what's in inventory
-    var toShop = {}; // ingId -> {qty, unit, sources}
+    // ========== STEP 6: Subtract inventory (with unit conversion) ==========
+    var toShop = {}; // ingId -> {qty, unit, sources, onHand, totalNeed}
 
     Object.keys(ingredientNeeds).forEach(function(ingIdStr){
         var ingId = +ingIdStr;
@@ -2394,21 +2487,38 @@ function calculateShoppingList(){
         var ing = D.ings.find(function(i){return i.id === ingId;});
         if(ing && ing.name.toLowerCase() === 'water') return;
 
-        // Get on-hand inventory for this ingredient
-        var onHand = 0;
+        // Get on-hand inventory for this ingredient (convert to recipe units if needed)
+        var onHandRecipeUnits = 0;
         D.inv.forEach(function(inv){
             if(inv.ingId === ingId){
-                onHand += inv.qty;
+                var converted = convertToRecipeUnits(ingId, inv.qty, inv.unit);
+                // Only add if units match or conversion worked
+                if(converted.unit === need.unit || !need.unit){
+                    onHandRecipeUnits += converted.qty;
+                } else {
+                    // Units don't match and no conversion - add raw
+                    onHandRecipeUnits += inv.qty;
+                }
             }
         });
 
-        var shortfall = need.qty - onHand;
+        var shortfall = need.qty - onHandRecipeUnits;
         if(shortfall > 0){
-            toShop[ingId] = {qty: Math.ceil(shortfall * 10) / 10, unit: need.unit, sources: need.sources, onHand: onHand, totalNeed: need.qty};
+            // Convert shortfall to storage units for shopping
+            var forShopping = convertToStorageUnits(ingId, shortfall, need.unit);
+            toShop[ingId] = {
+                qty: Math.ceil(forShopping.qty * 10) / 10,
+                unit: forShopping.unit,
+                recipeQty: shortfall,
+                recipeUnit: need.unit,
+                sources: need.sources,
+                onHand: onHandRecipeUnits,
+                totalNeed: need.qty
+            };
         }
     });
 
-    // Step 6: Update shopping list (merge with existing)
+    // ========== STEP 7: Update shopping list ==========
     var added = 0;
     var updated = 0;
 
@@ -2420,8 +2530,8 @@ function calculateShoppingList(){
         var usedFor = need.sources.map(function(s){
             if(s.type === 'menu') return '🍽️ ' + s.name + ' (' + s.qty + ')';
             if(s.type === 'recipe'){
-                var menuNames = s.menus.map(function(m){return m.name;}).join(', ');
-                return '📖 ' + s.name + ' → ' + menuNames;
+                var menuNames = s.menus ? s.menus.map(function(m){return m.name;}).join(', ') : '';
+                return '📖 ' + s.name + (menuNames ? ' → ' + menuNames : '');
             }
             return s.name;
         }).join('; ');
@@ -2434,116 +2544,182 @@ function calculateShoppingList(){
             existing.usedFor = usedFor;
             existing.onHand = need.onHand;
             existing.totalNeed = need.totalNeed;
+            existing.recipeQty = need.recipeQty;
+            existing.recipeUnit = need.recipeUnit;
             updated++;
         } else {
-            // Add new item
-            D.shopping.push({id: nid++, ingId: ingId, qty: need.qty, unit: need.unit, checked: 0, savedForLater: 0, usedFor: usedFor, onHand: need.onHand, totalNeed: need.totalNeed});
+            D.shopping.push({
+                id: nid++,
+                ingId: ingId,
+                qty: need.qty,
+                unit: need.unit,
+                checked: 0,
+                savedForLater: 0,
+                usedFor: usedFor,
+                onHand: need.onHand,
+                totalNeed: need.totalNeed,
+                recipeQty: need.recipeQty,
+                recipeUnit: need.recipeUnit
+            });
             added++;
         }
     });
 
-    // Remove items that are no longer needed (have enough inventory now)
+    // Remove items that are no longer needed
     var removed = 0;
     D.shopping = D.shopping.filter(function(s){
-        if(s.checked || s.savedForLater) return true; // Keep purchased/saved items
-        if(toShop[s.ingId]) return true; // Still needed
+        if(s.checked || s.savedForLater) return true;
+        if(toShop[s.ingId]) return true;
         removed++;
-        return false; // Remove - no longer needed
+        return false;
     });
 
-    alert('Shopping list updated!\nAdded: ' + added + '\nUpdated: ' + updated + '\nRemoved: ' + removed);
+    if(!silent){
+        alert('Shopping list updated!\nAdded: ' + added + '\nUpdated: ' + updated + '\nRemoved: ' + removed);
+    }
     render();
 }
 
 // ==================== PREP STATUS ====================
 function renderPrep(c,s){
-    // Calculate prep requirements from Menu items - only recipes with includeInPrep
-    var prepNeeds={};// recId -> {name, totalNeeded, unit, usedIn:[]}
+    // ========== SECTION 1: Menu Item Prep Status ==========
+    var menuPrepList = [];
 
-    D.menus.filter(function(m){return !m.archived;}).forEach(function(menu){
-        if(menu.recs&&menu.recs.length){
+    D.menus.filter(function(m){return !m.archived && m.includeInPrep;}).forEach(function(menu){
+        var target = menu.tgt || 0;
+
+        // Get on-hand finished menu items from inventory (menuId)
+        var onHand = 0;
+        D.inv.forEach(function(inv){
+            if(inv.menuId === menu.id) onHand += inv.qty;
+        });
+
+        menuPrepList.push({
+            menuId: menu.id,
+            name: menu.name,
+            target: target,
+            onHand: onHand,
+            unit: D.units.find(function(u){return u.id === menu.unitId;}) ? D.units.find(function(u){return u.id === menu.unitId;}).abbr : 'ea'
+        });
+    });
+
+    // ========== SECTION 2: Recipe Prep Status ==========
+    var prepNeeds = {}; // recId -> {name, totalNeeded, unit, usedIn:[]}
+
+    // Only process menus with includeInPrep checked
+    D.menus.filter(function(m){return !m.archived && m.includeInPrep;}).forEach(function(menu){
+        var target = menu.tgt || 0;
+
+        // Subtract finished menu items from target
+        var onHandMenu = 0;
+        D.inv.forEach(function(inv){
+            if(inv.menuId === menu.id) onHandMenu += inv.qty;
+        });
+        var menuNeeded = target - onHandMenu;
+        if(menuNeeded <= 0) return; // Menu item fully stocked
+
+        if(menu.recs && menu.recs.length){
             menu.recs.forEach(function(mr){
-                var rec=D.recs.find(function(r){return r.id===mr.recId;});
+                var rec = D.recs.find(function(r){return r.id === mr.recId;});
                 // Only include recipes that have includeInPrep checked
                 if(rec && rec.includeInPrep){
                     if(!prepNeeds[mr.recId]){
-                        prepNeeds[mr.recId]={name:rec.name,totalNeeded:0,unit:mr.unit||'ea',usedIn:[]};
+                        prepNeeds[mr.recId] = {name: rec.name, totalNeeded: 0, unit: mr.unit || 'ea', usedIn: []};
                     }
-                    var needed=(menu.tgt||0)*(mr.qty||1);
-                    prepNeeds[mr.recId].totalNeeded+=needed;
-                    prepNeeds[mr.recId].usedIn.push(menu.name+' ('+menu.tgt+'×'+mr.qty+')');
+                    var needed = menuNeeded * (mr.qty || 1);
+                    prepNeeds[mr.recId].totalNeeded += needed;
+                    prepNeeds[mr.recId].usedIn.push(menu.name + ' (' + menuNeeded + '×' + mr.qty + ')');
                 }
             });
         }
     });
-    
+
     // Convert to array and get on-hand from inventory
-    var prepList=[];
+    var prepList = [];
     Object.keys(prepNeeds).forEach(function(recIdStr){
-        var recId=+recIdStr;
-        var need=prepNeeds[recId];
+        var recId = +recIdStr;
+        var need = prepNeeds[recId];
         // Find on-hand in inventory (items with recId)
-        var onHand=0;
-        var onHandStorage=0;
-        var storageUnit='';
+        var onHand = 0;
         D.inv.forEach(function(inv){
-            if(inv.recId===recId){
-                onHand+=inv.qty;
-                // Check if there's a conversion for this recipe unit
-                var conv=getConversionForUnit(need.unit);
-                if(conv){
-                    onHandStorage+=inv.qty;
-                    storageUnit=conv.storageUnit;
-                }
+            if(inv.recId === recId){
+                onHand += inv.qty;
             }
         });
         prepList.push({
-            recId:recId,
-            name:need.name,
-            target:need.totalNeeded,
-            unit:need.unit,
-            onHand:onHand,
-            onHandStorage:onHandStorage,
-            storageUnit:storageUnit,
-            usedIn:need.usedIn
+            recId: recId,
+            name: need.name,
+            target: need.totalNeeded,
+            unit: need.unit,
+            onHand: onHand,
+            usedIn: need.usedIn
         });
     });
-    
+
     // Sort by difference (most critical first)
     prepList.sort(function(a,b){
-        return (a.onHand-a.target)-(b.onHand-b.target);
+        return (a.onHand - a.target) - (b.onHand - b.target);
     });
-    
-    s.textContent=prepList.length+' prep items';
-    
-    var html='';
-    if(!prepList.length){
-        html+='<div class="card" style="text-align:center;color:#a0aec0">';
-        html+='<div style="font-size:calc(14px * var(--font-scale));margin-bottom:8px">No prep items yet</div>';
-        html+='<div style="font-size:calc(11px * var(--font-scale))">Add recipes to menu items (with "Include in Prep" enabled) to see requirements here.</div>';
-        html+='</div>';
-    }else{
-        prepList.forEach(function(prep){
-            var diff=prep.onHand-prep.target;
-            var status=getStatusTxt(prep.onHand,prep.target);
-            var color=getStatusColor(prep.onHand,prep.target);
-            html+='<div class="card">';
-            html+='<div class="card-h"><div><div class="card-t">🍳 '+prep.name+'</div>';
-            html+='<div class="card-s">Target: '+prep.target+' '+prep.unit+' • Used in: '+prep.usedIn.length+' menu items</div></div>';
-            html+='<span class="status-badge status-'+status.toLowerCase()+'">'+status+'</span></div>';
-            html+='<div style="display:flex;align-items:center;gap:8px;margin-top:8px">';
-            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand:</span>';
-            html+='<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">'+prep.onHand+' '+prep.unit+'</span>';
-            html+='<span style="margin-left:auto;font-weight:600;color:'+(color==='green'?'#00b894':color==='yellow'?'#fdcb6e':'#d63031')+'">'+(diff>=0?'+':'')+diff+'</span>';
-            html+='</div>';
-            html+='<div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#636e72">'+prep.usedIn.join(', ')+'</div>';
-            html+='</div>';
+    menuPrepList.sort(function(a,b){
+        return (a.onHand - a.target) - (b.onHand - b.target);
+    });
+
+    s.textContent = (menuPrepList.length + prepList.length) + ' prep items';
+
+    var html = '';
+
+    // ========== Render Menu Prep Section ==========
+    if(menuPrepList.length){
+        html += '<div class="sec" style="color:#74b9ff">🍽️ Menu Items (' + menuPrepList.length + ')</div>';
+        menuPrepList.forEach(function(item){
+            var diff = item.onHand - item.target;
+            var status = getStatusTxt(item.onHand, item.target);
+            var color = getStatusColor(item.onHand, item.target);
+            html += '<div class="card">';
+            html += '<div class="card-h"><div><div class="card-t">' + item.name + '</div>';
+            html += '<div class="card-s">Target: ' + item.target + ' ' + item.unit + '</div></div>';
+            html += '<span class="status-badge status-' + status.toLowerCase() + '">' + status + '</span></div>';
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">';
+            html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Finished:</span>';
+            html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + item.onHand + ' ' + item.unit + '</span>';
+            html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+            html += '</div>';
+            html += '</div>';
         });
-        html+='<div style="text-align:center;margin-top:16px;padding:12px;background:rgba(108,92,231,.1);border-radius:8px;font-size:calc(11px * var(--font-scale));color:#a29bfe">';
-        html+='💡 Update on-hand quantities in the <strong>Inventory</strong> tab';
-        html+='</div>';
     }
-    c.innerHTML=html;
+
+    // ========== Render Recipe Prep Section ==========
+    if(prepList.length){
+        html += '<div class="sec" style="color:#fdcb6e;margin-top:16px">🍳 Recipe Prep (' + prepList.length + ')</div>';
+        prepList.forEach(function(prep){
+            var diff = prep.onHand - prep.target;
+            var status = getStatusTxt(prep.onHand, prep.target);
+            var color = getStatusColor(prep.onHand, prep.target);
+            html += '<div class="card">';
+            html += '<div class="card-h"><div><div class="card-t">' + prep.name + '</div>';
+            html += '<div class="card-s">Target: ' + prep.target + ' ' + prep.unit + ' • Used in: ' + prep.usedIn.length + ' menu items</div></div>';
+            html += '<span class="status-badge status-' + status.toLowerCase() + '">' + status + '</span></div>';
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">';
+            html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand:</span>';
+            html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + prep.onHand + ' ' + prep.unit + '</span>';
+            html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+            html += '</div>';
+            html += '<div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#636e72">' + prep.usedIn.join(', ') + '</div>';
+            html += '</div>';
+        });
+    }
+
+    if(!menuPrepList.length && !prepList.length){
+        html += '<div class="card" style="text-align:center;color:#a0aec0">';
+        html += '<div style="font-size:calc(14px * var(--font-scale));margin-bottom:8px">No prep items yet</div>';
+        html += '<div style="font-size:calc(11px * var(--font-scale))">Enable "Include in Prep" on menu items and their recipes to see requirements here.</div>';
+        html += '</div>';
+    } else {
+        html += '<div style="text-align:center;margin-top:16px;padding:12px;background:rgba(108,92,231,.1);border-radius:8px;font-size:calc(11px * var(--font-scale));color:#a29bfe">';
+        html += '💡 Update on-hand quantities in the <strong>Inventory</strong> tab';
+        html += '</div>';
+    }
+    c.innerHTML = html;
 }
 
 // updPrep no longer needed - prep is calculated, not manual
@@ -3457,6 +3633,8 @@ function saveMenuEdit(id){
     var menu=D.menus.find(function(m){return m.id===id;});
     if(!menu)return;
     saveState('Edit menu item');
+    var oldTgt = menu.tgt;
+    var oldShop = menu.includeInShop;
     menu.name=document.getElementById('ed-menu-name').value;
     menu.catId=+document.getElementById('ed-menu-cat').value;
     menu.tgt=+document.getElementById('ed-menu-tgt').value||0;
@@ -3464,7 +3642,12 @@ function saveMenuEdit(id){
     menu.includeInShop=document.getElementById('ed-menu-shop').checked?1:0;
     menu.includeInPrep=document.getElementById('ed-menu-prep').checked?1:0;
     closeModal();
-    render();
+    // Auto-recalculate shopping if target or includeInShop changed
+    if(menu.tgt !== oldTgt || menu.includeInShop !== oldShop){
+        calculateShoppingList(true); // silent mode
+    } else {
+        render();
+    }
 }
 
 function delMenuItem(id){
