@@ -3090,7 +3090,29 @@ function renderIngs(c,s){
         });
     });
     
-    // Find ingredients not used in any recipe
+    // Standalone ingredients summary section
+    if(standaloneIngs.length){
+        html+='<div class="sec" style="color:#fdcb6e;margin-top:24px">⭐ Standalone Summary ('+standaloneIngs.length+')</div>';
+        html+='<div style="background:rgba(253,203,110,.1);border:1px solid rgba(253,203,110,.2);border-radius:12px;padding:12px">';
+        standaloneIngs.forEach(function(ing){
+            var invItem=D.inv.find(function(x){return x.ingId===ing.id;});
+            var onHand=invItem?invItem.qty:0;
+            var diff=onHand-ing.minQty;
+            var statusColor=diff>=0?'#00b894':diff>-3?'#fdcb6e':'#ff7675';
+            var autoShopStatus=ing.autoShop?'<span style="color:#00b894" title="Auto-shop enabled">🛒</span>':'<span style="color:#636e72" title="Auto-shop disabled">○</span>';
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
+            html+='<div style="flex:1"><span style="color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'+ing.name+'</span> '+autoShopStatus+'</div>';
+            html+='<div style="display:flex;gap:12px;align-items:center">';
+            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Min: '+ing.minQty+' '+ing.defUnit+'</span>';
+            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand: '+onHand+'</span>';
+            html+='<span style="color:'+statusColor+';font-size:calc(11px * var(--font-scale));font-weight:600;min-width:40px;text-align:right">'+(diff>=0?'+':'')+diff+'</span>';
+            html+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
+            html+='</div></div>';
+        });
+        html+='</div>';
+    }
+
+    // Find ingredients not used in any recipe (exclude standalone items)
     var usedIngIds=[];
     D.recs.forEach(function(rec){
         if(rec.ings && rec.ings.length){
@@ -3099,8 +3121,8 @@ function renderIngs(c,s){
             });
         }
     });
-    var unusedIngs=activeIngs.filter(function(i){return usedIngIds.indexOf(i.id)===-1;});
-    
+    var unusedIngs=activeIngs.filter(function(i){return usedIngIds.indexOf(i.id)===-1 && !i.standalone;});
+
     // Unused ingredients section
     if(unusedIngs.length){
         html+='<div class="sec" style="color:#ff7675;margin-top:24px">⚠️ Not Used in Any Recipe ('+unusedIngs.length+')</div>';
