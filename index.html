@@ -2122,11 +2122,11 @@ function renderShop(c,s){
                     html+='<div style="width:100%;padding:6px 0 0 32px;font-size:calc(10px * var(--font-scale));color:#a0aec0;line-height:1.4">';
                     // Show recipe units if different from shopping units
                     var recipeUnit = item.recipeUnit || item.unit;
-                    var recipeQty = item.recipeQty || item.totalNeed || item.qty;
+                    var recipeQty = formatQty(item.recipeQty || item.totalNeed || item.qty);
                     if(recipeUnit !== item.unit){
                         html+='<div style="color:#fdcb6e">Recipe needs: '+recipeQty+' '+recipeUnit+'</div>';
                     }
-                    html+='<div style="color:#636e72">Need: '+(item.totalNeed||item.qty)+' '+recipeUnit+' | Have: '+(item.onHand||0)+' '+recipeUnit+'</div>';
+                    html+='<div style="color:#636e72">Need: '+formatQty(item.totalNeed||item.qty)+' '+recipeUnit+' | Have: '+formatQty(item.onHand||0)+' '+recipeUnit+'</div>';
                     if(item.usedFor){
                         html+='<div style="margin-top:2px">'+item.usedFor+'</div>';
                     }
@@ -2340,6 +2340,17 @@ function expandRecipeIngredients(recId, multiplier, visited, sources){
     return ingredients;
 }
 
+// Helper: Round quantity for display (max 2 decimal places, remove trailing zeros)
+function roundQty(qty){
+    if(typeof qty !== 'number' || isNaN(qty)) return 0;
+    return Math.round(qty * 100) / 100;
+}
+function formatQty(qty){
+    var rounded = roundQty(qty);
+    // Remove unnecessary trailing zeros
+    return rounded.toString().replace(/\.?0+$/, '');
+}
+
 // Helper: Convert quantity between units using conversions
 function convertToRecipeUnits(ingId, qty, fromUnit){
     var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null;
@@ -2528,10 +2539,10 @@ function calculateShoppingList(silent){
 
         // Build usedFor string from sources
         var usedFor = need.sources.map(function(s){
-            if(s.type === 'menu') return '🍽️ ' + s.name + ' (' + s.qty + ')';
+            if(s.type === 'menu') return '🍽️ ' + s.name + ' (' + formatQty(s.qty) + ')';
             if(s.type === 'recipe'){
                 var menuNames = s.menus ? s.menus.map(function(m){return m.name;}).join(', ') : '';
-                return '📖 ' + s.name + (menuNames ? ' → ' + menuNames : '');
+                return '📖 ' + s.name + ' (' + formatQty(s.qty) + ')' + (menuNames ? ' → ' + menuNames : '');
             }
             return s.name;
         }).join('; ');
