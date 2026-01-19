@@ -655,37 +655,41 @@ async function loadFromSupabase(){
             return loadFromSupabase(); // Reload after migration
         }
 
-        // Check for partial data - if key tables are empty but others have data,
-        // merge missing defaults. This handles cases where some tables got wiped.
-        var needsPartialMigration = false;
-        var partialMigrationTables = [];
-
-        // Get default data for comparison
+        // Merge any missing default recipes/ingredients into Supabase
+        // This handles cases where some defaults were never saved or got deleted
         var defaultRecs = getDefaultData().recs;
         var defaultIngs = getDefaultData().ings;
 
-        if((!recs.data || recs.data.length === 0) && defaultRecs.length > 0){
-            needsPartialMigration = true;
-            partialMigrationTables.push('recs');
-        }
-        if((!ings.data || ings.data.length === 0) && defaultIngs.length > 0){
-            needsPartialMigration = true;
-            partialMigrationTables.push('ings');
-        }
+        // Find default recipes missing from Supabase (by ID)
+        var cloudRecIds = {};
+        (recs.data || []).forEach(function(r){ cloudRecIds[r.id] = true; });
+        var missingRecs = defaultRecs.filter(function(r){ return !cloudRecIds[r.id]; });
 
-        if(needsPartialMigration){
-            console.log('Partial migration needed for:', partialMigrationTables);
-            if(partialMigrationTables.indexOf('ings') >= 0){
-                var ingsMapped = defaultIngs.map(mapIngToDb);
+        // Find default ingredients missing from Supabase (by ID)
+        var cloudIngIds = {};
+        (ings.data || []).forEach(function(i){ cloudIngIds[i.id] = true; });
+        var missingIngs = defaultIngs.filter(function(i){ return !cloudIngIds[i.id]; });
+
+        if(missingIngs.length > 0 || missingRecs.length > 0){
+            console.log('Missing defaults - ings:', missingIngs.length, 'recs:', missingRecs.length);
+
+            // Upload missing ingredients first (recipes may depend on them)
+            if(missingIngs.length > 0){
+                var ingsMapped = missingIngs.map(mapIngToDb);
                 await supabase.from('ings').upsert(ingsMapped);
-                ings.data = ingsMapped; // Now in DB format for mapIngFromDb later
+                // Add to loaded data
+                ings.data = (ings.data || []).concat(ingsMapped);
             }
-            if(partialMigrationTables.indexOf('recs') >= 0){
-                var recsMapped = defaultRecs.map(mapRecToDb);
+
+            // Upload missing recipes
+            if(missingRecs.length > 0){
+                var recsMapped = missingRecs.map(mapRecToDb);
                 await supabase.from('recs').upsert(recsMapped);
-                recs.data = recsMapped; // Now in DB format for mapRecFromDb later
+                // Add to loaded data
+                recs.data = (recs.data || []).concat(recsMapped);
             }
-            console.log('Partial migration complete');
+
+            console.log('Missing defaults synced to Supabase');
         }
         
         console.log('Mapping data to local format...');
