@@ -6,7 +6,10 @@
     <title>Restaurant Oracle</title>
     
     <!-- Supabase setup will be done inline in main script using dynamic import -->
-    
+
+    <!-- SheetJS for Excel import -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
     <!-- Web App Icons -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
@@ -2112,28 +2115,54 @@ function renderShop(c,s){
 
     html+='<div class="sec" style="color:#e17055">To Buy ('+toBuy.length+')</div>';
     if(toBuy.length){
+        // Group items by ingredient category
+        var byCategory = {};
         toBuy.forEach(function(item){
-            var ing=D.ings.find(function(x){return x.id===item.ingId;});
-            if(ing){
-                var catName=ing.catId?getCatName(ing.catId):'';
-                html+='<div class="shop-item" style="flex-wrap:wrap"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info" style="flex:1;min-width:120px"><div class="shop-name">'+ing.name+'</div><div class="shop-meta">'+catName+'</div></div><div class="shop-qty">'+item.qty+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button>';
-                // Show usedFor info if available
-                if(item.usedFor || item.totalNeed){
-                    html+='<div style="width:100%;padding:6px 0 0 32px;font-size:calc(10px * var(--font-scale));color:#a0aec0;line-height:1.4">';
-                    // Show recipe units if different from shopping units
-                    var recipeUnit = item.recipeUnit || item.unit;
-                    var recipeQty = formatQty(item.recipeQty || item.totalNeed || item.qty);
-                    if(recipeUnit !== item.unit){
-                        html+='<div style="color:#fdcb6e">Recipe needs: '+recipeQty+' '+recipeUnit+'</div>';
-                    }
-                    html+='<div style="color:#636e72">Need: '+formatQty(item.totalNeed||item.qty)+' '+recipeUnit+' | Have: '+formatQty(item.onHand||0)+' '+recipeUnit+'</div>';
-                    if(item.usedFor){
-                        html+='<div style="margin-top:2px">'+item.usedFor+'</div>';
+            var ing = D.ings.find(function(x){return x.id===item.ingId;});
+            var catId = ing ? (ing.catId || 0) : 0;
+            if(!byCategory[catId]) byCategory[catId] = [];
+            byCategory[catId].push({item: item, ing: ing});
+        });
+
+        // Sort categories and render
+        var catIds = Object.keys(byCategory).sort(function(a,b){
+            var catA = D.cats.find(function(c){return c.id === +a;});
+            var catB = D.cats.find(function(c){return c.id === +b;});
+            var nameA = catA ? catA.name : 'Uncategorized';
+            var nameB = catB ? catB.name : 'Uncategorized';
+            return nameA.localeCompare(nameB);
+        });
+
+        catIds.forEach(function(catId){
+            var cat = D.cats.find(function(c){return c.id === +catId;});
+            var catName = cat ? cat.name : 'Uncategorized';
+            var items = byCategory[catId];
+
+            html+='<div style="margin-top:8px;padding:4px 8px;background:rgba(255,255,255,.05);border-radius:6px;font-size:calc(11px * var(--font-scale));color:#a0aec0;font-weight:600">'+catName+' ('+items.length+')</div>';
+
+            items.forEach(function(data){
+                var item = data.item;
+                var ing = data.ing;
+                if(ing){
+                    html+='<div class="shop-item" style="flex-wrap:wrap"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info" style="flex:1;min-width:120px"><div class="shop-name">'+ing.name+'</div></div><div class="shop-qty">'+formatQty(item.qty)+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button>';
+                    // Show usedFor info if available
+                    if(item.usedFor || item.totalNeed){
+                        html+='<div style="width:100%;padding:6px 0 0 32px;font-size:calc(10px * var(--font-scale));color:#a0aec0;line-height:1.4">';
+                        // Show recipe units if different from shopping units
+                        var recipeUnit = item.recipeUnit || item.unit;
+                        var recipeQty = formatQty(item.recipeQty || item.totalNeed || item.qty);
+                        if(recipeUnit !== item.unit){
+                            html+='<div style="color:#fdcb6e">Recipe needs: '+recipeQty+' '+recipeUnit+'</div>';
+                        }
+                        html+='<div style="color:#636e72">Need: '+formatQty(item.totalNeed||item.qty)+' '+recipeUnit+' | Have: '+formatQty(item.onHand||0)+' '+recipeUnit+'</div>';
+                        if(item.usedFor){
+                            html+='<div style="margin-top:2px">'+item.usedFor+'</div>';
+                        }
+                        html+='</div>';
                     }
                     html+='</div>';
                 }
-                html+='</div>';
-            }
+            });
         });
     }else{
         html+='<div style="color:#636e72;font-size:calc(12px * var(--font-scale));padding:16px;text-align:center">Nothing to buy!</div>';
@@ -3711,7 +3740,16 @@ function renderAdmin(c,s){
         html+='<button class="btn btn-p btn-sm" onclick="exportData()">📤 Export Data</button>';
         html+='<button class="btn btn-s btn-sm" onclick="importData()">📥 Import Data</button>';
         html+='<button class="btn btn-sm" style="background:#e74c3c;color:#fff" onclick="resetData()">🗑️ Reset All</button>';
-        html+='</div><div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#a0aec0">Data auto-saves to browser. Export for backup.</div></div>';
+        html+='</div><div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#a0aec0">Data auto-saves to browser. Export for backup.</div>';
+        // Excel import drop zone
+        html+='<div id="excel-drop-zone" style="margin-top:12px;padding:20px;border:2px dashed rgba(108,92,231,.5);border-radius:10px;text-align:center;cursor:pointer" onclick="document.getElementById(\'excel-file-input\').click()">';
+        html+='<div style="font-size:calc(24px * var(--font-scale))">📊</div>';
+        html+='<div style="font-size:calc(12px * var(--font-scale));color:#a29bfe;margin-top:4px">Drop Excel Template Here</div>';
+        html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72;margin-top:4px">or click to browse (.xlsx)</div>';
+        html+='<input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelImport(this.files[0])">';
+        html+='</div>';
+        html+='<a href="Restaurant_Oracle_Template.xlsx" download style="display:block;margin-top:8px;text-align:center;font-size:calc(10px * var(--font-scale));color:#74b9ff;text-decoration:none">⬇️ Download blank template</a>';
+        html+='</div>';
     }
     
     // Users
@@ -3766,8 +3804,11 @@ function renderAdmin(c,s){
         html+='<span style="background:rgba(255,255,255,.1);padding:4px 8px;border-radius:6px;font-size:calc(11px * var(--font-scale));color:#a0aec0;display:flex;align-items:center;gap:4px">'+u.abbr+' <button style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:10px;padding:0" onclick="delUnit('+u.id+')">✕</button></span>';
     });
     html+='</div>';
-    
+
     c.innerHTML=html;
+
+    // Setup drag and drop after rendering
+    setTimeout(setupExcelDropZone, 0);
 }
 
 function editUser(id){
@@ -4241,6 +4282,276 @@ function importData(){
         reader.readAsText(file);
     };
     input.click();
+}
+
+// Excel Template Import Handler
+function handleExcelImport(file){
+    if(!file) return;
+    if(!window.XLSX){
+        alert('Excel library not loaded. Please refresh the page and try again.');
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e){
+        try {
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, {type: 'array'});
+            var sheet = workbook.Sheets[workbook.SheetNames[0]];
+            var rows = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
+
+            // Parse sections from the template
+            var sections = {};
+            var currentSection = null;
+            var headers = [];
+
+            for(var i = 0; i < rows.length; i++){
+                var row = rows[i];
+                if(!row || !row.length) continue;
+
+                var firstCell = String(row[0] || '').trim();
+
+                // Detect section headers
+                if(firstCell.includes('STORAGE LOCATIONS')){
+                    currentSection = 'areas'; headers = []; continue;
+                } else if(firstCell.includes('INGREDIENT CATEGORIES')){
+                    currentSection = 'cats'; headers = []; continue;
+                } else if(firstCell.includes('INGREDIENTS') && !firstCell.includes('RECIPE')){
+                    currentSection = 'ings'; headers = []; continue;
+                } else if(firstCell.includes('RECIPE CATEGORIES')){
+                    currentSection = 'recCats'; headers = []; continue;
+                } else if(firstCell.includes('RECIPES') && !firstCell.includes('MENU') && !firstCell.includes('INGREDIENTS')){
+                    currentSection = 'recs'; headers = []; continue;
+                } else if(firstCell.includes('RECIPE INGREDIENTS')){
+                    currentSection = 'recIngs'; headers = []; continue;
+                } else if(firstCell.includes('MENU CATEGORIES')){
+                    currentSection = 'menuCats'; headers = []; continue;
+                } else if(firstCell.includes('MENU ITEMS')){
+                    currentSection = 'menus'; headers = []; continue;
+                } else if(firstCell.includes('MENU RECIPES')){
+                    currentSection = 'menuRecs'; headers = []; continue;
+                } else if(firstCell.includes('UNIT CONVERSIONS')){
+                    currentSection = 'conversions'; headers = []; continue;
+                } else if(firstCell.includes('NOTES:')){
+                    currentSection = null; continue;
+                }
+
+                if(!currentSection) continue;
+
+                // First row after section header is column headers
+                if(headers.length === 0){
+                    headers = row.map(function(h){ return String(h || '').trim().toLowerCase(); });
+                    if(!sections[currentSection]) sections[currentSection] = [];
+                    continue;
+                }
+
+                // Parse data row
+                var obj = {};
+                var hasData = false;
+                for(var j = 0; j < headers.length; j++){
+                    if(headers[j] && row[j] !== undefined && row[j] !== ''){
+                        obj[headers[j]] = row[j];
+                        hasData = true;
+                    }
+                }
+                if(hasData && obj.id !== undefined){
+                    sections[currentSection].push(obj);
+                }
+            }
+
+            // Validate and import
+            if(!sections.areas && !sections.ings && !sections.recs && !sections.menus){
+                alert('No valid data found in the Excel file. Make sure you are using the correct template format.');
+                return;
+            }
+
+            var summary = [];
+            if(sections.areas) summary.push('Storage Locations: ' + sections.areas.length);
+            if(sections.cats) summary.push('Ingredient Categories: ' + sections.cats.length);
+            if(sections.ings) summary.push('Ingredients: ' + sections.ings.length);
+            if(sections.recCats) summary.push('Recipe Categories: ' + sections.recCats.length);
+            if(sections.recs) summary.push('Recipes: ' + sections.recs.length);
+            if(sections.recIngs) summary.push('Recipe Ingredients: ' + sections.recIngs.length);
+            if(sections.menuCats) summary.push('Menu Categories: ' + sections.menuCats.length);
+            if(sections.menus) summary.push('Menu Items: ' + sections.menus.length);
+            if(sections.menuRecs) summary.push('Menu Recipes: ' + sections.menuRecs.length);
+            if(sections.conversions) summary.push('Unit Conversions: ' + sections.conversions.length);
+
+            if(!confirm('Import the following data?\n\n' + summary.join('\n') + '\n\nThis will ADD to your existing data.')){
+                return;
+            }
+
+            saveState('Import Excel template');
+
+            // Import Storage Locations
+            if(sections.areas){
+                sections.areas.forEach(function(a){
+                    var secs = a.sections ? String(a.sections).split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+                    D.areas.push({
+                        id: +a.id,
+                        name: String(a.name || ''),
+                        sections: secs,
+                        prep: a.is_prep_area ? 1 : 0
+                    });
+                });
+            }
+
+            // Import Ingredient Categories
+            if(sections.cats){
+                sections.cats.forEach(function(c){
+                    D.cats.push({id: +c.id, name: String(c.name || '')});
+                });
+            }
+
+            // Import Ingredients
+            if(sections.ings){
+                sections.ings.forEach(function(ing){
+                    D.ings.push({
+                        id: +ing.id,
+                        name: String(ing.name || ''),
+                        catId: +ing.cat_id || 0,
+                        areaId: +ing.area_id || 0,
+                        subArea: String(ing.sub_area || ''),
+                        defUnit: String(ing.unit || 'ea'),
+                        minQty: +ing.par || 0,
+                        archived: 0
+                    });
+                });
+            }
+
+            // Import Recipe Categories
+            if(sections.recCats){
+                sections.recCats.forEach(function(c){
+                    D.recCats.push({id: +c.id, name: String(c.name || '')});
+                });
+            }
+
+            // Import Recipes (without ingredients first)
+            if(sections.recs){
+                sections.recs.forEach(function(r){
+                    D.recs.push({
+                        id: +r.id,
+                        name: String(r.name || ''),
+                        catId: +r.cat_id || 0,
+                        yield: +r.yield || 98,
+                        yieldUnit: String(r.yield_unit || ''),
+                        outputMode: String(r.output_mode || 'auto'),
+                        manualQty: +r.manual_qty || 0,
+                        includeInPrep: r.include_in_prep ? 1 : 0,
+                        ings: [],
+                        subRecs: [],
+                        archived: 0
+                    });
+                });
+            }
+
+            // Link ingredients to recipes
+            if(sections.recIngs){
+                sections.recIngs.forEach(function(ri){
+                    var rec = D.recs.find(function(r){return r.id === +ri.recipe_id;});
+                    if(rec){
+                        if(!rec.ings) rec.ings = [];
+                        rec.ings.push({
+                            ingId: +ri.ingredient_id,
+                            qty: +ri.qty || 0,
+                            unit: String(ri.unit || 'ea')
+                        });
+                    }
+                });
+            }
+
+            // Import Menu Categories
+            if(sections.menuCats){
+                sections.menuCats.forEach(function(c){
+                    D.menuCats.push({id: +c.id, name: String(c.name || '')});
+                });
+            }
+
+            // Import Menu Items (without recipes first)
+            if(sections.menus){
+                sections.menus.forEach(function(m){
+                    D.menus.push({
+                        id: +m.id,
+                        name: String(m.name || ''),
+                        catId: +m.cat_id || 0,
+                        tgt: +m.target_qty || 0,
+                        unitId: 1, // Default to 'ea'
+                        includeInShop: m.include_in_shop ? 1 : 0,
+                        includeInPrep: 1,
+                        ings: [],
+                        recs: [],
+                        archived: 0
+                    });
+                });
+            }
+
+            // Link recipes to menu items
+            if(sections.menuRecs){
+                sections.menuRecs.forEach(function(mr){
+                    var menu = D.menus.find(function(m){return m.id === +mr.menu_id;});
+                    if(menu){
+                        if(!menu.recs) menu.recs = [];
+                        menu.recs.push({
+                            recId: +mr.recipe_id,
+                            qty: +mr.qty_per_menu || 1,
+                            unit: String(mr.unit || 'ea')
+                        });
+                    }
+                });
+            }
+
+            // Import Unit Conversions
+            if(sections.conversions){
+                if(!D.conversions) D.conversions = [];
+                sections.conversions.forEach(function(c){
+                    D.conversions.push({
+                        id: +c.id,
+                        ingId: +c.ingredient_id,
+                        storageUnit: String(c.storage_unit || ''),
+                        recipeUnit: String(c.recipe_unit || ''),
+                        factor: +c.factor || 1
+                    });
+                });
+            }
+
+            saveAllData();
+            render();
+            alert('Import complete!\n\n' + summary.join('\n'));
+
+        } catch(err){
+            console.error('Excel import error:', err);
+            alert('Error importing Excel file: ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// Setup drag and drop for Excel import
+function setupExcelDropZone(){
+    var zone = document.getElementById('excel-drop-zone');
+    if(!zone) return;
+
+    zone.addEventListener('dragover', function(e){
+        e.preventDefault();
+        zone.style.borderColor = '#a29bfe';
+        zone.style.background = 'rgba(108,92,231,.1)';
+    });
+
+    zone.addEventListener('dragleave', function(e){
+        e.preventDefault();
+        zone.style.borderColor = 'rgba(108,92,231,.5)';
+        zone.style.background = 'transparent';
+    });
+
+    zone.addEventListener('drop', function(e){
+        e.preventDefault();
+        zone.style.borderColor = 'rgba(108,92,231,.5)';
+        zone.style.background = 'transparent';
+        var files = e.dataTransfer.files;
+        if(files.length > 0){
+            handleExcelImport(files[0]);
+        }
+    });
 }
 
 function resetData(){
