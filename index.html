@@ -1832,7 +1832,18 @@ function addToArea(areaId){
             var convSelect=document.getElementById('conv-select-'+areaId);
             var convVal=convSelect?convSelect.value:'';
 
-            if(convVal==='new'){
+            if(convVal==='same'){
+                // Storage = Recipe Units (1:1 conversion)
+                if(!D.conversions)D.conversions=[];
+                var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+                D.conversions.push({
+                    id:maxConvId+1,
+                    ingId:itemId,
+                    storageUnit:unit,
+                    factor:1,
+                    recipeUnit:unit
+                });
+            }else if(convVal==='new'){
                 // Create new conversion from form fields
                 var storQty=document.getElementById('stor-qty-'+areaId);
                 var storUnit=document.getElementById('stor-unit-'+areaId);
@@ -1940,7 +1951,10 @@ function onConvSelect(areaId){
     if(!convSelect)return;
     var val=convSelect.value;
 
-    if(val==='new'){
+    if(val==='same'){
+        // Storage = Recipe Units - hide new fields
+        if(convNewDiv)convNewDiv.style.display='none';
+    }else if(val==='new'){
         // Show create new fields
         if(convNewDiv)convNewDiv.style.display='block';
     }else if(val){
