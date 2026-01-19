@@ -2145,12 +2145,25 @@ function renderPrep(c,s){
 // updPrep no longer needed - prep is calculated, not manual
 
 // ==================== INGREDIENTS ====================
+var ingSearchTerm = '';
+
 function renderIngs(c,s){
     var activeIngs=D.ings.filter(function(i){return !i.archived;});
     var archivedIngs=D.ings.filter(function(i){return i.archived;});
     var standaloneIngs=activeIngs.filter(function(i){return i.standalone;});
     s.textContent=activeIngs.length+' ingredients';
     var html='';
+
+    // Search bar
+    html+='<div style="margin-bottom:16px"><input type="text" id="ing-search" class="form-i" placeholder="🔍 Search ingredients..." value="'+ingSearchTerm+'" oninput="filterIngredients(this.value)" style="width:100%"></div>';
+
+    // Filter by search term
+    var searchLower = ingSearchTerm.toLowerCase();
+    if(ingSearchTerm){
+        activeIngs = activeIngs.filter(function(i){return i.name.toLowerCase().indexOf(searchLower) !== -1;});
+        standaloneIngs = standaloneIngs.filter(function(i){return i.name.toLowerCase().indexOf(searchLower) !== -1;});
+        archivedIngs = archivedIngs.filter(function(i){return i.name.toLowerCase().indexOf(searchLower) !== -1;});
+    }
     
     // Standalone ingredients section
     if(standaloneIngs.length){
@@ -2310,6 +2323,19 @@ function deleteIngredient(id){
     }
     
     render();
+}
+
+function filterIngredients(term){
+    ingSearchTerm = term;
+    render();
+    // Refocus search input and restore cursor position
+    setTimeout(function(){
+        var input = document.getElementById('ing-search');
+        if(input){
+            input.focus();
+            input.setSelectionRange(term.length, term.length);
+        }
+    }, 0);
 }
 
 function editIng(id){
@@ -2923,11 +2949,32 @@ function addMenuRec(menuId){
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Add Recipe to Menu Item</div>';
     html+='<div class="form-g"><label class="form-l">Recipe</label><select id="new-mr-rec" class="form-i" onchange="updateMenuRecHint()">';
-    D.recs.filter(function(r){return !r.archived;}).forEach(function(r){
-        var output = calcRecipeOutput(r);
-        var modeIcon = r.outputMode === 'manual' ? '✏️' : '🔄';
-        html+='<option value="'+r.id+'">'+r.name+' ('+output.qty+' '+(r.yieldUnit||output.unit)+') '+modeIcon+'</option>';
+
+    // Group recipes by category
+    var activeRecs = D.recs.filter(function(r){return !r.archived;});
+    D.recCats.forEach(function(cat){
+        var catRecs = activeRecs.filter(function(r){return r.catId === cat.id;});
+        if(catRecs.length){
+            html+='<optgroup label="'+cat.name+'">';
+            catRecs.forEach(function(r){
+                var output = calcRecipeOutput(r);
+                var modeIcon = r.outputMode === 'manual' ? '✏️' : '🔄';
+                html+='<option value="'+r.id+'">'+r.name+' ('+output.qty+' '+(r.yieldUnit||output.unit)+') '+modeIcon+'</option>';
+            });
+            html+='</optgroup>';
+        }
     });
+    // Uncategorized recipes
+    var uncatRecs = activeRecs.filter(function(r){return !r.catId;});
+    if(uncatRecs.length){
+        html+='<optgroup label="Uncategorized">';
+        uncatRecs.forEach(function(r){
+            var output = calcRecipeOutput(r);
+            var modeIcon = r.outputMode === 'manual' ? '✏️' : '🔄';
+            html+='<option value="'+r.id+'">'+r.name+' ('+output.qty+' '+(r.yieldUnit||output.unit)+') '+modeIcon+'</option>';
+        });
+        html+='</optgroup>';
+    }
     html+='</select></div>';
     html+='<div id="rec-output-hint" style="padding:8px;background:rgba(253,203,110,.1);border-radius:6px;margin-bottom:12px;font-size:calc(11px * var(--font-scale));color:#fdcb6e"></div>';
 
