@@ -174,6 +174,8 @@
         .inv-item-name{font-size:calc(13px * var(--font-scale));color:#e0e6ed}
         .inv-item-sub{font-size:calc(10px * var(--font-scale));color:#a0aec0;margin-left:4px}
         .inv-item-controls{display:flex;align-items:center;gap:6px}
+        .inv-dropdown-item{padding:8px 12px;cursor:pointer;font-size:calc(12px * var(--font-scale));color:#e0e6ed;transition:background .15s}
+        .inv-dropdown-item:hover{background:rgba(108,92,231,.3)}
         .status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:calc(10px * var(--font-scale));font-weight:600}
         .status-stocked{background:rgba(0,184,148,.2);color:#00b894}
         .status-low{background:rgba(253,203,110,.2);color:#fdcb6e}
@@ -495,6 +497,10 @@ document.addEventListener('click',function(e){
     if(!e.target.closest('.user-menu')){
         document.getElementById('user-dropdown').classList.remove('open');
     }
+    // Close inventory dropdowns when clicking outside
+    if(!e.target.closest('.inv-dropdown') && !e.target.id?.startsWith('inv-search-')){
+        document.querySelectorAll('.inv-dropdown').forEach(function(d){d.style.display='none';});
+    }
 });
 
 async function onAuthStateChange(event,session){
@@ -765,6 +771,7 @@ function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHa
 function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,photos:r.photos,videos:r.videos,archived:r.archived,include_in_prep:r.includeInPrep};}
 function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,recs:m.recs,archived:m.archived,include_in_shop:m.includeInShop,include_in_prep:m.includeInPrep};}
 function mapConvToDb(c){return{id:c.id,ing_id:c.ingId,storage_unit:c.storageUnit,recipe_unit:c.recipeUnit,factor:c.factor};}
+function mapLogToDb(l){return{id:l.id,action:'Inventory: '+l.item,location:'',detail:l.oldQty+' '+l.oldUnit+' → '+l.newQty+' '+l.newUnit,user_name:l.user,created_at:l.timestamp};}
 
 async function migrateToSupabase(){
     console.log('Migrating data to Supabase...');
@@ -987,7 +994,13 @@ async function syncNow(){
         if(changeLog.settings){
             promises.push(supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false}));
         }
-        
+
+        // Sync log entries
+        if(changeLog.log && changeLog.log.size > 0){
+            var logItems = D.log.filter(function(l){return changeLog.log.has(l.id);}).map(mapLogToDb);
+            if(logItems.length) promises.push(supabase.from('log').upsert(logItems));
+        }
+
         if(promises.length === 0){
             console.log('No sync operations needed');
             showSyncStatus('synced');
@@ -1580,7 +1593,7 @@ function migrateMenuData(){
 // ==================== LOG FUNCTIONS ====================
 function logInventoryChange(item,oldQty,oldUnit,newQty,newUnit){
     var now=new Date();
-    D.log.unshift({
+    var logEntry={
         id:nid++,
         user:D.currentUser.name,
         item:item,
@@ -1591,7 +1604,12 @@ function logInventoryChange(item,oldQty,oldUnit,newQty,newUnit){
         timestamp:now.toISOString(),
         date:now.toLocaleDateString(),
         time:now.toLocaleTimeString()
-    });
+    };
+    D.log.unshift(logEntry);
+    // Mark log change for sync
+    if(typeof changeLog !== 'undefined' && changeLog.log){
+        changeLog.log.add(logEntry.id);
+    }
     // Keep only last 4 weeks
     var fourWeeksAgo=new Date();
     fourWeeksAgo.setDate(fourWeeksAgo.getDate()-28);
@@ -1648,6 +1666,65 @@ function getSortedUnits(){
     });
 }
 
+// Render a single inventory item with conversion info
+function renderInvItem(inv){
+    var itemName='',isPrep=false,conv=null,ing=null;
+    if(inv.ingId){
+        ing=D.ings.find(function(x){return x.id===inv.ingId;});
+        itemName=ing?ing.name:'Unknown';
+        // Check for conversion
+        if(D.conversions){
+            conv=D.conversions.find(function(c){return c.ingId===inv.ingId;});
+        }
+    }else if(inv.recId){
+        var rec=D.recs.find(function(r){return r.id===inv.recId;});
+        itemName=rec?'🍳 '+rec.name:'Unknown Prep';
+        isPrep=true;
+    }else if(inv.menuId){
+        var menu=D.menus.find(function(m){return m.id===inv.menuId;});
+        itemName=menu?'🍽️ '+menu.name:'Unknown Menu';
+        isPrep=true;
+    }
+    if(!itemName)return '';
+
+    var html='<div class="inv-item'+(isPrep?' prep-item':'')+'" style="flex-wrap:wrap">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;width:100%">';
+    html+='<span class="inv-item-name" onclick="editInvItem('+inv.id+')" style="cursor:pointer">'+itemName+'</span>';
+    html+='<div class="inv-item-controls">';
+    html+='<input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))">';
+    html+='<select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
+
+    // If ingredient has conversion, show storage unit as the main option
+    if(conv){
+        // Add storage unit if not in standard units
+        var storageInList=D.units.some(function(u){return u.abbr===conv.storageUnit;});
+        if(!storageInList){
+            html+='<option value="'+conv.storageUnit+'"'+(inv.unit===conv.storageUnit?' selected':'')+'>'+conv.storageUnit+'</option>';
+        }
+    }
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
+    html+='</select>';
+    html+='<button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button>';
+    html+='</div></div>';
+
+    // Show conversion info if available
+    if(conv){
+        var recipeQty=inv.qty*conv.factor;
+        html+='<div style="width:100%;padding:4px 0 0 0;font-size:calc(9px * var(--font-scale));color:#6c5ce7;display:flex;justify-content:space-between;align-items:center">';
+        html+='<span>📐 1 '+conv.storageUnit+' = '+conv.factor+' '+conv.recipeUnit+' ('+formatQty(recipeQty)+' '+conv.recipeUnit+' total)</span>';
+        html+='<button onclick="event.stopPropagation();editConversion('+conv.id+')" style="background:none;border:none;color:#6c5ce7;cursor:pointer;font-size:calc(10px * var(--font-scale));padding:2px 4px">✏️</button>';
+        html+='</div>';
+    }else if(inv.ingId && !isPrep){
+        // No conversion - show option to add one
+        html+='<div style="width:100%;padding:4px 0 0 0;font-size:calc(9px * var(--font-scale));color:#636e72">';
+        html+='<button onclick="event.stopPropagation();addConversionForIng('+inv.ingId+')" style="background:none;border:none;color:#636e72;cursor:pointer;font-size:calc(9px * var(--font-scale));padding:0;text-decoration:underline">+ Add storage→recipe conversion</button>';
+        html+='</div>';
+    }
+
+    html+='</div>';
+    return html;
+}
+
 function getStatusColor(oh,tgt){var d=oh-tgt;return d>=0?'green':d>-3?'yellow':'red';}
 function getStatusTxt(oh,tgt){var d=oh-tgt;return d>=0?'STOCKED':d>-3?'LOW':'CRITICAL';}
 
@@ -1693,24 +1770,7 @@ function renderInv(c,s){
             html+='<div style="margin-top:12px">';
             // Main area items
             areaItems.forEach(function(inv){
-                var itemName='',isPrep=false;
-                if(inv.ingId){
-                    var ing=D.ings.find(function(x){return x.id===inv.ingId;});
-                    itemName=ing?ing.name:'Unknown';
-                }else if(inv.recId){
-                    var rec=D.recs.find(function(r){return r.id===inv.recId;});
-                    itemName=rec?'🍳 '+rec.name:'Unknown Prep';
-                    isPrep=true;
-                }else if(inv.menuId){
-                    var menu=D.menus.find(function(m){return m.id===inv.menuId;});
-                    itemName=menu?'🍽️ '+menu.name:'Unknown Menu';
-                    isPrep=true;
-                }
-                if(itemName){
-                    html+='<div class="inv-item'+(isPrep?' prep-item':'')+'" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+itemName+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
-                    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
-                    html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
-                }
+                html+=renderInvItem(inv);
             });
             // Sub-areas
             if(area.sections.length){
@@ -1718,24 +1778,7 @@ function renderInv(c,s){
                     html+='<div class="section-label">'+sec+'</div><div class="sub-area">';
                     if(subItems[sec]&&subItems[sec].length){
                         subItems[sec].forEach(function(inv){
-                            var itemName='',isPrep=false;
-                            if(inv.ingId){
-                                var ing=D.ings.find(function(x){return x.id===inv.ingId;});
-                                itemName=ing?ing.name:'Unknown';
-                            }else if(inv.recId){
-                                var rec=D.recs.find(function(r){return r.id===inv.recId;});
-                                itemName=rec?'🍳 '+rec.name:'Unknown Prep';
-                                isPrep=true;
-                            }else if(inv.menuId){
-                                var menu=D.menus.find(function(m){return m.id===inv.menuId;});
-                                itemName=menu?'🍽️ '+menu.name:'Unknown Menu';
-                                isPrep=true;
-                            }
-                            if(itemName){
-                                html+='<div class="inv-item'+(isPrep?' prep-item':'')+'" onclick="editInvItem('+inv.id+')"><span class="inv-item-name">'+itemName+'</span><div class="inv-item-controls"><input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))"><select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
-                                getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
-                                html+='</select><button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button></div></div>';
-                            }
+                            html+=renderInvItem(inv);
                         });
                     }else{
                         html+='<div style="color:#636e72;font-size:calc(11px * var(--font-scale));padding:8px">No items</div>';
@@ -1746,9 +1789,12 @@ function renderInv(c,s){
             // Add form toggle
             html+='<div class="add-toggle" onclick="togAdd(\'area-'+area.id+'\')"><span class="add-toggle-t">+ Add Item</span></div>';
             html+='<div class="add-form'+(addOpen['area-'+area.id]?' open':'')+'">';
-            // Search input for filtering items
-            html+='<input type="text" id="inv-search-'+area.id+'" class="form-i" placeholder="🔍 Search items..." style="margin-bottom:8px" oninput="filterInvSelect('+area.id+',this.value)">';
-            html+='<select id="sel-'+area.id+'" class="form-i" style="margin-bottom:8px" onchange="onInvItemSelect('+area.id+')"><option value="">Select item...</option>';
+            // Combined search/select using datalist for better UX
+            html+='<div style="position:relative"><input type="text" id="inv-search-'+area.id+'" class="form-i" placeholder="🔍 Type to search or select..." style="margin-bottom:8px" oninput="filterInvItems('+area.id+',this.value)" onfocus="showInvDropdown('+area.id+')" autocomplete="off">';
+            html+='<div id="inv-dropdown-'+area.id+'" class="inv-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:250px;overflow-y:auto;background:#2d2d4a;border:1px solid rgba(255,255,255,.2);border-radius:8px;z-index:100;margin-top:-4px">';
+            html+=buildInvDropdownItems(area.id,'');
+            html+='</div></div>';
+            html+='<input type="hidden" id="sel-'+area.id+'" value="">';
             // Ingredients section
             html+='<optgroup label="── INGREDIENTS ──">';
             D.cats.forEach(function(cat){
@@ -1960,28 +2006,29 @@ function addToArea(areaId){
     render();
 }
 
-function filterInvSelect(areaId, searchTerm){
-    var sel=document.getElementById('sel-'+areaId);
-    if(!sel)return;
-    var searchLower=searchTerm.toLowerCase();
-
-    // Store current selection
-    var currentVal=sel.value;
-
-    // Build filtered options
-    var html='<option value="">Select item...</option>';
+// Build dropdown items for inventory search
+function buildInvDropdownItems(areaId, searchTerm){
+    var searchLower=(searchTerm||'').toLowerCase();
+    var html='';
 
     // Ingredients section
-    html+='<optgroup label="── INGREDIENTS ──">';
+    var hasIngredients=false;
     D.cats.forEach(function(cat){
         var catIngs=D.ings.filter(function(i){
             return !i.archived && i.catId===cat.id &&
                    (!searchTerm || i.name.toLowerCase().indexOf(searchLower)!==-1);
         });
         if(catIngs.length){
-            html+='<optgroup label="  '+cat.name+'">';
-            catIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
-            html+='</optgroup>';
+            if(!hasIngredients){
+                html+='<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── INGREDIENTS ──</div>';
+                hasIngredients=true;
+            }
+            html+='<div style="padding:4px 10px;color:#636e72;font-size:calc(9px * var(--font-scale));font-weight:600">'+cat.name+'</div>';
+            catIngs.forEach(function(ing){
+                var conv=D.conversions?D.conversions.find(function(c){return c.ingId===ing.id;}):null;
+                var convInfo=conv?' <span style="color:#6c5ce7;font-size:calc(9px * var(--font-scale))">('+conv.storageUnit+'→'+conv.recipeUnit+')</span>':'';
+                html+='<div class="inv-dropdown-item" data-value="ing-'+ing.id+'" onclick="selectInvItem('+areaId+',\'ing-'+ing.id+'\',\''+ing.name.replace(/'/g,"\\'")+'\')">'+ing.name+convInfo+'</div>';
+            });
         }
     });
     // Uncategorized ingredients
@@ -1990,11 +2037,16 @@ function filterInvSelect(areaId, searchTerm){
                (!searchTerm || i.name.toLowerCase().indexOf(searchLower)!==-1);
     });
     if(uncatIngs.length){
-        html+='<optgroup label="  Other">';
-        uncatIngs.forEach(function(ing){html+='<option value="ing-'+ing.id+'">'+ing.name+'</option>';});
-        html+='</optgroup>';
+        if(!hasIngredients){
+            html+='<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── INGREDIENTS ──</div>';
+        }
+        html+='<div style="padding:4px 10px;color:#636e72;font-size:calc(9px * var(--font-scale));font-weight:600">Other</div>';
+        uncatIngs.forEach(function(ing){
+            var conv=D.conversions?D.conversions.find(function(c){return c.ingId===ing.id;}):null;
+            var convInfo=conv?' <span style="color:#6c5ce7;font-size:calc(9px * var(--font-scale))">('+conv.storageUnit+'→'+conv.recipeUnit+')</span>':'';
+            html+='<div class="inv-dropdown-item" data-value="ing-'+ing.id+'" onclick="selectInvItem('+areaId+',\'ing-'+ing.id+'\',\''+ing.name.replace(/'/g,"\\'")+'\')">'+ing.name+convInfo+'</div>';
+        });
     }
-    html+='</optgroup>';
 
     // Prep items (recipes used in menus)
     var usedRecIds=[];
@@ -2008,12 +2060,11 @@ function filterInvSelect(areaId, searchTerm){
         return rec && (!searchTerm || rec.name.toLowerCase().indexOf(searchLower)!==-1);
     });
     if(filteredRecs.length){
-        html+='<optgroup label="── PREP ITEMS (Recipes) ──">';
+        html+='<div style="padding:6px 10px;color:#fd79a8;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3);margin-top:4px">── PREP ITEMS (Recipes) ──</div>';
         filteredRecs.forEach(function(recId){
             var rec=D.recs.find(function(r){return r.id===recId;});
-            if(rec)html+='<option value="rec-'+rec.id+'">🍳 '+rec.name+'</option>';
+            if(rec)html+='<div class="inv-dropdown-item" data-value="rec-'+rec.id+'" onclick="selectInvItem('+areaId+',\'rec-'+rec.id+'\',\'🍳 '+rec.name.replace(/'/g,"\\'")+'\')">🍳 '+rec.name+'</div>';
         });
-        html+='</optgroup>';
     }
 
     // Menu items marked as Prep
@@ -2022,21 +2073,49 @@ function filterInvSelect(areaId, searchTerm){
                (!searchTerm || m.name.toLowerCase().indexOf(searchLower)!==-1);
     });
     if(prepMenus.length){
-        html+='<optgroup label="── PREP ITEMS (Menu) ──">';
+        html+='<div style="padding:6px 10px;color:#74b9ff;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3);margin-top:4px">── PREP ITEMS (Menu) ──</div>';
         prepMenus.forEach(function(menu){
-            html+='<option value="menu-'+menu.id+'">🍽️ '+menu.name+'</option>';
+            html+='<div class="inv-dropdown-item" data-value="menu-'+menu.id+'" onclick="selectInvItem('+areaId+',\'menu-'+menu.id+'\',\'🍽️ '+menu.name.replace(/'/g,"\\'")+'\')">🍽️ '+menu.name+'</div>';
         });
-        html+='</optgroup>';
     }
 
-    sel.innerHTML=html;
-
-    // Restore selection if still exists
-    if(currentVal){
-        for(var i=0;i<sel.options.length;i++){
-            if(sel.options[i].value===currentVal){sel.selectedIndex=i;break;}
-        }
+    if(!html){
+        html='<div style="padding:12px;color:#636e72;text-align:center;font-size:calc(11px * var(--font-scale))">No items found</div>';
     }
+    return html;
+}
+
+function showInvDropdown(areaId){
+    var dropdown=document.getElementById('inv-dropdown-'+areaId);
+    if(dropdown)dropdown.style.display='block';
+}
+
+function hideInvDropdown(areaId){
+    setTimeout(function(){
+        var dropdown=document.getElementById('inv-dropdown-'+areaId);
+        if(dropdown)dropdown.style.display='none';
+    },200);
+}
+
+function filterInvItems(areaId, searchTerm){
+    var dropdown=document.getElementById('inv-dropdown-'+areaId);
+    if(dropdown){
+        dropdown.innerHTML=buildInvDropdownItems(areaId, searchTerm);
+        dropdown.style.display='block';
+    }
+}
+
+function selectInvItem(areaId, value, displayName){
+    var searchInput=document.getElementById('inv-search-'+areaId);
+    var hiddenInput=document.getElementById('sel-'+areaId);
+    var dropdown=document.getElementById('inv-dropdown-'+areaId);
+
+    if(searchInput)searchInput.value=displayName.replace(/🍳 |🍽️ /g,'');
+    if(hiddenInput)hiddenInput.value=value;
+    if(dropdown)dropdown.style.display='none';
+
+    // Trigger the item select handler
+    onInvItemSelect(areaId);
 }
 
 function onInvItemSelect(areaId){
@@ -2152,6 +2231,7 @@ function updInv(id,v){
 function updInvUnit(id,v){
     var i=D.inv.find(function(x){return x.id===id;});
     if(i){
+        saveState('Update inventory unit');
         var oldUnit=i.unit;
         i.unit=v;
         var itemName='';
@@ -2360,7 +2440,9 @@ function togShop(id){
 }
 
 function toggleAutoAdd(){
+    saveState('Toggle auto add to inventory');
     D.autoAddToInv=D.autoAddToInv?0:1;
+    changeLog.settings=true;
     render();
 }
 
@@ -2396,9 +2478,10 @@ function addToInv(shopId){
     if(!s)return;
     var ing=D.ings.find(function(x){return x.id===s.ingId;});
     if(!ing)return;
-    
+
     // Check if ingredient has a default location
     if(ing.areaId){
+        saveState('Add to inventory from shopping');
         D.inv.push({id:nid++,areaId:ing.areaId,subArea:ing.subArea||'',ingId:ing.id,qty:s.qty,unit:s.unit});
         logInventoryChange(ing.name,0,s.unit,s.qty,s.unit);
         D.shopping=D.shopping.filter(function(x){return x.id!==shopId;});
@@ -3368,26 +3451,17 @@ function delRecSubRec(recId,idx){
     }
 }
 
+var recIngSearchSelected = null;
+
 function addRecIng(recId){
+    recIngSearchSelected = null;
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Add Ingredient to Recipe</div>';
-    html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="new-ri-ing" class="form-i">';
-    html+='<option value="">Select ingredient...</option>';
-    D.cats.forEach(function(cat){
-        var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
-        if(catIngs.length){
-            html+='<optgroup label="'+cat.name+'">';
-            catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
-            html+='</optgroup>';
-        }
-    });
-    var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
-    if(uncatIngs.length){
-        html+='<optgroup label="Other">';
-        uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
-        html+='</optgroup>';
-    }
-    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Ingredient</label>';
+    html+='<input type="text" id="rec-ing-search" class="form-i" placeholder="🔍 Search ingredients..." oninput="filterRecIngSearch(this.value)" autocomplete="off">';
+    html+='<input type="hidden" id="new-ri-ing" value="">';
+    html+='<div id="rec-ing-results" style="max-height:200px;overflow-y:auto;margin-top:8px"></div>';
+    html+='</div>';
     html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-ri-qty" class="form-i" placeholder="0"></div>';
     html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-ri-unit" class="form-i">';
     getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
@@ -3395,6 +3469,62 @@ function addRecIng(recId){
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveRecIng('+recId+')" style="flex:1">Add</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
+    document.getElementById('rec-ing-search').focus();
+    filterRecIngSearch('');
+}
+
+function filterRecIngSearch(term){
+    var resultsDiv = document.getElementById('rec-ing-results');
+    var searchLower = term.toLowerCase();
+    var activeIngs = D.ings.filter(function(i){return !i.archived;});
+
+    if(term){
+        activeIngs = activeIngs.filter(function(i){return i.name.toLowerCase().indexOf(searchLower) !== -1;});
+    }
+
+    var html = '';
+    if(activeIngs.length === 0){
+        html = '<div style="padding:8px;color:#888;font-style:italic">No ingredients found</div>';
+    } else {
+        // Group by category
+        D.cats.forEach(function(cat){
+            var catIngs = activeIngs.filter(function(i){return i.catId === cat.id;});
+            if(catIngs.length){
+                html += '<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── '+cat.name.toUpperCase()+' ──</div>';
+                catIngs.forEach(function(ing){
+                    var selected = recIngSearchSelected === ing.id ? 'background:var(--accent);color:#fff;' : '';
+                    html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectRecIng('+ing.id+',\''+ing.name.replace(/'/g,"\\'")+'\',\''+ing.defUnit+'\')">'+ing.name+'</div>';
+                });
+            }
+        });
+        var uncatIngs = activeIngs.filter(function(i){return !i.catId;});
+        if(uncatIngs.length){
+            html += '<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── OTHER ──</div>';
+            uncatIngs.forEach(function(ing){
+                var selected = recIngSearchSelected === ing.id ? 'background:var(--accent);color:#fff;' : '';
+                html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectRecIng('+ing.id+',\''+ing.name.replace(/'/g,"\\'")+'\',\''+ing.defUnit+'\')">'+ing.name+'</div>';
+            });
+        }
+    }
+    resultsDiv.innerHTML = html;
+}
+
+function selectRecIng(ingId, ingName, defUnit){
+    recIngSearchSelected = ingId;
+    document.getElementById('new-ri-ing').value = ingId;
+    document.getElementById('rec-ing-search').value = ingName;
+    document.getElementById('rec-ing-results').innerHTML = '<div style="padding:8px;color:#6c5ce7">✓ Selected: <strong>'+ingName+'</strong></div>';
+    // Set default unit
+    var unitSelect = document.getElementById('new-ri-unit');
+    if(defUnit){
+        for(var i=0; i<unitSelect.options.length; i++){
+            if(unitSelect.options[i].value === defUnit){
+                unitSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    document.getElementById('new-ri-qty').focus();
 }
 
 function saveRecIng(recId){
@@ -3684,26 +3814,17 @@ function renderMenu(c,s){
     c.innerHTML=html;
 }
 
+var menuIngSearchSelected = null;
+
 function addMenuIng(menuId){
+    menuIngSearchSelected = null;
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Add Ingredient to Menu Item</div>';
-    html+='<div class="form-g"><label class="form-l">Ingredient</label><select id="new-mi-ing" class="form-i">';
-    html+='<option value="">Select ingredient...</option>';
-    D.cats.forEach(function(cat){
-        var catIngs=D.ings.filter(function(i){return !i.archived && i.catId===cat.id;});
-        if(catIngs.length){
-            html+='<optgroup label="'+cat.name+'">';
-            catIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
-            html+='</optgroup>';
-        }
-    });
-    var uncatIngs=D.ings.filter(function(i){return !i.archived && !i.catId;});
-    if(uncatIngs.length){
-        html+='<optgroup label="Other">';
-        uncatIngs.forEach(function(ing){html+='<option value="'+ing.id+'">'+ing.name+'</option>';});
-        html+='</optgroup>';
-    }
-    html+='</select></div>';
+    html+='<div class="form-g"><label class="form-l">Ingredient</label>';
+    html+='<input type="text" id="menu-ing-search" class="form-i" placeholder="🔍 Search ingredients..." oninput="filterMenuIngSearch(this.value)" autocomplete="off">';
+    html+='<input type="hidden" id="new-mi-ing" value="">';
+    html+='<div id="menu-ing-results" style="max-height:200px;overflow-y:auto;margin-top:8px"></div>';
+    html+='</div>';
     html+='<div class="form-g"><label class="form-l">Quantity</label><input type="number" id="new-mi-qty" class="form-i" placeholder="0"></div>';
     html+='<div class="form-g"><label class="form-l">Unit</label><select id="new-mi-unit" class="form-i">';
     getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
@@ -3711,6 +3832,60 @@ function addMenuIng(menuId){
     html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveMenuIng('+menuId+')" style="flex:1">Add</button></div>';
     m.innerHTML=html;
     mo.classList.add('open');
+    document.getElementById('menu-ing-search').focus();
+    filterMenuIngSearch('');
+}
+
+function filterMenuIngSearch(term){
+    var resultsDiv = document.getElementById('menu-ing-results');
+    var searchLower = term.toLowerCase();
+    var activeIngs = D.ings.filter(function(i){return !i.archived;});
+
+    if(term){
+        activeIngs = activeIngs.filter(function(i){return i.name.toLowerCase().indexOf(searchLower) !== -1;});
+    }
+
+    var html = '';
+    if(activeIngs.length === 0){
+        html = '<div style="padding:8px;color:#888;font-style:italic">No ingredients found</div>';
+    } else {
+        D.cats.forEach(function(cat){
+            var catIngs = activeIngs.filter(function(i){return i.catId === cat.id;});
+            if(catIngs.length){
+                html += '<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── '+cat.name.toUpperCase()+' ──</div>';
+                catIngs.forEach(function(ing){
+                    var selected = menuIngSearchSelected === ing.id ? 'background:var(--accent);color:#fff;' : '';
+                    html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectMenuIng('+ing.id+',\''+ing.name.replace(/'/g,"\\'")+'\',\''+ing.defUnit+'\')">'+ing.name+'</div>';
+                });
+            }
+        });
+        var uncatIngs = activeIngs.filter(function(i){return !i.catId;});
+        if(uncatIngs.length){
+            html += '<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── OTHER ──</div>';
+            uncatIngs.forEach(function(ing){
+                var selected = menuIngSearchSelected === ing.id ? 'background:var(--accent);color:#fff;' : '';
+                html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectMenuIng('+ing.id+',\''+ing.name.replace(/'/g,"\\'")+'\',\''+ing.defUnit+'\')">'+ing.name+'</div>';
+            });
+        }
+    }
+    resultsDiv.innerHTML = html;
+}
+
+function selectMenuIng(ingId, ingName, defUnit){
+    menuIngSearchSelected = ingId;
+    document.getElementById('new-mi-ing').value = ingId;
+    document.getElementById('menu-ing-search').value = ingName;
+    document.getElementById('menu-ing-results').innerHTML = '<div style="padding:8px;color:#6c5ce7">✓ Selected: <strong>'+ingName+'</strong></div>';
+    var unitSelect = document.getElementById('new-mi-unit');
+    if(defUnit){
+        for(var i=0; i<unitSelect.options.length; i++){
+            if(unitSelect.options[i].value === defUnit){
+                unitSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    document.getElementById('new-mi-qty').focus();
 }
 
 function saveMenuIng(menuId){
@@ -4295,6 +4470,28 @@ function delConversion(id){
     render();
 }
 
+// Add conversion directly for a specific ingredient (from inventory view)
+function addConversionForIng(ingId){
+    var ing=D.ings.find(function(i){return i.id===ingId;});
+    if(!ing)return;
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Add Conversion for '+ing.name+'</div>';
+    html+='<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-bottom:12px">Define how you buy this item vs how recipes use it</div>';
+    html+='<input type="hidden" id="conv-ing" value="'+ingId+'">';
+    html+='<div style="display:flex;gap:8px;align-items:center;margin:16px 0;flex-wrap:wrap">';
+    html+='<div style="flex:1;min-width:80px"><label class="form-l">Storage Unit</label><input type="text" id="conv-storage" class="form-i" placeholder="bottle, box, bag..."></div>';
+    html+='<span style="color:#a0aec0;padding-top:20px">=</span>';
+    html+='<div style="flex:1;min-width:60px"><label class="form-l">Qty</label><input type="number" id="conv-factor" class="form-i" placeholder="25"></div>';
+    html+='<div style="flex:1;min-width:70px"><label class="form-l">Recipe Unit</label><select id="conv-recipe" class="form-i">';
+    getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(u.abbr===ing.defUnit?' selected':'')+'>'+u.abbr+'</option>';});
+    html+='</select></div>';
+    html+='</div>';
+    html+='<div style="font-size:calc(10px * var(--font-scale));color:#6c5ce7;padding:8px;background:rgba(108,92,231,.1);border-radius:6px;margin-bottom:12px">Example: 1 bottle = 25 fl oz means you buy bottles but recipes use fluid ounces</div>';
+    html+='<div style="display:flex;gap:8px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="saveNewConversion()" style="flex:1">Add Conversion</button></div>';
+    m.innerHTML=html;
+    mo.classList.add('open');
+}
+
 function addUnit(){
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Add Recipe Unit</div>';
@@ -4866,11 +5063,21 @@ function openAdd(){
         D.areas.forEach(function(area){html+='<option value="'+area.id+'">'+area.name+'</option>';});
         html+='</select></div>';
         html+='<div class="form-g" id="sub-area-group" style="display:none"><label class="form-l">Sub-Area / Section</label><select id="add-sub-area" class="form-i"><option value="">-- None --</option></select></div>';
-        html+='<div class="form-g"><label class="form-l">Default Unit</label><select id="add-unit" class="form-i">';
+        html+='<div class="form-g"><label class="form-l">Recipe Unit (used in recipes)</label><select id="add-unit" class="form-i" onchange="updateAddConvRecipeUnit()">';
         getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'">'+u.abbr+'</option>';});
         html+='</select></div>';
+        // Storage to Recipe unit conversion
+        html+='<div class="form-g" style="padding:12px;background:rgba(108,92,231,.1);border-radius:8px;border:1px solid rgba(108,92,231,.3)"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="add-has-conversion" onchange="toggleAddConversionFields()"><span style="font-size:calc(12px * var(--font-scale));color:#6c5ce7;font-weight:600">📐 Storage → Recipe Conversion</span></label><div class="card-s" style="margin-top:4px">Define how storage units convert to recipe units (e.g., 1 bottle = 25 fl oz)</div></div>';
+        html+='<div id="add-conversion-wrap" style="display:none;margin-top:8px;padding:12px;background:rgba(0,0,0,.2);border-radius:8px">';
+        html+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+        html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">1</span>';
+        html+='<input type="text" id="add-storage-unit" class="form-i" placeholder="bottle" style="width:80px;font-size:calc(11px * var(--font-scale))">';
+        html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">=</span>';
+        html+='<input type="number" id="add-conv-factor" class="form-i" placeholder="25" style="width:60px;font-size:calc(11px * var(--font-scale))">';
+        html+='<span id="add-conv-recipe-unit" style="color:#6c5ce7;font-size:calc(11px * var(--font-scale));font-weight:600">ea</span>';
+        html+='</div></div>';
         // Stand Alone option
-        html+='<div class="form-g" style="padding:12px;background:rgba(253,203,110,.1);border-radius:8px;border:1px solid rgba(253,203,110,.3)"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="add-standalone" onchange="toggleAddStandaloneFields()"><span style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;font-weight:600">⭐ Standalone Item</span></label><div class="card-s" style="margin-top:4px">Track this item independently with its own minimum quantity</div></div>';
+        html+='<div class="form-g" style="padding:12px;background:rgba(253,203,110,.1);border-radius:8px;border:1px solid rgba(253,203,110,.3);margin-top:12px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="add-standalone" onchange="toggleAddStandaloneFields()"><span style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;font-weight:600">⭐ Standalone Item</span></label><div class="card-s" style="margin-top:4px">Track this item independently with its own minimum quantity</div></div>';
         html+='<div class="form-g" id="add-min-qty-wrap" style="display:none"><label class="form-l">Minimum Required Quantity</label><input type="number" id="add-minqty" class="form-i" value="0" placeholder="0"></div>';
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addIng()" style="flex:1">Add</button></div>';
     }else if(tab==='recipes'){
@@ -4943,6 +5150,20 @@ function toggleAddStandaloneFields(){
     if(wrap&&cb)wrap.style.display=cb.checked?'block':'none';
 }
 
+function toggleAddConversionFields(){
+    var wrap=document.getElementById('add-conversion-wrap');
+    var cb=document.getElementById('add-has-conversion');
+    if(wrap&&cb)wrap.style.display=cb.checked?'block':'none';
+    // Update the recipe unit display when unit changes
+    updateAddConvRecipeUnit();
+}
+
+function updateAddConvRecipeUnit(){
+    var recipeUnit=document.getElementById('add-unit');
+    var display=document.getElementById('add-conv-recipe-unit');
+    if(recipeUnit&&display)display.textContent=recipeUnit.value;
+}
+
 function addIng(){
     var name=document.getElementById('add-name').value;
     var catId=+document.getElementById('add-cat').value;
@@ -4956,7 +5177,32 @@ function addIng(){
     var minQty=minQtyEl ? +minQtyEl.value || 0 : 0;
     if(!name){alert('Enter a name');return;}
     saveState('Add ingredient');
-    D.ings.push({id:nid++,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:standalone,minQty:minQty});
+    var ingId=nid++;
+    D.ings.push({id:ingId,name:name,catId:catId,areaId:areaId,subArea:subArea,defUnit:defUnit,archived:0,standalone:standalone,minQty:minQty});
+
+    // Check if conversion was specified
+    var hasConvEl=document.getElementById('add-has-conversion');
+    if(hasConvEl && hasConvEl.checked){
+        var storageUnit=document.getElementById('add-storage-unit').value.trim();
+        var factor=+document.getElementById('add-conv-factor').value||0;
+        if(storageUnit && factor > 0){
+            // Create conversion
+            var convId=nid++;
+            if(!D.conversions)D.conversions=[];
+            D.conversions.push({
+                id:convId,
+                ingId:ingId,
+                storageUnit:storageUnit,
+                recipeUnit:defUnit,
+                factor:factor
+            });
+            // Track change for sync
+            if(typeof changeLog !== 'undefined' && changeLog.conversions){
+                changeLog.conversions.add(convId);
+            }
+        }
+    }
+
     closeModal();
     render();
 }
