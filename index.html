@@ -1878,15 +1878,20 @@ function renderShop(c,s){
     var purchased=D.shopping.filter(function(x){return x.checked&&!x.savedForLater;});
     var saved=D.shopping.filter(function(x){return x.savedForLater;});
     s.textContent=toBuy.length+' to buy';
-    
+
+    var html='';
+
+    // Calculate Shopping button
+    html+='<div style="margin-bottom:12px"><button class="btn btn-p" onclick="calculateShoppingList()" style="width:100%">🧮 Calculate Shopping List from Prep Needs</button></div>';
+
     // Auto-add toggle
-    var html='<div class="card" style="padding:10px;margin-bottom:12px;background:'+(D.autoAddToInv?'rgba(0,184,148,.15)':'rgba(255,255,255,.05)')+'">';
+    html+='<div class="card" style="padding:10px;margin-bottom:12px;background:'+(D.autoAddToInv?'rgba(0,184,148,.15)':'rgba(255,255,255,.05)')+'">';
     html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer">';
     html+='<input type="checkbox" id="auto-add-toggle" '+(D.autoAddToInv?'checked':'')+' onchange="toggleAutoAdd()">';
     html+='<div><div style="font-weight:600;font-size:calc(12px * var(--font-scale));color:'+(D.autoAddToInv?'#00b894':'#a0aec0')+'">⚡ Auto-Add to Inventory</div>';
     html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72">When checked, purchased items go directly to their designated locations</div></div>';
     html+='</label></div>';
-    
+
     html+='<div class="sec" style="color:#e17055">To Buy ('+toBuy.length+')</div>';
     if(toBuy.length){
         toBuy.forEach(function(item){
@@ -2065,6 +2070,135 @@ function confirmAddToInv(){
     D.shopping=D.shopping.filter(function(x){return x.id!==pendingPurchase;});
     pendingPurchase=null;
     closeModal();
+    render();
+}
+
+function calculateShoppingList(){
+    saveState('Calculate shopping list');
+
+    // Step 1: Calculate recipe needs from Menu items
+    var recipeNeeds = {}; // recId -> total qty needed in recipe output units
+
+    D.menus.filter(function(m){return !m.archived;}).forEach(function(menu){
+        // Menu item recipes
+        if(menu.recs && menu.recs.length){
+            menu.recs.forEach(function(mr){
+                var needed = (menu.tgt || 0) * (mr.qty || 1);
+                if(!recipeNeeds[mr.recId]) recipeNeeds[mr.recId] = {qty: 0, unit: mr.unit};
+                recipeNeeds[mr.recId].qty += needed;
+            });
+        }
+    });
+
+    // Step 2: Calculate how many batches of each recipe are needed
+    var batchesNeeded = {}; // recId -> batches needed
+
+    Object.keys(recipeNeeds).forEach(function(recIdStr){
+        var recId = +recIdStr;
+        var rec = D.recs.find(function(r){return r.id === recId;});
+        if(!rec) return;
+
+        var need = recipeNeeds[recId];
+        var output = calcRecipeOutput(rec);
+
+        // Get on-hand prep inventory for this recipe
+        var onHand = 0;
+        D.inv.forEach(function(inv){
+            if(inv.recId === recId) onHand += inv.qty;
+        });
+
+        // Calculate shortfall in output units
+        var shortfall = need.qty - onHand;
+        if(shortfall <= 0) return; // Have enough prep
+
+        // Calculate batches needed (output.qty is per batch)
+        var batchQty = output.qty || 1;
+        var batches = Math.ceil(shortfall / batchQty);
+        batchesNeeded[recId] = batches;
+    });
+
+    // Step 3: Calculate ingredient needs from recipes
+    var ingredientNeeds = {}; // ingId -> {qty, unit}
+
+    Object.keys(batchesNeeded).forEach(function(recIdStr){
+        var recId = +recIdStr;
+        var rec = D.recs.find(function(r){return r.id === recId;});
+        if(!rec || !rec.ings) return;
+
+        var batches = batchesNeeded[recId];
+
+        rec.ings.forEach(function(ri){
+            if(!ingredientNeeds[ri.ingId]){
+                ingredientNeeds[ri.ingId] = {qty: 0, unit: ri.unit};
+            }
+            ingredientNeeds[ri.ingId].qty += (ri.qty || 0) * batches;
+        });
+    });
+
+    // Step 4: Add direct ingredients from Menu items
+    D.menus.filter(function(m){return !m.archived;}).forEach(function(menu){
+        if(menu.ings && menu.ings.length){
+            menu.ings.forEach(function(mi){
+                var needed = (menu.tgt || 0) * (mi.qty || 0);
+                if(!ingredientNeeds[mi.ingId]){
+                    ingredientNeeds[mi.ingId] = {qty: 0, unit: mi.unit};
+                }
+                ingredientNeeds[mi.ingId].qty += needed;
+            });
+        }
+    });
+
+    // Step 5: Subtract what's in inventory
+    var toShop = {}; // ingId -> {qty, unit}
+
+    Object.keys(ingredientNeeds).forEach(function(ingIdStr){
+        var ingId = +ingIdStr;
+        var need = ingredientNeeds[ingId];
+
+        // Skip water - always available
+        var ing = D.ings.find(function(i){return i.id === ingId;});
+        if(ing && ing.name.toLowerCase() === 'water') return;
+
+        // Get on-hand inventory for this ingredient
+        var onHand = 0;
+        D.inv.forEach(function(inv){
+            if(inv.ingId === ingId){
+                onHand += inv.qty;
+            }
+        });
+
+        var shortfall = need.qty - onHand;
+        if(shortfall > 0){
+            toShop[ingId] = {qty: Math.ceil(shortfall * 10) / 10, unit: need.unit};
+        }
+    });
+
+    // Step 6: Update shopping list (merge with existing)
+    var added = 0;
+    var updated = 0;
+
+    Object.keys(toShop).forEach(function(ingIdStr){
+        var ingId = +ingIdStr;
+        var need = toShop[ingId];
+
+        // Check if already in shopping list
+        var existing = D.shopping.find(function(s){return s.ingId === ingId && !s.checked && !s.savedForLater;});
+        if(existing){
+            // Update quantity if need is greater
+            if(need.qty > existing.qty){
+                existing.qty = need.qty;
+                existing.unit = need.unit;
+                updated++;
+            }
+        } else {
+            // Add new item
+            D.shopping.push({id: nid++, ingId: ingId, qty: need.qty, unit: need.unit, checked: 0, savedForLater: 0});
+            added++;
+        }
+    });
+
+    logAction('Calculated shopping list', 'Shopping', 'Added: ' + added + ', Updated: ' + updated);
+    alert('Shopping list calculated!\nAdded: ' + added + ' items\nUpdated: ' + updated + ' items');
     render();
 }
 
@@ -2821,19 +2955,7 @@ function renderMenu(c,s){
                         html+='<div class="recipe-comp ing"><span class="rec-ing-name">🥬 '+getIngName(mi.ingId)+': '+mi.qty+' '+mi.unit+'</span><button class="del-btn" onclick="delMenuIng('+m.id+','+idx+')">×</button></div>';
                     });
                 }
-                
-                // Prep items
-                html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="sec prep" style="margin:0;font-size:calc(11px * var(--font-scale))">Prep Items</div><button class="btn btn-s btn-sm" onclick="addMenuPrep('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
-                if(m.preps&&m.preps.length){
-                    m.preps.forEach(function(mp,idx){
-                        var prep=D.preps.find(function(p){return p.id===mp.prepId;});
-                        if(prep){
-                            var unitDisplay = mp.unit || prep.unit || 'ea';
-                            html+='<div class="recipe-comp prep"><span class="rec-ing-name">👨‍🍳 '+prep.name+': '+mp.qty+' '+unitDisplay+'</span><button class="del-btn" onclick="delMenuPrep('+m.id+','+idx+')">×</button></div>';
-                        }
-                    });
-                }
-                
+
                 // Recipes
                 html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="sec" style="margin:0;font-size:calc(11px * var(--font-scale));color:#fdcb6e">Recipes</div><button class="btn btn-s btn-sm" onclick="addMenuRec('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
                 if(m.recs&&m.recs.length){
