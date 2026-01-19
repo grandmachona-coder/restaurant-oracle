@@ -1808,24 +1808,48 @@ function addToArea(areaId){
         invItem.ingId=itemId;
         itemName=getIngName(itemId);
 
-        // Check for unit conversion - create if provided and doesn't exist
+        // Check for unit conversion
         var existingConv=D.conversions?D.conversions.find(function(c){return c.ingId===itemId;}):null;
         if(!existingConv){
-            var storUnit=document.getElementById('stor-unit-'+areaId);
-            var convFactor=document.getElementById('conv-factor-'+areaId);
-            var recUnit=document.getElementById('rec-unit-'+areaId);
-            if(storUnit&&convFactor&&recUnit&&storUnit.value&&convFactor.value){
-                if(!D.conversions)D.conversions=[];
-                var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
-                D.conversions.push({
-                    id:maxConvId+1,
-                    ingId:itemId,
-                    storageUnit:storUnit.value,
-                    factor:+convFactor.value,
-                    recipeUnit:recUnit.value
-                });
-                // Use storage unit for inventory
-                invItem.unit=storUnit.value;
+            var convSelect=document.getElementById('conv-select-'+areaId);
+            var convVal=convSelect?convSelect.value:'';
+
+            if(convVal==='new'){
+                // Create new conversion from form fields
+                var storQty=document.getElementById('stor-qty-'+areaId);
+                var storUnit=document.getElementById('stor-unit-'+areaId);
+                var recQty=document.getElementById('rec-qty-'+areaId);
+                var recUnit=document.getElementById('rec-unit-'+areaId);
+
+                if(storUnit&&storUnit.value&&recQty&&recQty.value){
+                    if(!D.conversions)D.conversions=[];
+                    var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+                    var storQtyVal=storQty?+storQty.value||1:1;
+                    var factor=(+recQty.value)/storQtyVal;
+                    D.conversions.push({
+                        id:maxConvId+1,
+                        ingId:itemId,
+                        storageUnit:storUnit.value,
+                        factor:factor,
+                        recipeUnit:recUnit.value
+                    });
+                    // Use storage unit for inventory
+                    invItem.unit=storUnit.value;
+                }
+            }else if(convVal){
+                // Using existing conversion as template - copy it for this ingredient
+                var templateConv=D.conversions.find(function(c){return c.id===+convVal;});
+                if(templateConv){
+                    var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+                    D.conversions.push({
+                        id:maxConvId+1,
+                        ingId:itemId,
+                        storageUnit:templateConv.storageUnit,
+                        factor:templateConv.factor,
+                        recipeUnit:templateConv.recipeUnit
+                    });
+                    invItem.unit=templateConv.storageUnit;
+                }
             }
         }
     }else if(itemType==='rec'){
