@@ -596,24 +596,34 @@ async function updatePassword(){
 }
 
 // ==================== SUPABASE DATA FUNCTIONS ====================
+// Helper: fetch with timeout
+function fetchWithTimeout(promise, timeoutMs, tableName){
+    return Promise.race([
+        promise,
+        new Promise(function(_,reject){
+            setTimeout(function(){reject(new Error('Timeout fetching '+tableName));}, timeoutMs);
+        })
+    ]);
+}
+
 async function loadFromSupabase(){
     showSyncStatus('syncing');
     console.log('loadFromSupabase starting...');
     try{
-        // Load all tables - rec_cats might not exist yet, handle separately
+        // Load all tables with timeout - 10 seconds per table
         console.log('Fetching main tables...');
         var [areas,cats,menuCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
-            supabase.from('areas').select('*').order('id'),
-            supabase.from('cats').select('*').order('id'),
-            supabase.from('menu_cats').select('*').order('id'),
-            supabase.from('units').select('*').order('id'),
-            supabase.from('ings').select('*').order('id'),
-            supabase.from('inv').select('*').order('id'),
-            supabase.from('shopping').select('*').order('id'),
-            supabase.from('preps').select('*').order('id'),
-            supabase.from('recs').select('*').order('id'),
-            supabase.from('menus').select('*').order('id'),
-            supabase.from('log').select('*').order('created_at',{ascending:false}).limit(100)
+            fetchWithTimeout(supabase.from('areas').select('*').order('id'), 10000, 'areas'),
+            fetchWithTimeout(supabase.from('cats').select('*').order('id'), 10000, 'cats'),
+            fetchWithTimeout(supabase.from('menu_cats').select('*').order('id'), 10000, 'menu_cats'),
+            fetchWithTimeout(supabase.from('units').select('*').order('id'), 10000, 'units'),
+            fetchWithTimeout(supabase.from('ings').select('*').order('id'), 10000, 'ings'),
+            fetchWithTimeout(supabase.from('inv').select('*').order('id'), 10000, 'inv'),
+            fetchWithTimeout(supabase.from('shopping').select('*').order('id'), 10000, 'shopping'),
+            fetchWithTimeout(supabase.from('preps').select('*').order('id'), 10000, 'preps'),
+            fetchWithTimeout(supabase.from('recs').select('*').order('id'), 10000, 'recs'),
+            fetchWithTimeout(supabase.from('menus').select('*').order('id'), 10000, 'menus'),
+            fetchWithTimeout(supabase.from('log').select('*').order('created_at',{ascending:false}).limit(100), 10000, 'log')
         ]);
         console.log('Main tables fetched');
         
