@@ -1396,12 +1396,20 @@ var unitConversions = {
 };
 
 function calcRecipeOutput(rec){
-    if(!rec || !rec.ings || !rec.ings.length) return {qty:0, unit:'', type:''};
-    
+    if(!rec) return {qty:0, unit:'', type:''};
+
+    // If manual mode, return manual values
+    if(rec.outputMode === 'manual' && rec.manualQty > 0){
+        return {qty: rec.manualQty, unit: rec.yieldUnit || 'ea', type: 'manual'};
+    }
+
+    // Otherwise calculate from ingredients
+    if(!rec.ings || !rec.ings.length) return {qty:0, unit:'', type:''};
+
     // Sum quantities by type
     var totals = {weight:0, volume:0, count:0};
     var unitCounts = {weight:{}, volume:{}, count:{}};
-    
+
     rec.ings.forEach(function(ri){
         var conv = unitConversions[ri.unit];
         if(conv){
@@ -1413,11 +1421,11 @@ function calcRecipeOutput(rec){
             unitCounts.count[ri.unit] = (unitCounts.count[ri.unit] || 0) + 1;
         }
     });
-    
+
     // Determine primary type (highest total converted value)
     var primaryType = 'count';
     var primaryTotal = 0;
-    
+
     if(totals.weight > 0){
         primaryType = 'weight';
         primaryTotal = totals.weight;
@@ -1430,26 +1438,26 @@ function calcRecipeOutput(rec){
         primaryType = 'count';
         primaryTotal = totals.count;
     }
-    
+
     // Apply yield percentage
     var yieldPct = (rec.yield || 98) / 100;
     var outputQty = primaryTotal * yieldPct;
-    
+
     // Determine output unit
     var outputUnit = primaryType === 'weight' ? 'oz' : (primaryType === 'volume' ? 'fl oz' : 'ea');
-    
+
     // Use stored yieldUnit if set
     if(rec.yieldUnit){
         outputUnit = rec.yieldUnit;
     }
-    
+
     // Format nicely
     if(outputQty >= 1){
         outputQty = Math.round(outputQty * 100) / 100;
     } else {
         outputQty = Math.round(outputQty * 1000) / 1000;
     }
-    
+
     return {qty: outputQty, unit: outputUnit, type: primaryType};
 }
 
@@ -2672,16 +2680,16 @@ function editRec(id){
     
     // Manual qty row (for manual mode)
     html+='<div id="manual-row" style="display:'+(isManual?'flex':'none')+';gap:8px">';
-    html+='<div class="form-g" style="flex:1"><label class="form-l">Output Quantity</label><input type="number" id="ed-rec-manualqty" class="form-i" value="'+(rec.manualQty||'')+'" step="0.1" placeholder="e.g. 100"></div>';
-    html+='<div class="form-g" style="flex:1"><label class="form-l">Output Unit</label><select id="ed-rec-manualunit" class="form-i">';
+    html+='<div class="form-g" style="flex:1"><label class="form-l">Output Quantity</label><input type="number" id="ed-rec-manualqty" class="form-i" value="'+(rec.manualQty||'')+'" step="0.1" placeholder="e.g. 100" oninput="updateOutputDisplay()"></div>';
+    html+='<div class="form-g" style="flex:1"><label class="form-l">Output Unit</label><select id="ed-rec-manualunit" class="form-i" onchange="updateOutputDisplay()">';
     D.units.forEach(function(u){html+='<option value="'+u.abbr+'"'+((rec.yieldUnit===u.abbr||(isManual && !rec.yieldUnit && u.abbr==='ea'))?' selected':'')+'>'+u.abbr+'</option>';});
     html+='</select></div>';
     html+='</div>';
     
-    // Output display
+    // Output display - shows current production output based on mode
     var displayQty = isManual ? (rec.manualQty || 0) : output.qty;
     var displayUnit = rec.yieldUnit || (isManual ? 'ea' : output.unit);
-    html+='<div id="output-display" style="padding:10px;background:rgba(0,184,148,.1);border-radius:8px;margin-bottom:12px"><div style="font-size:calc(11px * var(--font-scale));color:#a0aec0">'+(isManual?'Manual':'Calculated')+' Production Output:</div><div style="font-size:calc(16px * var(--font-scale));color:#00b894;font-weight:600">'+displayQty+' '+displayUnit+'</div></div>';
+    html+='<div id="output-display" style="padding:10px;background:rgba(0,184,148,.1);border-radius:8px;margin-bottom:12px"><div style="font-size:calc(11px * var(--font-scale));color:#a0aec0">Production Output:</div><div id="output-value" style="font-size:calc(16px * var(--font-scale));color:#00b894;font-weight:600">'+displayQty+' '+displayUnit+'</div></div>';
     
     html+='<div class="form-g"><label class="form-l">Shelf Life</label><input type="text" id="ed-rec-shelf" class="form-i" value="'+rec.shelfLife+'"></div>';
     html+='<div class="form-g"><label class="form-l">Notes</label><textarea id="ed-rec-notes" class="form-i" rows="3">'+rec.notes+'</textarea></div>';
@@ -2698,11 +2706,27 @@ function toggleOutputMode(mode){
     document.getElementById('btn-mode-manual').className = 'btn btn-sm ' + (isManual ? 'btn-p' : 'btn-s');
     document.getElementById('yield-row').style.display = isManual ? 'none' : 'flex';
     document.getElementById('manual-row').style.display = isManual ? 'flex' : 'none';
-    
-    // Update output display label
-    var outputDiv = document.getElementById('output-display');
-    var label = outputDiv.querySelector('div:first-child');
-    label.textContent = (isManual ? 'Manual' : 'Calculated') + ' Production Output:';
+
+    // Update output display value based on mode
+    updateOutputDisplay();
+}
+
+function updateOutputDisplay(){
+    var isManual = document.getElementById('ed-rec-outputmode').value === 'manual';
+    var outputValue = document.getElementById('output-value');
+    if(!outputValue) return;
+
+    if(isManual){
+        var qty = document.getElementById('ed-rec-manualqty').value || 0;
+        var unit = document.getElementById('ed-rec-manualunit').value || 'ea';
+        outputValue.textContent = qty + ' ' + unit;
+    } else {
+        var yieldPct = document.getElementById('ed-rec-yield').value || 98;
+        var unit = document.getElementById('ed-rec-yieldunit').value || '';
+        // Note: We'd need the recipe's ingredient totals to recalculate, so just show a placeholder
+        // The actual value will be correct when saved and re-opened
+        outputValue.textContent = '(save to recalculate)';
+    }
 }
 
 function saveRecEdit(id){
