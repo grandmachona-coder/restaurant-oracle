@@ -264,6 +264,7 @@
                         </div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();syncNow()">🔄 Sync Now</div>
                         <div class="user-dropdown-item" onclick="event.stopPropagation();exportData()">📤 Export Backup</div>
+                        <div class="user-dropdown-item" onclick="event.stopPropagation();showDebugInfo()">🔧 Debug Info</div>
                         <div class="user-dropdown-item logout" onclick="event.stopPropagation();signOut()">🚪 Sign Out</div>
                     </div>
                 </div>
@@ -661,71 +662,158 @@ async function loadFromSupabase(){
             return loadFromSupabase(); // Reload after migration
         }
 
-        // Merge any missing default recipes/ingredients into Supabase
-        // This handles cases where some defaults were never saved or got deleted
-        var defaultRecs = getDefaultData().recs;
-        var defaultIngs = getDefaultData().ings;
-
-        // Find default recipes missing from Supabase (by ID)
-        var cloudRecIds = {};
-        (recs.data || []).forEach(function(r){ cloudRecIds[r.id] = true; });
-        var missingRecs = defaultRecs.filter(function(r){ return !cloudRecIds[r.id]; });
-
-        // Find default ingredients missing from Supabase (by ID)
-        var cloudIngIds = {};
-        (ings.data || []).forEach(function(i){ cloudIngIds[i.id] = true; });
-        var missingIngs = defaultIngs.filter(function(i){ return !cloudIngIds[i.id]; });
-
-        if(missingIngs.length > 0 || missingRecs.length > 0){
-            console.log('Missing defaults - ings:', missingIngs.length, 'recs:', missingRecs.length);
-
-            // Upload missing ingredients first (recipes may depend on them)
-            if(missingIngs.length > 0){
-                var ingsMapped = missingIngs.map(mapIngToDb);
-                await supabase.from('ings').upsert(ingsMapped);
-                // Add to loaded data
-                ings.data = (ings.data || []).concat(ingsMapped);
-            }
-
-            // Upload missing recipes
-            if(missingRecs.length > 0){
-                var recsMapped = missingRecs.map(mapRecToDb);
-                await supabase.from('recs').upsert(recsMapped);
-                // Add to loaded data
-                recs.data = (recs.data || []).concat(recsMapped);
-            }
+        // NOTE: We no longer auto-restore deleted default ingredients/recipes
+        // If a user deletes an item, it should stay deleted
+        // Defaults are only used for initial database setup (handled by migrateToSupabase)
+        if(false){ // Disabled - defaults should not be auto-restored
 
             console.log('Missing defaults synced to Supabase');
         }
         
         console.log('Mapping data to local format...');
-        // Map database fields to local format
-        D.areas=areas.data.map(mapAreaFromDb);
-        D.cats=cats.data||[];
-        D.menuCats=(menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
-        D.recCats=(recCats.data||[]).map(function(c){return{id:c.id,name:c.name};});
+
+        // Map cloud data
+        var cloudData = {
+            areas: areas.data.map(mapAreaFromDb),
+            cats: cats.data||[],
+            menuCats: (menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};}),
+            recCats: (recCats.data||[]).map(function(c){return{id:c.id,name:c.name};}),
+            conversions: (conversions.data||[]).map(mapConvFromDb),
+            units: units.data||[],
+            ings: (ings.data||[]).map(mapIngFromDb),
+            inv: (inv.data||[]).map(mapInvFromDb),
+            shopping: (shopping.data||[]).map(mapShoppingFromDb),
+            preps: (preps.data||[]).map(mapPrepFromDb),
+            recs: (recs.data||[]).map(mapRecFromDb),
+            menus: (menus.data||[]).map(mapMenuFromDb),
+            log: (log.data||[]).map(mapLogFromDb)
+        };
+
+        // Load local data from localStorage for comparison
+        var localData = null;
+        try {
+            var saved = localStorage.getItem('ro_allData');
+            if(saved) localData = JSON.parse(saved);
+        } catch(e) {
+            console.log('Could not parse localStorage data');
+        }
+
+        // Check for data conflicts - if local has MORE data, warn user
+        var conflict = false;
+        var conflictDetails = [];
+
+        if(localData) {
+            // Check inventory specifically (most important for data loss)
+            var localInvCount = (localData.inv||[]).length;
+            var cloudInvCount = cloudData.inv.length;
+            if(localInvCount > cloudInvCount) {
+                conflict = true;
+                conflictDetails.push('Inventory: Local has ' + localInvCount + ' items, Cloud has ' + cloudInvCount);
+            }
+
+            // Check other important tables
+            var localIngsCount = (localData.ings||[]).length;
+            var cloudIngsCount = cloudData.ings.length;
+            if(localIngsCount > cloudIngsCount) {
+                conflict = true;
+                conflictDetails.push('Ingredients: Local has ' + localIngsCount + ', Cloud has ' + cloudIngsCount);
+            }
+
+            var localRecsCount = (localData.recs||[]).length;
+            var cloudRecsCount = cloudData.recs.length;
+            if(localRecsCount > cloudRecsCount) {
+                conflict = true;
+                conflictDetails.push('Recipes: Local has ' + localRecsCount + ', Cloud has ' + cloudRecsCount);
+            }
+
+            var localMenusCount = (localData.menus||[]).length;
+            var cloudMenusCount = cloudData.menus.length;
+            if(localMenusCount > cloudMenusCount) {
+                conflict = true;
+                conflictDetails.push('Menus: Local has ' + localMenusCount + ', Cloud has ' + cloudMenusCount);
+            }
+        }
+
+        // If conflict detected, ask user what to do
+        if(conflict) {
+            console.warn('DATA CONFLICT DETECTED:', conflictDetails);
+            var useLocal = confirm(
+                '⚠️ DATA CONFLICT DETECTED!\n\n' +
+                'Your device has MORE data than the cloud:\n' +
+                conflictDetails.join('\n') + '\n\n' +
+                'Click OK to KEEP your local data (recommended)\n' +
+                'Click CANCEL to use cloud data (may lose work)'
+            );
+
+            if(useLocal && localData) {
+                console.log('User chose to keep local data');
+                // Use local data instead
+                D.areas = localData.areas || cloudData.areas;
+                D.cats = localData.cats || cloudData.cats;
+                D.menuCats = localData.menuCats || cloudData.menuCats;
+                D.recCats = localData.recCats || cloudData.recCats;
+                if(!D.recCats || !D.recCats.length) D.recCats=[{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
+                D.conversions = localData.conversions || cloudData.conversions || [];
+                D.units = localData.units || cloudData.units;
+                if(!D.units || !D.units.length) D.units = getDefaultUnits();
+                D.ings = localData.ings || cloudData.ings;
+                D.inv = localData.inv || cloudData.inv;
+                D.shopping = localData.shopping || cloudData.shopping;
+                D.preps = localData.preps || cloudData.preps;
+                D.recs = localData.recs || cloudData.recs;
+                D.menus = localData.menus || cloudData.menus;
+                D.log = localData.log || cloudData.log || [];
+                console.log('Loaded from localStorage:', D.inv.length, 'inventory items');
+
+                // Mark everything as changed so it syncs to cloud
+                D.areas.forEach(function(a){ changeLog.areas.add(a.id); });
+                D.cats.forEach(function(c){ changeLog.cats.add(c.id); });
+                D.menuCats.forEach(function(c){ changeLog.menuCats.add(c.id); });
+                D.recCats.forEach(function(c){ changeLog.recCats.add(c.id); });
+                D.ings.forEach(function(i){ changeLog.ings.add(i.id); });
+                D.inv.forEach(function(i){ changeLog.inv.add(i.id); });
+                D.shopping.forEach(function(s){ changeLog.shopping.add(s.id); });
+                D.preps.forEach(function(p){ changeLog.preps.add(p.id); });
+                D.recs.forEach(function(r){ changeLog.recs.add(r.id); });
+                D.menus.forEach(function(m){ changeLog.menus.add(m.id); });
+
+                // Auto-sync local data to cloud
+                setTimeout(function(){
+                    console.log('Auto-syncing local data to cloud...');
+                    syncNow();
+                }, 1000);
+
+                migrateMenuData();
+                var settings=await supabase.from('settings').select('*');
+                if(settings.data){
+                    settings.data.forEach(function(s){
+                        if(s.key==='autoAddToInv')D.autoAddToInv=s.value?1:0;
+                    });
+                }
+                takeSyncSnapshot();
+                showSyncStatus('synced');
+                return; // Exit early, we used local data
+            }
+        }
+
+        // No conflict or user chose cloud data - use cloud data
+        D.areas = cloudData.areas;
+        D.cats = cloudData.cats;
+        D.menuCats = cloudData.menuCats;
+        D.recCats = cloudData.recCats;
         if(!D.recCats.length) D.recCats=[{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
-        D.conversions=(conversions.data||[]).map(mapConvFromDb);
-        D.units=units.data||[];
+        D.conversions = cloudData.conversions;
+        D.units = cloudData.units;
         // Fallback to default units if database is empty
-        if(!D.units.length) D.units=[
-            {id:1,name:'each',abbr:'ea'},{id:2,name:'pound',abbr:'lb'},{id:3,name:'ounce',abbr:'oz'},{id:4,name:'gram',abbr:'g'},{id:5,name:'kilogram',abbr:'kg'},
-            {id:6,name:'cup',abbr:'cup'},{id:7,name:'tablespoon',abbr:'tbsp'},{id:8,name:'teaspoon',abbr:'tsp'},{id:9,name:'fluid ounce',abbr:'fl oz'},{id:10,name:'milliliter',abbr:'ml'},
-            {id:11,name:'liter',abbr:'L'},{id:12,name:'gallon',abbr:'gal'},{id:13,name:'quart',abbr:'qt'},{id:14,name:'pint',abbr:'pt'},{id:15,name:'bunch',abbr:'bunch'},
-            {id:16,name:'head',abbr:'head'},{id:17,name:'clove',abbr:'clove'},{id:18,name:'slice',abbr:'slice'},{id:19,name:'piece',abbr:'pc'},{id:20,name:'package',abbr:'pkg'},
-            {id:21,name:'can',abbr:'can'},{id:22,name:'jar',abbr:'jar'},{id:23,name:'bottle',abbr:'btl'},{id:24,name:'box',abbr:'box'},{id:25,name:'bag',abbr:'bag'},
-            {id:26,name:'case',abbr:'case'},{id:27,name:'dozen',abbr:'doz'},{id:28,name:'half dozen',abbr:'1/2 doz'},{id:29,name:'bottle wine',abbr:'btl'},{id:30,name:'batch',abbr:'batch'},
-            {id:31,name:'portion',abbr:'portion'},{id:32,name:'serving',abbr:'srv'},{id:33,name:'sheet',abbr:'sheet'},{id:34,name:'rack',abbr:'rack'},{id:35,name:'tray',abbr:'tray'},
-            {id:36,name:'pan',abbr:'pan'},{id:37,name:'hotel pan',abbr:'hotel'},{id:38,name:'half hotel',abbr:'1/2 hotel'},{id:39,name:'third hotel',abbr:'1/3 hotel'},{id:40,name:'sixth hotel',abbr:'1/6 hotel'},
-            {id:41,name:'cambro',abbr:'cambro'},{id:42,name:'lexan',abbr:'lexan'},{id:43,name:'quart container',abbr:'qt cont'},{id:44,name:'pint container',abbr:'pt cont'},{id:45,name:'deli container',abbr:'deli'}
-        ];
-        D.ings=(ings.data||[]).map(mapIngFromDb);
-        D.inv=(inv.data||[]).map(mapInvFromDb);
-        D.shopping=(shopping.data||[]).map(mapShoppingFromDb);
-        D.preps=(preps.data||[]).map(mapPrepFromDb);
-        D.recs=(recs.data||[]).map(mapRecFromDb);
-        D.menus=(menus.data||[]).map(mapMenuFromDb);
-        D.log=(log.data||[]).map(mapLogFromDb);
+        if(!D.units.length) D.units = getDefaultUnits();
+        D.ings = cloudData.ings;
+        D.inv = cloudData.inv;
+        console.log('Loaded inventory from Supabase:', D.inv.length, 'items', D.inv);
+        D.shopping = cloudData.shopping;
+        D.preps = cloudData.preps;
+        D.recs = cloudData.recs;
+        D.menus = cloudData.menus;
+        D.log = cloudData.log;
         console.log('Data mapped, recs:', D.recs.length, 'recCats:', D.recCats.length);
         
         // Migrate menu data to new format if needed
@@ -749,6 +837,21 @@ async function loadFromSupabase(){
         loadAllDataLocal();
         takeSyncSnapshot(); // Still take snapshot so sync can work later
     }
+}
+
+// Helper to get default units
+function getDefaultUnits(){
+    return [
+        {id:1,name:'each',abbr:'ea'},{id:2,name:'pound',abbr:'lb'},{id:3,name:'ounce',abbr:'oz'},{id:4,name:'gram',abbr:'g'},{id:5,name:'kilogram',abbr:'kg'},
+        {id:6,name:'cup',abbr:'cup'},{id:7,name:'tablespoon',abbr:'tbsp'},{id:8,name:'teaspoon',abbr:'tsp'},{id:9,name:'fluid ounce',abbr:'fl oz'},{id:10,name:'milliliter',abbr:'ml'},
+        {id:11,name:'liter',abbr:'L'},{id:12,name:'gallon',abbr:'gal'},{id:13,name:'quart',abbr:'qt'},{id:14,name:'pint',abbr:'pt'},{id:15,name:'bunch',abbr:'bunch'},
+        {id:16,name:'head',abbr:'head'},{id:17,name:'clove',abbr:'clove'},{id:18,name:'slice',abbr:'slice'},{id:19,name:'piece',abbr:'pc'},{id:20,name:'package',abbr:'pkg'},
+        {id:21,name:'can',abbr:'can'},{id:22,name:'jar',abbr:'jar'},{id:23,name:'bottle',abbr:'btl'},{id:24,name:'box',abbr:'box'},{id:25,name:'bag',abbr:'bag'},
+        {id:26,name:'case',abbr:'case'},{id:27,name:'dozen',abbr:'doz'},{id:28,name:'half dozen',abbr:'1/2 doz'},{id:29,name:'bottle wine',abbr:'btl'},{id:30,name:'batch',abbr:'batch'},
+        {id:31,name:'portion',abbr:'portion'},{id:32,name:'serving',abbr:'srv'},{id:33,name:'sheet',abbr:'sheet'},{id:34,name:'rack',abbr:'rack'},{id:35,name:'tray',abbr:'tray'},
+        {id:36,name:'pan',abbr:'pan'},{id:37,name:'hotel pan',abbr:'hotel'},{id:38,name:'half hotel',abbr:'1/2 hotel'},{id:39,name:'third hotel',abbr:'1/3 hotel'},{id:40,name:'sixth hotel',abbr:'1/6 hotel'},
+        {id:41,name:'cambro',abbr:'cambro'},{id:42,name:'lexan',abbr:'lexan'},{id:43,name:'quart container',abbr:'qt cont'},{id:44,name:'pint container',abbr:'pt cont'},{id:45,name:'deli container',abbr:'deli'}
+    ];
 }
 
 // Field mapping functions (database snake_case to local camelCase)
@@ -945,9 +1048,11 @@ async function syncNow(){
         
         if(changeLog.inv.size > 0){
             var items = getChangedItems('inv', D.inv, mapInvToDb);
+            console.log('Syncing inventory changes:', items.length, 'items', items);
             if(items.length) promises.push(supabase.from('inv').upsert(items));
         }
         if(deleteLog.inv.size > 0){
+            console.log('Deleting inventory items:', getDeletedIds('inv'));
             promises.push(supabase.from('inv').delete().in('id', getDeletedIds('inv')));
         }
         
@@ -3090,25 +3195,53 @@ function renderIngs(c,s){
         });
     });
     
-    // Standalone ingredients summary section
+    // Standalone ingredients summary section - grouped by category
     if(standaloneIngs.length){
         html+='<div class="sec" style="color:#fdcb6e;margin-top:24px">⭐ Standalone Summary ('+standaloneIngs.length+')</div>';
         html+='<div style="background:rgba(253,203,110,.1);border:1px solid rgba(253,203,110,.2);border-radius:12px;padding:12px">';
-        standaloneIngs.forEach(function(ing){
-            var invItem=D.inv.find(function(x){return x.ingId===ing.id;});
-            var onHand=invItem?invItem.qty:0;
-            var diff=onHand-ing.minQty;
-            var statusColor=diff>=0?'#00b894':diff>-3?'#fdcb6e':'#ff7675';
-            var autoShopStatus=ing.autoShop?'<span style="color:#00b894" title="Auto-shop enabled">🛒</span>':'<span style="color:#636e72" title="Auto-shop disabled">○</span>';
-            html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
-            html+='<div style="flex:1"><span style="color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'+ing.name+'</span> '+autoShopStatus+'</div>';
-            html+='<div style="display:flex;gap:12px;align-items:center">';
-            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Min: '+ing.minQty+' '+ing.defUnit+'</span>';
-            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand: '+onHand+'</span>';
-            html+='<span style="color:'+statusColor+';font-size:calc(11px * var(--font-scale));font-weight:600;min-width:40px;text-align:right">'+(diff>=0?'+':'')+diff+'</span>';
-            html+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
-            html+='</div></div>';
+
+        // Group by category
+        D.cats.forEach(function(cat){
+            var catStandalone = standaloneIngs.filter(function(i){return i.catId === cat.id;});
+            if(catStandalone.length){
+                html+='<div style="padding:4px 0;color:#fdcb6e;font-size:calc(10px * var(--font-scale));font-weight:600;margin-top:8px;border-bottom:1px solid rgba(253,203,110,.3)">'+cat.name.toUpperCase()+'</div>';
+                catStandalone.forEach(function(ing){
+                    var invItem=D.inv.find(function(x){return x.ingId===ing.id;});
+                    var onHand=invItem?invItem.qty:0;
+                    var diff=onHand-ing.minQty;
+                    var statusColor=diff>=0?'#00b894':diff>-3?'#fdcb6e':'#ff7675';
+                    var autoShopStatus=ing.autoShop?'<span style="color:#00b894" title="Auto-shop enabled">🛒</span>':'<span style="color:#636e72" title="Auto-shop disabled">○</span>';
+                    html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
+                    html+='<div style="flex:1"><span style="color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'+ing.name+'</span> '+autoShopStatus+'</div>';
+                    html+='<div style="display:flex;gap:12px;align-items:center">';
+                    html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Min: '+ing.minQty+' '+ing.defUnit+'</span>';
+                    html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand: '+onHand+'</span>';
+                    html+='<span style="color:'+statusColor+';font-size:calc(11px * var(--font-scale));font-weight:600;min-width:40px;text-align:right">'+(diff>=0?'+':'')+diff+'</span>';
+                    html+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
+                    html+='</div></div>';
+                });
+            }
         });
+        // Uncategorized standalone
+        var uncatStandalone = standaloneIngs.filter(function(i){return !i.catId;});
+        if(uncatStandalone.length){
+            html+='<div style="padding:4px 0;color:#fdcb6e;font-size:calc(10px * var(--font-scale));font-weight:600;margin-top:8px;border-bottom:1px solid rgba(253,203,110,.3)">UNCATEGORIZED</div>';
+            uncatStandalone.forEach(function(ing){
+                var invItem=D.inv.find(function(x){return x.ingId===ing.id;});
+                var onHand=invItem?invItem.qty:0;
+                var diff=onHand-ing.minQty;
+                var statusColor=diff>=0?'#00b894':diff>-3?'#fdcb6e':'#ff7675';
+                var autoShopStatus=ing.autoShop?'<span style="color:#00b894" title="Auto-shop enabled">🛒</span>':'<span style="color:#636e72" title="Auto-shop disabled">○</span>';
+                html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
+                html+='<div style="flex:1"><span style="color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'+ing.name+'</span> '+autoShopStatus+'</div>';
+                html+='<div style="display:flex;gap:12px;align-items:center">';
+                html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Min: '+ing.minQty+' '+ing.defUnit+'</span>';
+                html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand: '+onHand+'</span>';
+                html+='<span style="color:'+statusColor+';font-size:calc(11px * var(--font-scale));font-weight:600;min-width:40px;text-align:right">'+(diff>=0?'+':'')+diff+'</span>';
+                html+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
+                html+='</div></div>';
+            });
+        }
         html+='</div>';
     }
 
@@ -4672,6 +4805,119 @@ function exportData(){
     URL.revokeObjectURL(url);
 }
 
+function showDebugInfo(){
+    toggleUserMenu(); // Close menu
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+
+    // Get localStorage data
+    var localData = null;
+    var localInvCount = 0;
+    try {
+        var savedData = localStorage.getItem('ro_allData');
+        if(savedData){
+            localData = JSON.parse(savedData);
+            localInvCount = localData.inv ? localData.inv.length : 0;
+        }
+    } catch(e){}
+
+    var html = '<div class="modal-t">🔧 Debug Info</div>';
+    html += '<div style="background:rgba(0,0,0,.3);padding:12px;border-radius:8px;margin-bottom:12px">';
+    html += '<div style="font-size:calc(12px * var(--font-scale));color:#a0aec0;margin-bottom:8px">Current App Data:</div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">📦 Inventory: <strong>'+D.inv.length+'</strong> items</div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">🥬 Ingredients: <strong>'+D.ings.length+'</strong></div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">📖 Recipes: <strong>'+D.recs.length+'</strong></div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">🍽️ Menu Items: <strong>'+D.menus.length+'</strong></div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">🛒 Shopping: <strong>'+D.shopping.length+'</strong></div>';
+    html += '</div>';
+
+    html += '<div style="background:rgba(0,0,0,.3);padding:12px;border-radius:8px;margin-bottom:12px">';
+    html += '<div style="font-size:calc(12px * var(--font-scale));color:#a0aec0;margin-bottom:8px">Local Storage (Device Backup):</div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">📦 Inventory: <strong>'+localInvCount+'</strong> items</div>';
+    if(localData && localData.lastSaved){
+        var savedTime = new Date(localData.lastSaved);
+        html += '<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-top:4px">Last saved: '+savedTime.toLocaleString()+'</div>';
+    }
+    if(localInvCount > D.inv.length){
+        html += '<div style="color:#00b894;margin-top:8px;font-size:calc(11px * var(--font-scale))">✓ Local storage has MORE inventory than current app!</div>';
+        html += '<button class="btn btn-p" onclick="restoreFromLocalStorage()" style="margin-top:8px;width:100%">🔄 Restore from Local Storage</button>';
+    } else if(localInvCount > 0 && localInvCount < D.inv.length){
+        html += '<div style="color:#fdcb6e;margin-top:8px;font-size:calc(11px * var(--font-scale))">⚠ Local storage has less inventory than current app</div>';
+    }
+    html += '</div>';
+
+    html += '<div style="background:rgba(0,0,0,.3);padding:12px;border-radius:8px;margin-bottom:12px">';
+    html += '<div style="font-size:calc(12px * var(--font-scale));color:#a0aec0;margin-bottom:8px">Connection Status:</div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">Supabase: <strong>'+(supabase?'✓ Connected':'✗ Not connected')+'</strong></div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">User: <strong>'+(currentAuthUser?currentAuthUser.email:'Not signed in')+'</strong></div>';
+    html += '</div>';
+
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    html += '<button class="btn btn-s" onclick="closeModal()" style="flex:1">Close</button>';
+    html += '<button class="btn btn-s" onclick="exportData();closeModal()" style="flex:1">📤 Export</button>';
+    html += '<button class="btn btn-p" onclick="forceFullSync()" style="flex:1">🔄 Force Sync</button>';
+    html += '</div>';
+
+    m.innerHTML = html;
+    mo.classList.add('open');
+}
+
+function restoreFromLocalStorage(){
+    if(!confirm('This will replace current app data with data from local storage. Continue?')) return;
+    try {
+        var savedData = localStorage.getItem('ro_allData');
+        if(savedData){
+            var localData = JSON.parse(savedData);
+            if(localData.inv && localData.inv.length > 0){
+                D.inv = localData.inv;
+                alert('Restored '+D.inv.length+' inventory items from local storage. Click "Force Sync" to save to cloud.');
+                closeModal();
+                render();
+            }
+        }
+    } catch(e){
+        alert('Error restoring: '+e.message);
+    }
+}
+
+async function forceFullSync(){
+    if(!supabase || !currentAuthUser){
+        alert('Not connected to cloud. Please sign in.');
+        return;
+    }
+    if(!confirm('This will upload ALL current app data to the cloud, overwriting what is there. Continue?')) return;
+
+    closeModal();
+    showSyncStatus('syncing');
+
+    try {
+        // Upload everything
+        await Promise.all([
+            supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
+            supabase.from('cats').upsert(D.cats),
+            supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+            supabase.from('units').upsert(D.units),
+            supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
+            supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
+            supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
+            supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
+            supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
+            supabase.from('menus').upsert(D.menus.map(mapMenuToDb))
+        ]);
+
+        // Also save to localStorage
+        saveAllDataLocal();
+        takeSyncSnapshot();
+        clearChangeLog();
+
+        showSyncStatus('synced');
+        alert('Full sync complete! '+D.inv.length+' inventory items uploaded.');
+    } catch(err) {
+        console.error('Force sync error:', err);
+        showSyncStatus('offline');
+        alert('Sync failed: '+err.message);
+    }
+}
+
 function importData(){
     var input=document.createElement('input');
     input.type='file';
@@ -5325,34 +5571,14 @@ function mergeData(saved){
         if(saved[key] && saved[key].length > 0) D[key]=saved[key];
     });
 
-    // For ings and recs - merge: keep defaults that aren't in saved, add all from saved
-    // This ensures default recipes/ingredients are never lost
-    if(saved.ings){
-        if(saved.ings.length > 0){
-            // Start with saved data
-            D.ings = saved.ings.slice();
-            // Add any defaults that aren't in saved (by id)
-            var savedIngIds = {};
-            saved.ings.forEach(function(i){ savedIngIds[i.id] = true; });
-            getDefaultData().ings.forEach(function(def){
-                if(!savedIngIds[def.id]) D.ings.push(def);
-            });
-        }
-        // If saved.ings is empty, keep defaults (D.ings already has them)
+    // For ings and recs - use saved data directly (don't re-add deleted defaults)
+    // Defaults are only used for initial setup when no saved data exists
+    if(saved.ings && saved.ings.length > 0){
+        D.ings = saved.ings.slice();
     }
 
-    if(saved.recs){
-        if(saved.recs.length > 0){
-            // Start with saved data
-            D.recs = saved.recs.slice();
-            // Add any defaults that aren't in saved (by id)
-            var savedRecIds = {};
-            saved.recs.forEach(function(r){ savedRecIds[r.id] = true; });
-            getDefaultData().recs.forEach(function(def){
-                if(!savedRecIds[def.id]) D.recs.push(def);
-            });
-        }
-        // If saved.recs is empty, keep defaults (D.recs already has them)
+    if(saved.recs && saved.recs.length > 0){
+        D.recs = saved.recs.slice();
     }
 
     if(saved.menus){
@@ -5388,8 +5614,10 @@ function saveAllDataLocal(){
             preps:D.preps,
             recs:D.recs,
             menus:D.menus,
+            conversions:D.conversions||[],
             log:D.log,
-            autoAddToInv:D.autoAddToInv
+            autoAddToInv:D.autoAddToInv,
+            lastSaved:new Date().toISOString()
         };
         localStorage.setItem('ro_allData',JSON.stringify(dataToSave));
         localStorage.setItem('ro_dataVersion',DATA_VERSION);
