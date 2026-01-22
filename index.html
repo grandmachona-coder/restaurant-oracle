@@ -59,8 +59,9 @@
         .sync-status{position:fixed;bottom:20px;right:20px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:none;z-index:1000}
         .sync-status.syncing{display:block;background:rgba(253,203,110,.2);color:#fdcb6e}
         .sync-status.synced{display:block;background:rgba(0,184,148,.2);color:#00b894}
-        .sync-status.offline{display:block;background:rgba(214,48,49,.2);color:#ff7675}
-        .sync-status.unsaved{display:block;background:rgba(116,185,255,.2);color:#74b9ff}
+        .sync-status.offline{display:block;background:rgba(214,48,49,.2);color:#ff7675;animation:pulse-warning 1s infinite}
+        .sync-status.unsaved{display:block;background:rgba(255,107,107,.3);color:#ff6b6b;animation:pulse-warning 2s infinite}
+        @keyframes pulse-warning{0%,100%{opacity:1}50%{opacity:0.6}}
         .user-menu{position:relative}
         .user-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00b894,#00cec9);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
         .user-dropdown{position:absolute;top:44px;right:0;background:#2d2d4a;border-radius:12px;padding:8px;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:none;z-index:50}
@@ -1149,29 +1150,67 @@ function setupRealtimeSync(){
     */
 }
 
+var lastSyncTime = null;
+
 function showSyncStatus(status){
     var el=document.getElementById('sync-status');
     el.className='sync-status '+status;
     if(status==='syncing')el.textContent='⏳ Syncing...';
-    else if(status==='synced')el.textContent='✓ Synced';
-    else if(status==='offline')el.textContent='⚠ Offline';
-    else if(status==='unsaved')el.textContent='● Unsaved';
-    
-    // Hide after 2 seconds if synced
+    else if(status==='synced'){
+        lastSyncTime = new Date();
+        el.textContent='✓ Synced';
+    }
+    else if(status==='offline')el.textContent='⚠ Offline - tap to retry';
+    else if(status==='unsaved')el.textContent='⚠ Unsaved changes';
+
+    // Hide after 3 seconds if synced
     if(status==='synced'){
-        setTimeout(function(){el.className='sync-status';},2000);
+        setTimeout(function(){el.className='sync-status';},3000);
     }
 }
+
+// Click on sync status to manually sync
+document.addEventListener('DOMContentLoaded', function(){
+    var el = document.getElementById('sync-status');
+    if(el){
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', function(){
+            if(el.classList.contains('unsaved') || el.classList.contains('offline')){
+                syncNow();
+            }
+        });
+    }
+});
 
 // Online/offline handling
 window.addEventListener('online',function(){
     isOnline=true;
-    // Don't auto-sync, let user do it manually
+    // Auto-sync when coming back online
+    if(pendingSupabaseSave || hasChanges()){
+        syncNow();
+    }
 });
 window.addEventListener('offline',function(){
     isOnline=false;
     showSyncStatus('offline');
 });
+
+// Warn before closing with unsaved changes
+window.addEventListener('beforeunload', function(e){
+    if(pendingSupabaseSave){
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+});
+
+// Auto-sync every 30 seconds if there are pending changes
+setInterval(function(){
+    if(pendingSupabaseSave && isOnline && supabase && currentAuthUser){
+        console.log('Auto-sync: syncing pending changes');
+        syncNow();
+    }
+}, 30000);
 
 // ==================== DATA ====================
 var D={
@@ -4826,6 +4865,8 @@ function showDebugInfo(){
     html += '<div style="font-size:calc(12px * var(--font-scale));color:#a0aec0;margin-bottom:8px">Connection Status:</div>';
     html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">Supabase: <strong>'+(supabase?'✓ Connected':'✗ Not connected')+'</strong></div>';
     html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">User: <strong>'+(currentAuthUser?currentAuthUser.email:'Not signed in')+'</strong></div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:#e0e6ed">Last Sync: <strong>'+(lastSyncTime?lastSyncTime.toLocaleTimeString():'Not yet')+'</strong></div>';
+    html += '<div style="font-size:calc(13px * var(--font-scale));color:'+(pendingSupabaseSave?'#ff6b6b':'#00b894')+'">Unsaved Changes: <strong>'+(pendingSupabaseSave?'Yes':'No')+'</strong></div>';
     html += '</div>';
 
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
