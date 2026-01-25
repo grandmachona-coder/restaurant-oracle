@@ -4515,11 +4515,29 @@ function addUser(){
     mo.classList.add('open');
 }
 
-function saveNewUser(){
+async function saveNewUser(){
     var name=document.getElementById('new-user-name').value.trim();
     var email=document.getElementById('new-user-email').value.trim();
     var role=document.getElementById('new-user-role').value;
     if(!name){alert('Enter a name');return;}
+
+    // If email provided, send Supabase invite
+    if(email){
+        try{
+            showToast('Sending invite email...');
+            var result = await secureApi('invite_user', 'auth', {email: email, name: name, role: role});
+            if(result.error){
+                alert('Failed to send invite: ' + result.error.message);
+                return;
+            }
+            showToast('Invite email sent to ' + email);
+        }catch(e){
+            console.error('Invite error:', e);
+            alert('Failed to send invite email');
+            return;
+        }
+    }
+
     saveState('Add user');
     var maxId=D.users.length>0?Math.max.apply(null,D.users.map(function(u){return u.id;})):0;
     var newUser={id:maxId+1,name:name,role:role,email:email,phone:''};
