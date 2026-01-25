@@ -312,6 +312,7 @@
 // ==================== SUPABASE CONFIG ====================
 var SUPABASE_URL='https://quoqhfbibsmsdicrddym.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1b3FoZmJpYnNtc2RpY3JkZHltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2Njc5MDUsImV4cCI6MjA4NDI0MzkwNX0.DaqF9ToMtgqdNZJfpj-nueGJBeQSq_Gutkl2bXhqhpo';
+var EDGE_FUNCTION_URL=SUPABASE_URL+'/functions/v1/api';
 var supabase=null;
 var currentAuthUser=null;
 var isOnline=navigator.onLine;
@@ -329,6 +330,63 @@ async function initSupabase(){
     }catch(e){
         console.error('Supabase init error:', e);
         return false;
+    }
+}
+
+// ==================== SECURE API WRAPPER ====================
+// ALL database operations go through this function
+// It calls the Edge Function which uses service_role to bypass RLS
+async function secureApi(operation, table, data, filters, options){
+    console.log('secureApi called:', operation, table);
+
+    if(!currentAuthUser){
+        console.error('secureApi: No authenticated user');
+        return {data:null, error:{message:'Not authenticated'}};
+    }
+
+    try{
+        var session = await supabase.auth.getSession();
+        var token = session.data.session?.access_token;
+        if(!token){
+            console.error('secureApi: No auth token');
+            return {data:null, error:{message:'No auth token'}};
+        }
+
+        console.log('secureApi: Making request to', EDGE_FUNCTION_URL);
+        var response = await fetch(EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                operation: operation,
+                table: table,
+                data: data,
+                filters: filters,
+                options: options
+            })
+        });
+
+        console.log('secureApi: Response status', response.status);
+
+        if(response.status === 429){
+            console.warn('Rate limit exceeded');
+            return {data:null, error:{message:'Rate limit exceeded. Please wait a moment.'}};
+        }
+
+        var result = await response.json();
+        console.log('secureApi: Result for', table, result.data?.length || 0, 'items');
+
+        if(result.error){
+            console.error('secureApi error:', result.error);
+            return {data:null, error:{message:result.error}};
+        }
+
+        return {data: result.data, error: null};
+    }catch(e){
+        console.error('secureApi exception:', e);
+        return {data:null, error:{message:e.message || 'API request failed'}};
     }
 }
 
@@ -452,12 +510,14 @@ async function signUp(){
         if(result.error)throw result.error;
         
         // Check if this is the first user (make them owner)
-        var existingMembers = await supabase.from('team_members').select('id').limit(1);
+        // Note: team_members operations happen during signup before full auth
+        // This is handled specially - the Edge Function allows this for new signups
+        var existingMembers = await secureApi('select', 'team_members', {columns:'id'}, {limit:1});
         var isFirstUser = !existingMembers.data || existingMembers.data.length === 0;
-        
+
         // Add to team_members table
         if(result.data.user){
-            await supabase.from('team_members').insert({
+            await secureApi('insert', 'team_members', {
                 user_id:result.data.user.id,
                 name:name,
                 email:email,
@@ -607,55 +667,47 @@ async function updatePassword(){
 }
 
 // ==================== SUPABASE DATA FUNCTIONS ====================
-// Helper: fetch with timeout
-function fetchWithTimeout(promise, timeoutMs, tableName){
-    return Promise.race([
-        promise,
-        new Promise(function(_,reject){
-            setTimeout(function(){reject(new Error('Timeout fetching '+tableName));}, timeoutMs);
-        })
-    ]);
-}
+// All data operations now go through secureApi() which calls Edge Functions
 
 async function loadFromSupabase(){
     showSyncStatus('syncing');
-    console.log('loadFromSupabase starting...');
+    console.log('loadFromSupabase starting via secure API...');
     try{
-        // Load all tables with timeout - 10 seconds per table
-        console.log('Fetching main tables...');
+        // Load all tables via secure API
+        console.log('Fetching main tables via Edge Function...');
         var [areas,cats,menuCats,units,ings,inv,shopping,preps,recs,menus,log]=await Promise.all([
-            fetchWithTimeout(supabase.from('areas').select('*').order('id'), 10000, 'areas'),
-            fetchWithTimeout(supabase.from('cats').select('*').order('id'), 10000, 'cats'),
-            fetchWithTimeout(supabase.from('menu_cats').select('*').order('id'), 10000, 'menu_cats'),
-            fetchWithTimeout(supabase.from('units').select('*').order('id'), 10000, 'units'),
-            fetchWithTimeout(supabase.from('ings').select('*').order('id'), 10000, 'ings'),
-            fetchWithTimeout(supabase.from('inv').select('*').order('id'), 10000, 'inv'),
-            fetchWithTimeout(supabase.from('shopping').select('*').order('id'), 10000, 'shopping'),
-            fetchWithTimeout(supabase.from('preps').select('*').order('id'), 10000, 'preps'),
-            fetchWithTimeout(supabase.from('recs').select('*').order('id'), 10000, 'recs'),
-            fetchWithTimeout(supabase.from('menus').select('*').order('id'), 10000, 'menus'),
-            fetchWithTimeout(supabase.from('log').select('*').order('created_at',{ascending:false}).limit(100), 10000, 'log')
+            secureApi('select', 'areas', null, {order:{column:'id'}}),
+            secureApi('select', 'cats', null, {order:{column:'id'}}),
+            secureApi('select', 'menu_cats', null, {order:{column:'id'}}),
+            secureApi('select', 'units', null, {order:{column:'id'}}),
+            secureApi('select', 'ings', null, {order:{column:'id'}}),
+            secureApi('select', 'inv', null, {order:{column:'id'}}),
+            secureApi('select', 'shopping', null, {order:{column:'id'}}),
+            secureApi('select', 'preps', null, {order:{column:'id'}}),
+            secureApi('select', 'recs', null, {order:{column:'id'}}),
+            secureApi('select', 'menus', null, {order:{column:'id'}}),
+            secureApi('select', 'log', null, {order:{column:'created_at',ascending:false},limit:100})
         ]);
         console.log('Main tables fetched');
-        
+
         // Try to load rec_cats separately (table might not exist)
         var recCats = {data: []};
         try {
-            recCats = await supabase.from('rec_cats').select('*').order('id');
+            recCats = await secureApi('select', 'rec_cats', null, {order:{column:'id'}});
             console.log('rec_cats fetched:', recCats.data?.length || 0);
         } catch(e) {
             console.log('rec_cats table not found, using defaults');
         }
-        
+
         // Try to load conversions separately (table might not exist)
         var conversions = {data: []};
         try {
-            conversions = await supabase.from('conversions').select('*').order('id');
+            conversions = await secureApi('select', 'conversions', null, {order:{column:'id'}});
             console.log('conversions fetched:', conversions.data?.length || 0);
         } catch(e) {
             console.log('conversions table not found');
         }
-        
+
         // Check if database has data, if not, migrate from localStorage/defaults
         if(!areas.data||areas.data.length===0){
             console.log('Database empty, migrating initial data...');
@@ -663,19 +715,11 @@ async function loadFromSupabase(){
             return loadFromSupabase(); // Reload after migration
         }
 
-        // NOTE: We no longer auto-restore deleted default ingredients/recipes
-        // If a user deletes an item, it should stay deleted
-        // Defaults are only used for initial database setup (handled by migrateToSupabase)
-        if(false){ // Disabled - defaults should not be auto-restored
-
-            console.log('Missing defaults synced to Supabase');
-        }
-        
         console.log('Mapping data to local format...');
 
         // Map cloud data
         var cloudData = {
-            areas: areas.data.map(mapAreaFromDb),
+            areas: (areas.data||[]).map(mapAreaFromDb),
             cats: cats.data||[],
             menuCats: (menuCats.data||[]).map(function(c){return{id:c.id,name:c.name};}),
             recCats: (recCats.data||[]).map(function(c){return{id:c.id,name:c.name};}),
@@ -785,7 +829,7 @@ async function loadFromSupabase(){
                 }, 1000);
 
                 migrateMenuData();
-                var settings=await supabase.from('settings').select('*');
+                var settings=await secureApi('select', 'settings', null, {});
                 if(settings.data){
                     settings.data.forEach(function(s){
                         if(s.key==='autoAddToInv')D.autoAddToInv=s.value?1:0;
@@ -816,18 +860,18 @@ async function loadFromSupabase(){
         D.menus = cloudData.menus;
         D.log = cloudData.log;
         console.log('Data mapped, recs:', D.recs.length, 'recCats:', D.recCats.length);
-        
+
         // Migrate menu data to new format if needed
         migrateMenuData();
 
         // Load settings
-        var settings=await supabase.from('settings').select('*');
+        var settings=await secureApi('select', 'settings', null, {});
         if(settings.data){
             settings.data.forEach(function(s){
                 if(s.key==='autoAddToInv')D.autoAddToInv=s.value?1:0;
             });
         }
-        
+
         takeSyncSnapshot(); // Store snapshot of synced data
         console.log('loadFromSupabase complete, calling showSyncStatus');
         showSyncStatus('synced');
@@ -878,23 +922,23 @@ function mapConvToDb(c){return{id:c.id,ing_id:c.ingId,storage_unit:c.storageUnit
 function mapLogToDb(l){return{id:l.id,action:'Inventory: '+l.item,location:'',detail:l.oldQty+' '+l.oldUnit+' → '+l.newQty+' '+l.newUnit,user_name:l.user,created_at:l.timestamp};}
 
 async function migrateToSupabase(){
-    console.log('Migrating data to Supabase...');
+    console.log('Migrating data to Supabase via secure API...');
     showSyncStatus('syncing');
-    
+
     try{
-        // Insert default/localStorage data into Supabase
-        if(D.areas.length)await supabase.from('areas').upsert(D.areas.map(mapAreaToDb));
-        if(D.cats.length)await supabase.from('cats').upsert(D.cats);
-        if(D.menuCats.length)await supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};}));
-        if(D.recCats&&D.recCats.length)await supabase.from('rec_cats').upsert(D.recCats.map(function(c){return{id:c.id,name:c.name};}));
-        if(D.units.length)await supabase.from('units').upsert(D.units);
-        if(D.ings.length)await supabase.from('ings').upsert(D.ings.map(mapIngToDb));
-        if(D.inv.length)await supabase.from('inv').upsert(D.inv.map(mapInvToDb));
-        if(D.shopping.length)await supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb));
-        if(D.preps.length)await supabase.from('preps').upsert(D.preps.map(mapPrepToDb));
-        if(D.recs.length)await supabase.from('recs').upsert(D.recs.map(mapRecToDb));
-        if(D.menus.length)await supabase.from('menus').upsert(D.menus.map(mapMenuToDb));
-        
+        // Insert default/localStorage data into Supabase via Edge Function
+        if(D.areas.length)await secureApi('upsert', 'areas', D.areas.map(mapAreaToDb));
+        if(D.cats.length)await secureApi('upsert', 'cats', D.cats);
+        if(D.menuCats.length)await secureApi('upsert', 'menu_cats', D.menuCats.map(function(c){return{id:c.id,name:c.name};}));
+        if(D.recCats&&D.recCats.length)await secureApi('upsert', 'rec_cats', D.recCats.map(function(c){return{id:c.id,name:c.name};}));
+        if(D.units.length)await secureApi('upsert', 'units', D.units);
+        if(D.ings.length)await secureApi('upsert', 'ings', D.ings.map(mapIngToDb));
+        if(D.inv.length)await secureApi('upsert', 'inv', D.inv.map(mapInvToDb));
+        if(D.shopping.length)await secureApi('upsert', 'shopping', D.shopping.map(mapShoppingToDb));
+        if(D.preps.length)await secureApi('upsert', 'preps', D.preps.map(mapPrepToDb));
+        if(D.recs.length)await secureApi('upsert', 'recs', D.recs.map(mapRecToDb));
+        if(D.menus.length)await secureApi('upsert', 'menus', D.menus.map(mapMenuToDb));
+
         console.log('Migration complete!');
         showSyncStatus('synced');
     }catch(err){
@@ -908,14 +952,14 @@ async function saveToSupabase(table,data,isDelete){
         saveAllDataLocal();
         return;
     }
-    
+
     showSyncStatus('syncing');
-    
+
     try{
         if(isDelete){
-            await supabase.from(table).delete().eq('id',data.id);
+            await secureApi('delete', table, null, {eq:{id:data.id}});
         }else{
-            await supabase.from(table).upsert(data);
+            await secureApi('upsert', table, data);
         }
         showSyncStatus('synced');
     }catch(err){
@@ -930,29 +974,29 @@ async function saveToSupabase(table,data,isDelete){
 async function syncNow(){
     console.log('syncNow called');
     console.log('supabase:', !!supabase, 'currentAuthUser:', !!currentAuthUser);
-    
+
     if(!supabase||!currentAuthUser){
         alert('Not connected to cloud. Please sign in.');
         return;
     }
-    
+
     // If initial load not complete, do full sync
     if(!initialLoadComplete){
-        console.log('Initial load not complete, doing full sync...');
+        console.log('Initial load not complete, doing full sync via secure API...');
         showSyncStatus('syncing');
         try{
             var results = await Promise.all([
-                supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
-                supabase.from('cats').upsert(D.cats),
-                supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
-                supabase.from('units').upsert(D.units),
-                supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
-                supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
-                supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
-                supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
-                supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
-                supabase.from('menus').upsert(D.menus.map(mapMenuToDb)),
-                supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
+                secureApi('upsert', 'areas', D.areas.map(mapAreaToDb)),
+                secureApi('upsert', 'cats', D.cats),
+                secureApi('upsert', 'menu_cats', D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+                secureApi('upsert', 'units', D.units),
+                secureApi('upsert', 'ings', D.ings.map(mapIngToDb)),
+                secureApi('upsert', 'inv', D.inv.map(mapInvToDb)),
+                secureApi('upsert', 'shopping', D.shopping.map(mapShoppingToDb)),
+                secureApi('upsert', 'preps', D.preps.map(mapPrepToDb)),
+                secureApi('upsert', 'recs', D.recs.map(mapRecToDb)),
+                secureApi('upsert', 'menus', D.menus.map(mapMenuToDb)),
+                secureApi('upsert', 'settings', {id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
             ]);
             console.log('Full sync results:', results);
             takeSyncSnapshot();
@@ -997,114 +1041,114 @@ async function syncNow(){
     
     try{
         var promises = [];
-        
-        // Only sync tables that have changes
+
+        // Only sync tables that have changes - using secure API
         if(changeLog.areas.size > 0){
             var items = getChangedItems('areas', D.areas, mapAreaToDb);
-            if(items.length) promises.push(supabase.from('areas').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'areas', items));
         }
         if(deleteLog.areas.size > 0){
-            promises.push(supabase.from('areas').delete().in('id', getDeletedIds('areas')));
+            promises.push(secureApi('delete', 'areas', null, {in:{id:getDeletedIds('areas')}}));
         }
-        
+
         if(changeLog.cats.size > 0){
             var items = getChangedItems('cats', D.cats);
-            if(items.length) promises.push(supabase.from('cats').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'cats', items));
         }
         if(deleteLog.cats.size > 0){
-            promises.push(supabase.from('cats').delete().in('id', getDeletedIds('cats')));
+            promises.push(secureApi('delete', 'cats', null, {in:{id:getDeletedIds('cats')}}));
         }
-        
+
         if(changeLog.menuCats.size > 0){
             var items = getChangedItems('menuCats', D.menuCats, function(c){return{id:c.id,name:c.name};});
-            if(items.length) promises.push(supabase.from('menu_cats').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'menu_cats', items));
         }
         if(deleteLog.menuCats.size > 0){
-            promises.push(supabase.from('menu_cats').delete().in('id', getDeletedIds('menuCats')));
+            promises.push(secureApi('delete', 'menu_cats', null, {in:{id:getDeletedIds('menuCats')}}));
         }
-        
+
         if(changeLog.recCats.size > 0){
             var items = getChangedItems('recCats', D.recCats||[], function(c){return{id:c.id,name:c.name};});
-            if(items.length) promises.push(supabase.from('rec_cats').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'rec_cats', items));
         }
         if(deleteLog.recCats.size > 0){
-            promises.push(supabase.from('rec_cats').delete().in('id', getDeletedIds('recCats')));
+            promises.push(secureApi('delete', 'rec_cats', null, {in:{id:getDeletedIds('recCats')}}));
         }
-        
+
         if(changeLog.units.size > 0){
             var items = getChangedItems('units', D.units);
-            if(items.length) promises.push(supabase.from('units').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'units', items));
         }
         if(deleteLog.units.size > 0){
-            promises.push(supabase.from('units').delete().in('id', getDeletedIds('units')));
+            promises.push(secureApi('delete', 'units', null, {in:{id:getDeletedIds('units')}}));
         }
-        
+
         if(changeLog.ings.size > 0){
             var items = getChangedItems('ings', D.ings, mapIngToDb);
-            if(items.length) promises.push(supabase.from('ings').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'ings', items));
         }
         if(deleteLog.ings.size > 0){
-            promises.push(supabase.from('ings').delete().in('id', getDeletedIds('ings')));
+            promises.push(secureApi('delete', 'ings', null, {in:{id:getDeletedIds('ings')}}));
         }
-        
+
         if(changeLog.inv.size > 0){
             var items = getChangedItems('inv', D.inv, mapInvToDb);
             console.log('Syncing inventory changes:', items.length, 'items', items);
-            if(items.length) promises.push(supabase.from('inv').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'inv', items));
         }
         if(deleteLog.inv.size > 0){
             console.log('Deleting inventory items:', getDeletedIds('inv'));
-            promises.push(supabase.from('inv').delete().in('id', getDeletedIds('inv')));
+            promises.push(secureApi('delete', 'inv', null, {in:{id:getDeletedIds('inv')}}));
         }
-        
+
         if(changeLog.shopping.size > 0){
             var items = getChangedItems('shopping', D.shopping, mapShoppingToDb);
-            if(items.length) promises.push(supabase.from('shopping').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'shopping', items));
         }
         if(deleteLog.shopping.size > 0){
-            promises.push(supabase.from('shopping').delete().in('id', getDeletedIds('shopping')));
+            promises.push(secureApi('delete', 'shopping', null, {in:{id:getDeletedIds('shopping')}}));
         }
-        
+
         if(changeLog.preps.size > 0){
             var items = getChangedItems('preps', D.preps, mapPrepToDb);
-            if(items.length) promises.push(supabase.from('preps').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'preps', items));
         }
         if(deleteLog.preps.size > 0){
-            promises.push(supabase.from('preps').delete().in('id', getDeletedIds('preps')));
+            promises.push(secureApi('delete', 'preps', null, {in:{id:getDeletedIds('preps')}}));
         }
-        
+
         if(changeLog.recs.size > 0){
             var items = getChangedItems('recs', D.recs, mapRecToDb);
-            if(items.length) promises.push(supabase.from('recs').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'recs', items));
         }
         if(deleteLog.recs.size > 0){
-            promises.push(supabase.from('recs').delete().in('id', getDeletedIds('recs')));
+            promises.push(secureApi('delete', 'recs', null, {in:{id:getDeletedIds('recs')}}));
         }
-        
+
         if(changeLog.menus.size > 0){
             var items = getChangedItems('menus', D.menus, mapMenuToDb);
-            if(items.length) promises.push(supabase.from('menus').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'menus', items));
         }
         if(deleteLog.menus.size > 0){
-            promises.push(supabase.from('menus').delete().in('id', getDeletedIds('menus')));
+            promises.push(secureApi('delete', 'menus', null, {in:{id:getDeletedIds('menus')}}));
         }
-        
+
         if(changeLog.conversions && changeLog.conversions.size > 0){
             var items = getChangedItems('conversions', D.conversions, mapConvToDb);
-            if(items.length) promises.push(supabase.from('conversions').upsert(items));
+            if(items.length) promises.push(secureApi('upsert', 'conversions', items));
         }
         if(deleteLog.conversions && deleteLog.conversions.size > 0){
-            promises.push(supabase.from('conversions').delete().in('id', getDeletedIds('conversions')));
+            promises.push(secureApi('delete', 'conversions', null, {in:{id:getDeletedIds('conversions')}}));
         }
-        
+
         if(changeLog.settings){
-            promises.push(supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false}));
+            promises.push(secureApi('upsert', 'settings', {id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false}));
         }
 
         // Sync log entries
         if(changeLog.log && changeLog.log.size > 0){
             var logItems = D.log.filter(function(l){return changeLog.log.has(l.id);}).map(mapLogToDb);
-            if(logItems.length) promises.push(supabase.from('log').upsert(logItems));
+            if(logItems.length) promises.push(secureApi('upsert', 'log', logItems));
         }
 
         if(promises.length === 0){
@@ -1217,7 +1261,7 @@ var D={
     fontScale:1,
     autoAddToInv:0,
     currentUser:{id:1,name:'Owner',role:'owner'},
-    users:[{id:1,name:'Owner',role:'owner',email:'owner@lachona.com',phone:''},{id:2,name:'Maria',role:'employee',email:'maria@lachona.com',phone:''}],
+    users:[],
     areas:[
         {id:1,name:'Oven Fridge',sections:[],prep:1},
         {id:2,name:'Dairy Fridge',sections:[],prep:1},
@@ -1441,6 +1485,7 @@ function takeSyncSnapshot(){
     console.log('takeSyncSnapshot called');
     try {
         syncedSnapshot = {
+            users: JSON.stringify(D.users),
             inv: JSON.stringify(D.inv),
             shopping: JSON.stringify(D.shopping),
             preps: JSON.stringify(D.preps),
@@ -1502,9 +1547,10 @@ function saveState(actionName){
 function detectAllChanges(){
     // Compare current data against last synced snapshot
     if(!syncedSnapshot) return;
-    
+
     clearChangeLog();
-    
+
+    detectTableChanges('users', JSON.parse(syncedSnapshot.users || '[]'), D.users);
     detectTableChanges('inv', JSON.parse(syncedSnapshot.inv), D.inv);
     detectTableChanges('shopping', JSON.parse(syncedSnapshot.shopping), D.shopping);
     detectTableChanges('preps', JSON.parse(syncedSnapshot.preps), D.preps);
@@ -3378,16 +3424,16 @@ function deleteIngredient(id){
     D.ings=D.ings.filter(function(i){return Number(i.id)!==id;});
     console.log('Ingredients: '+beforeCount+' -> '+D.ings.length);
 
-    // Delete from Supabase if connected
+    // Delete from Supabase if connected (via secure API)
     if(supabase && currentAuthUser){
-        console.log('Deleting from Supabase...');
-        supabase.from('ings').delete().eq('id', id).then(function(res){
+        console.log('Deleting from Supabase via secure API...');
+        secureApi('delete', 'ings', null, {eq:{id:id}}).then(function(res){
             console.log('Supabase ings delete result:', res);
         });
-        supabase.from('inv').delete().eq('ing_id', id).then(function(res){
+        secureApi('delete', 'inv', null, {eq:{ing_id:id}}).then(function(res){
             console.log('Supabase inv delete result:', res);
         });
-        supabase.from('shopping').delete().eq('ing_id', id).then(function(res){
+        secureApi('delete', 'shopping', null, {eq:{ing_id:id}}).then(function(res){
             console.log('Supabase shopping delete result:', res);
         });
     }
@@ -3794,13 +3840,13 @@ function deleteRecipe(id){
     // Remove the recipe itself
     D.recs=D.recs.filter(function(r){return Number(r.id)!==id;});
 
-    // Delete from Supabase if connected
+    // Delete from Supabase if connected (via secure API)
     if(supabase && currentAuthUser){
-        supabase.from('recs').delete().eq('id', id).then(function(res){
+        secureApi('delete', 'recs', null, {eq:{id:id}}).then(function(res){
             console.log('Supabase recs delete result:', res);
         });
     }
-    
+
     render();
 }
 
@@ -3812,7 +3858,6 @@ function editRec(id){
     var isManual = rec.outputMode === 'manual';
     var html='<div class="modal-t">Edit '+rec.name+'</div>';
     html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="ed-rec-name" class="form-i" value="'+rec.name+'"></div>';
-    html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="ed-rec-group" class="form-i" value="'+rec.group+'"></div>';
     html+='<div class="form-g"><label class="form-l">Category</label><select id="ed-rec-cat" class="form-i"><option value="">Uncategorized</option>';
     if(D.recCats){ D.recCats.forEach(function(cat){html+='<option value="'+cat.id+'"'+(cat.id===rec.catId?' selected':'')+'>'+cat.name+'</option>';}); }
     html+='</select></div>';
@@ -3891,7 +3936,6 @@ function saveRecEdit(id){
     if(!rec)return;
     saveState('Edit recipe');
     rec.name=document.getElementById('ed-rec-name').value;
-    rec.group=document.getElementById('ed-rec-group').value;
     rec.catId=+document.getElementById('ed-rec-cat').value||0;
     rec.outputMode=document.getElementById('ed-rec-outputmode').value||'auto';
     
@@ -4380,17 +4424,19 @@ function saveUser(id){
     user.name=document.getElementById('ed-user-name').value;
     user.email=document.getElementById('ed-user-email').value;
     user.role=document.getElementById('ed-user-role').value;
+    markChanged('users',id);
     closeModal();
     render();
+    saveAllData();
 }
 
 function delUser(id){
     if(confirm('Delete this user?')){
         saveState('Delete user');
         D.users=D.users.filter(function(u){return u.id!==id;});
-        if(!deleteLog.users)deleteLog.users=new Set();
-        deleteLog.users.add(id);
+        markDeleted('users',id);
         render();
+        saveAllData();
     }
 }
 
@@ -4475,10 +4521,13 @@ function saveNewUser(){
     var role=document.getElementById('new-user-role').value;
     if(!name){alert('Enter a name');return;}
     saveState('Add user');
-    var maxId=Math.max.apply(null,D.users.map(function(u){return u.id;}))||0;
-    D.users.push({id:maxId+1,name:name,role:role,email:email,phone:''});
+    var maxId=D.users.length>0?Math.max.apply(null,D.users.map(function(u){return u.id;})):0;
+    var newUser={id:maxId+1,name:name,role:role,email:email,phone:''};
+    D.users.push(newUser);
+    markChanged('users',newUser.id);
     closeModal();
     render();
+    saveAllData();
 }
 
 function addArea(){
@@ -4908,18 +4957,18 @@ async function forceFullSync(){
     showSyncStatus('syncing');
 
     try {
-        // Upload everything
+        // Upload everything via secure API
         await Promise.all([
-            supabase.from('areas').upsert(D.areas.map(mapAreaToDb)),
-            supabase.from('cats').upsert(D.cats),
-            supabase.from('menu_cats').upsert(D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
-            supabase.from('units').upsert(D.units),
-            supabase.from('ings').upsert(D.ings.map(mapIngToDb)),
-            supabase.from('inv').upsert(D.inv.map(mapInvToDb)),
-            supabase.from('shopping').upsert(D.shopping.map(mapShoppingToDb)),
-            supabase.from('preps').upsert(D.preps.map(mapPrepToDb)),
-            supabase.from('recs').upsert(D.recs.map(mapRecToDb)),
-            supabase.from('menus').upsert(D.menus.map(mapMenuToDb))
+            secureApi('upsert', 'areas', D.areas.map(mapAreaToDb)),
+            secureApi('upsert', 'cats', D.cats),
+            secureApi('upsert', 'menu_cats', D.menuCats.map(function(c){return{id:c.id,name:c.name};})),
+            secureApi('upsert', 'units', D.units),
+            secureApi('upsert', 'ings', D.ings.map(mapIngToDb)),
+            secureApi('upsert', 'inv', D.inv.map(mapInvToDb)),
+            secureApi('upsert', 'shopping', D.shopping.map(mapShoppingToDb)),
+            secureApi('upsert', 'preps', D.preps.map(mapPrepToDb)),
+            secureApi('upsert', 'recs', D.recs.map(mapRecToDb)),
+            secureApi('upsert', 'menus', D.menus.map(mapMenuToDb))
         ]);
 
         // Also save to localStorage
@@ -5353,7 +5402,6 @@ function openAdd(){
         html+='<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-s" onclick="closeModal()" style="flex:1">Cancel</button><button class="btn btn-p" onclick="addIng()" style="flex:1">Add</button></div>';
     }else if(tab==='recipes'){
         html+='<div class="form-g"><label class="form-l">Name</label><input type="text" id="add-rec-name" class="form-i" placeholder="Recipe name"></div>';
-        html+='<div class="form-g"><label class="form-l">Group</label><input type="text" id="add-rec-group" class="form-i" placeholder="e.g. Mix, Filling, Dough"></div>';
         html+='<div class="form-g"><label class="form-l">Category</label><select id="add-rec-cat" class="form-i"><option value="">Uncategorized</option>';
         D.menuCats.forEach(function(cat){html+='<option value="'+cat.id+'">'+cat.name+'</option>';});
         html+='</select></div>';
@@ -5484,11 +5532,10 @@ function addIng(){
 
 function addRec(){
     var name=document.getElementById('add-rec-name').value;
-    var group=document.getElementById('add-rec-group').value;
     var catId=+document.getElementById('add-rec-cat').value||0;
     if(!name){alert('Enter a name');return;}
     saveState('Add recipe');
-    D.recs.push({id:nid++,name:name,group:group,catId:catId,yield:98,yieldUnit:'',shelfLife:'',notes:'',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0});
+    D.recs.push({id:nid++,name:name,group:'',catId:catId,yield:98,yieldUnit:'',shelfLife:'',notes:'',ings:[],preps:[],subRecs:[],photos:[],videos:[],archived:0});
     closeModal();
     render();
 }
@@ -5535,7 +5582,17 @@ document.addEventListener('DOMContentLoaded',async function(){
         // Check current session
         var session = await supabase.auth.getSession();
         if(session.data.session){
-            onAuthStateChange('SIGNED_IN', session.data.session);
+            // If password recovery was detected, use that event type
+            var eventType = window.isPasswordRecovery ? 'PASSWORD_RECOVERY' : 'SIGNED_IN';
+            onAuthStateChange(eventType, session.data.session);
+        }else if(window.isPasswordRecovery){
+            // No session but recovery mode - show password form
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+            document.querySelectorAll('.login-tab').forEach(function(t){t.classList.remove('active');});
+            document.querySelectorAll('.login-form').forEach(function(f){f.classList.remove('active');});
+            document.getElementById('update-password-form').classList.add('active');
+            showLoginSuccess('Please enter your new password.');
         }else{
             // No session - show login screen
             document.getElementById('login-screen').classList.remove('hidden');
@@ -5647,6 +5704,7 @@ var pendingSupabaseSave=false;
 
 // Change tracking - only sync what has changed
 var changeLog = {
+    users: new Set(),
     areas: new Set(),
     cats: new Set(),
     menuCats: new Set(),
@@ -5665,6 +5723,7 @@ var changeLog = {
 
 // Deletion tracking
 var deleteLog = {
+    users: new Set(),
     areas: new Set(),
     cats: new Set(),
     menuCats: new Set(),
@@ -5782,105 +5841,105 @@ function queueSupabaseSave(){
         
         try{
             var promises = [];
-            
-            // Only sync tables that have changes
+
+            // Only sync tables that have changes - using secure API
             if(changeLog.areas.size > 0){
                 var items = getChangedItems('areas', D.areas, mapAreaToDb);
-                if(items.length) promises.push(supabase.from('areas').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'areas', items));
             }
             if(deleteLog.areas.size > 0){
-                promises.push(supabase.from('areas').delete().in('id', getDeletedIds('areas')));
+                promises.push(secureApi('delete', 'areas', null, {in:{id:getDeletedIds('areas')}}));
             }
-            
+
             if(changeLog.cats.size > 0){
                 var items = getChangedItems('cats', D.cats);
-                if(items.length) promises.push(supabase.from('cats').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'cats', items));
             }
             if(deleteLog.cats.size > 0){
-                promises.push(supabase.from('cats').delete().in('id', getDeletedIds('cats')));
+                promises.push(secureApi('delete', 'cats', null, {in:{id:getDeletedIds('cats')}}));
             }
-            
+
             if(changeLog.menuCats.size > 0){
                 var items = getChangedItems('menuCats', D.menuCats, function(c){return{id:c.id,name:c.name};});
-                if(items.length) promises.push(supabase.from('menu_cats').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'menu_cats', items));
             }
             if(deleteLog.menuCats.size > 0){
-                promises.push(supabase.from('menu_cats').delete().in('id', getDeletedIds('menuCats')));
+                promises.push(secureApi('delete', 'menu_cats', null, {in:{id:getDeletedIds('menuCats')}}));
             }
-            
+
             if(changeLog.recCats.size > 0){
                 var items = getChangedItems('recCats', D.recCats, function(c){return{id:c.id,name:c.name};});
-                if(items.length) promises.push(supabase.from('rec_cats').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'rec_cats', items));
             }
             if(deleteLog.recCats.size > 0){
-                promises.push(supabase.from('rec_cats').delete().in('id', getDeletedIds('recCats')));
+                promises.push(secureApi('delete', 'rec_cats', null, {in:{id:getDeletedIds('recCats')}}));
             }
-            
+
             if(changeLog.units.size > 0){
                 var items = getChangedItems('units', D.units);
-                if(items.length) promises.push(supabase.from('units').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'units', items));
             }
             if(deleteLog.units.size > 0){
-                promises.push(supabase.from('units').delete().in('id', getDeletedIds('units')));
+                promises.push(secureApi('delete', 'units', null, {in:{id:getDeletedIds('units')}}));
             }
-            
+
             if(changeLog.ings.size > 0){
                 var items = getChangedItems('ings', D.ings, mapIngToDb);
-                if(items.length) promises.push(supabase.from('ings').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'ings', items));
             }
             if(deleteLog.ings.size > 0){
-                promises.push(supabase.from('ings').delete().in('id', getDeletedIds('ings')));
+                promises.push(secureApi('delete', 'ings', null, {in:{id:getDeletedIds('ings')}}));
             }
-            
+
             if(changeLog.inv.size > 0){
                 var items = getChangedItems('inv', D.inv, mapInvToDb);
-                if(items.length) promises.push(supabase.from('inv').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'inv', items));
             }
             if(deleteLog.inv.size > 0){
-                promises.push(supabase.from('inv').delete().in('id', getDeletedIds('inv')));
+                promises.push(secureApi('delete', 'inv', null, {in:{id:getDeletedIds('inv')}}));
             }
-            
+
             if(changeLog.shopping.size > 0){
                 var items = getChangedItems('shopping', D.shopping, mapShoppingToDb);
-                if(items.length) promises.push(supabase.from('shopping').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'shopping', items));
             }
             if(deleteLog.shopping.size > 0){
-                promises.push(supabase.from('shopping').delete().in('id', getDeletedIds('shopping')));
+                promises.push(secureApi('delete', 'shopping', null, {in:{id:getDeletedIds('shopping')}}));
             }
-            
+
             if(changeLog.preps.size > 0){
                 var items = getChangedItems('preps', D.preps, mapPrepToDb);
-                if(items.length) promises.push(supabase.from('preps').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'preps', items));
             }
             if(deleteLog.preps.size > 0){
-                promises.push(supabase.from('preps').delete().in('id', getDeletedIds('preps')));
+                promises.push(secureApi('delete', 'preps', null, {in:{id:getDeletedIds('preps')}}));
             }
-            
+
             if(changeLog.recs.size > 0){
                 var items = getChangedItems('recs', D.recs, mapRecToDb);
-                if(items.length) promises.push(supabase.from('recs').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'recs', items));
             }
             if(deleteLog.recs.size > 0){
-                promises.push(supabase.from('recs').delete().in('id', getDeletedIds('recs')));
+                promises.push(secureApi('delete', 'recs', null, {in:{id:getDeletedIds('recs')}}));
             }
-            
+
             if(changeLog.menus.size > 0){
                 var items = getChangedItems('menus', D.menus, mapMenuToDb);
-                if(items.length) promises.push(supabase.from('menus').upsert(items));
+                if(items.length) promises.push(secureApi('upsert', 'menus', items));
             }
             if(deleteLog.menus.size > 0){
-                promises.push(supabase.from('menus').delete().in('id', getDeletedIds('menus')));
+                promises.push(secureApi('delete', 'menus', null, {in:{id:getDeletedIds('menus')}}));
             }
-            
+
             if(changeLog.settings){
-                promises.push(supabase.from('settings').upsert({id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false}));
+                promises.push(secureApi('upsert', 'settings', {id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false}));
             }
-            
+
             if(promises.length > 0){
                 await Promise.all(promises);
                 console.log('Synced', promises.length, 'operations');
             }
-            
+
             clearChangeLog();
             takeSyncSnapshot(); // Update snapshot after successful sync
             showSyncStatus('synced');
