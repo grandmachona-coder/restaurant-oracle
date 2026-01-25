@@ -323,7 +323,7 @@ var realtimeChannel=null;
 async function initSupabase(){
     try{
         console.log('Loading Supabase library...');
-        var module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        var module = await import('https://unpkg.com/@supabase/supabase-js@2/dist/module/index.js');
         supabase = module.createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log('Supabase initialized successfully');
         return true;
