@@ -303,8 +303,13 @@
 (function(){
     var hash = window.location.hash;
     console.log('Early URL check - Hash:', hash);
-    if(hash && (hash.indexOf('type=recovery') !== -1 || hash.indexOf('type%3Drecovery') !== -1)){
-        console.log('Password recovery detected early!');
+    // Check for recovery, invite, or signup tokens - all need password setup
+    if(hash && (
+        hash.indexOf('type=recovery') !== -1 || hash.indexOf('type%3Drecovery') !== -1 ||
+        hash.indexOf('type=invite') !== -1 || hash.indexOf('type%3Dinvite') !== -1 ||
+        hash.indexOf('type=signup') !== -1 || hash.indexOf('type%3Dsignup') !== -1
+    )){
+        console.log('Password setup detected early! (recovery/invite/signup)');
         sessionStorage.setItem('ro_password_recovery', 'true');
     }
 })();
@@ -568,17 +573,18 @@ document.addEventListener('click',function(e){
 async function onAuthStateChange(event,session){
     console.log('Auth event:', event, 'Session:', !!session);
     
-    // Check for password recovery - check multiple sources
+    // Check for password recovery/invite - check multiple sources
     var hashParams = new URLSearchParams(window.location.hash.substring(1));
     var queryParams = new URLSearchParams(window.location.search);
-    var isRecoveryInUrl = hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery';
-    var isRecoveryInSession = sessionStorage.getItem('ro_password_recovery') === 'true';
-    
-    console.log('Recovery check - URL:', isRecoveryInUrl, 'Session:', isRecoveryInSession, 'Event:', event);
-    
-    // Handle password recovery - show update password form
+    var urlType = hashParams.get('type') || queryParams.get('type');
+    var isPasswordSetupInUrl = urlType === 'recovery' || urlType === 'invite' || urlType === 'signup';
+    var isPasswordSetupInSession = sessionStorage.getItem('ro_password_recovery') === 'true';
+
+    console.log('Password setup check - URL type:', urlType, 'Session:', isPasswordSetupInSession, 'Event:', event);
+
+    // Handle password setup (recovery, invite, signup) - show update password form
     // This must be checked FIRST, even if session exists
-    if(event === 'PASSWORD_RECOVERY' || isRecoveryInUrl || isRecoveryInSession || window.isPasswordRecovery){
+    if(event === 'PASSWORD_RECOVERY' || isPasswordSetupInUrl || isPasswordSetupInSession || window.isPasswordRecovery){
         console.log('Password recovery mode activated');
         // Clear the flag so it doesn't trigger again after password update
         sessionStorage.removeItem('ro_password_recovery');
@@ -5579,14 +5585,15 @@ document.addEventListener('DOMContentLoaded',async function(){
         if(savedScale){D.fontScale=+savedScale;}
     }catch(e){}
     
-    // Check URL for password recovery tokens BEFORE initializing auth
+    // Check URL for password setup tokens BEFORE initializing auth
     // Also check sessionStorage (set by early script before Supabase clears URL)
     var hashParams = new URLSearchParams(window.location.hash.substring(1));
     var queryParams = new URLSearchParams(window.location.search);
-    var isRecoveryInSession = sessionStorage.getItem('ro_password_recovery') === 'true';
-    if(hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery' || isRecoveryInSession){
+    var urlType = hashParams.get('type') || queryParams.get('type');
+    var isPasswordSetupInSession = sessionStorage.getItem('ro_password_recovery') === 'true';
+    if(urlType === 'recovery' || urlType === 'invite' || urlType === 'signup' || isPasswordSetupInSession){
         window.isPasswordRecovery = true;
-        console.log('Password recovery detected (URL or session)');
+        console.log('Password setup detected (URL type:', urlType, 'or session)');
     }
     
     // Initialize Supabase (uses dynamic import)
