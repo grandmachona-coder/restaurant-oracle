@@ -355,9 +355,46 @@ var realtimeChannel=null;
 // ==================== PERMISSION SYSTEM ====================
 // Get current user's role from D.users based on their email
 function getCurrentUserRole(){
-    if(!currentAuthUser || !currentAuthUser.email) return 'employee';
+    if(!currentAuthUser || !currentAuthUser.email) {
+        console.log('getCurrentUserRole: No auth user, returning employee');
+        return 'employee';
+    }
+
+    console.log('getCurrentUserRole: Checking role for', currentAuthUser.email);
+    console.log('getCurrentUserRole: D.users count:', D.users ? D.users.length : 0);
+    if(D.users && D.users.length > 0) {
+        console.log('getCurrentUserRole: D.users:', JSON.stringify(D.users.map(function(u){ return {email:u.email, role:u.role}; })));
+    }
+
+    // First check D.users for explicit role assignment
     var user = D.users.find(function(u){ return u.email === currentAuthUser.email; });
-    return user ? user.role : 'employee';
+    if(user) {
+        console.log('getCurrentUserRole: Found in D.users with role:', user.role);
+        return user.role;
+    }
+
+    // Check Supabase user metadata for role
+    if(currentAuthUser.user_metadata && currentAuthUser.user_metadata.role){
+        console.log('getCurrentUserRole: Found in user_metadata:', currentAuthUser.user_metadata.role);
+        return currentAuthUser.user_metadata.role;
+    }
+
+    // If no users exist in D.users yet, treat as owner (first user sets up system)
+    if(!D.users || D.users.length === 0){
+        console.log('getCurrentUserRole: No users in D.users, defaulting to owner');
+        return 'owner';
+    }
+
+    // Check if there are NO owners in D.users - if so, make this user owner
+    var hasOwner = D.users.some(function(u){ return u.role === 'owner'; });
+    if(!hasOwner){
+        console.log('getCurrentUserRole: No owner exists in D.users, granting owner role');
+        return 'owner';
+    }
+
+    // Default to employee for safety
+    console.log('getCurrentUserRole: Defaulting to employee');
+    return 'employee';
 }
 
 // Check if current user is owner/admin
@@ -803,6 +840,15 @@ async function loadFromSupabase(){
             console.log('conversions table not found');
         }
 
+        // Load team_members for user roles
+        var teamMembers = {data: []};
+        try {
+            teamMembers = await secureApi('select', 'team_members', null, {order:{column:'id'}});
+            console.log('team_members fetched:', teamMembers.data?.length || 0);
+        } catch(e) {
+            console.log('team_members table not found');
+        }
+
         // Check if database has data, if not, migrate from localStorage/defaults
         if(!areas.data||areas.data.length===0){
             console.log('Database empty, migrating initial data...');
@@ -826,6 +872,7 @@ async function loadFromSupabase(){
             preps: (preps.data||[]).map(mapPrepFromDb),
             recs: (recs.data||[]).map(mapRecFromDb),
             menus: (menus.data||[]).map(mapMenuFromDb),
+            users: (teamMembers.data||[]).map(function(m){return{id:m.id,name:m.name||'',email:m.email||'',role:m.role||'employee'};}),
             log: (log.data||[]).map(mapLogFromDb)
         };
 
@@ -954,7 +1001,8 @@ async function loadFromSupabase(){
         D.recs = cloudData.recs;
         D.menus = cloudData.menus;
         D.log = cloudData.log;
-        console.log('Data mapped, recs:', D.recs.length, 'recCats:', D.recCats.length);
+        D.users = cloudData.users;
+        console.log('Data mapped, recs:', D.recs.length, 'recCats:', D.recCats.length, 'users:', D.users.length);
 
         // Migrate menu data to new format if needed
         migrateMenuData();
@@ -1015,6 +1063,7 @@ function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.ca
 function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,recs:m.recs,archived:m.archived,include_in_shop:m.includeInShop,include_in_prep:m.includeInPrep};}
 function mapConvToDb(c){return{id:c.id,ing_id:c.ingId,storage_unit:c.storageUnit,recipe_unit:c.recipeUnit,factor:c.factor};}
 function mapLogToDb(l){return{id:l.id,action:'Inventory: '+l.item,location:'',detail:l.oldQty+' '+l.oldUnit+' → '+l.newQty+' '+l.newUnit,user_name:l.user,created_at:l.timestamp};}
+function mapUserToDb(u){return{id:u.id,name:u.name||'',email:u.email||'',role:u.role||'employee'};}
 
 async function migrateToSupabase(){
     console.log('Migrating data to Supabase via secure API...');
@@ -1033,6 +1082,7 @@ async function migrateToSupabase(){
         if(D.preps.length)await secureApi('upsert', 'preps', D.preps.map(mapPrepToDb));
         if(D.recs.length)await secureApi('upsert', 'recs', D.recs.map(mapRecToDb));
         if(D.menus.length)await secureApi('upsert', 'menus', D.menus.map(mapMenuToDb));
+        if(D.users.length)await secureApi('upsert', 'team_members', D.users.map(mapUserToDb));
 
         console.log('Migration complete!');
         showSyncStatus('synced');
@@ -1091,6 +1141,7 @@ async function syncNow(){
                 secureApi('upsert', 'preps', D.preps.map(mapPrepToDb)),
                 secureApi('upsert', 'recs', D.recs.map(mapRecToDb)),
                 secureApi('upsert', 'menus', D.menus.map(mapMenuToDb)),
+                secureApi('upsert', 'team_members', D.users.map(mapUserToDb)),
                 secureApi('upsert', 'settings', {id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
             ]);
             console.log('Full sync results:', results);
@@ -1131,6 +1182,7 @@ async function syncNow(){
         preps: changeLog.preps.size,
         recs: changeLog.recs.size,
         menus: changeLog.menus.size,
+        users: changeLog.users ? changeLog.users.size : 0,
         settings: changeLog.settings
     }));
     
@@ -1226,6 +1278,14 @@ async function syncNow(){
         }
         if(deleteLog.menus.size > 0){
             promises.push(secureApi('delete', 'menus', null, {in:{id:getDeletedIds('menus')}}));
+        }
+
+        if(changeLog.users && changeLog.users.size > 0){
+            var items = getChangedItems('users', D.users, mapUserToDb);
+            if(items.length) promises.push(secureApi('upsert', 'team_members', items));
+        }
+        if(deleteLog.users && deleteLog.users.size > 0){
+            promises.push(secureApi('delete', 'team_members', null, {in:{id:getDeletedIds('users')}}));
         }
 
         if(changeLog.conversions && changeLog.conversions.size > 0){
