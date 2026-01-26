@@ -284,12 +284,12 @@
         <div class="tabs-wrap" id="tabs-wrap">
             <div class="tabs">
                 <div class="tab active" data-t="inventory" onclick="go('inventory')"><span>📦</span><span>Inventory</span></div>
-                <div class="tab" data-t="shopping" onclick="go('shopping')"><span>🛒</span><span>Shopping</span></div>
-                <div class="tab" data-t="prep" onclick="go('prep')"><span>👨‍🍳</span><span>Prep</span></div>
+                <div class="tab" data-t="log" onclick="go('log')"><span>📋</span><span>Log</span></div>
                 <div class="tab" data-t="ingredients" onclick="go('ingredients')"><span>🥬</span><span>Ingredients</span></div>
                 <div class="tab" data-t="recipes" onclick="go('recipes')"><span>📖</span><span>Recipes</span></div>
+                <div class="tab" data-t="prep" onclick="go('prep')"><span>👨‍🍳</span><span>Prep</span></div>
                 <div class="tab" data-t="menu" onclick="go('menu')"><span>🍽️</span><span>Menu</span></div>
-                <div class="tab" data-t="log" onclick="go('log')"><span>📋</span><span>Log</span></div>
+                <div class="tab" data-t="shopping" onclick="go('shopping')"><span>🛒</span><span>Shopping</span></div>
                 <div class="tab" data-t="admin" onclick="go('admin')"><span>⚙️</span><span>Admin</span></div>
             </div>
         </div>
@@ -302,13 +302,40 @@
 // Check IMMEDIATELY before anything else runs - Supabase will clear the hash
 (function(){
     var hash = window.location.hash;
-    console.log('Early URL check - Hash:', hash);
-    // Check for recovery, invite, or signup tokens - all need password setup
+    var search = window.location.search;
+    var fullUrl = window.location.href;
+    console.log('Early URL check - Hash:', hash, 'Search:', search);
+
+    // Check for recovery, invite, or signup tokens in hash, query params, or full URL
+    var needsPasswordSetup = false;
+
+    // Check hash
     if(hash && (
         hash.indexOf('type=recovery') !== -1 || hash.indexOf('type%3Drecovery') !== -1 ||
         hash.indexOf('type=invite') !== -1 || hash.indexOf('type%3Dinvite') !== -1 ||
-        hash.indexOf('type=signup') !== -1 || hash.indexOf('type%3Dsignup') !== -1
+        hash.indexOf('type=signup') !== -1 || hash.indexOf('type%3Dsignup') !== -1 ||
+        hash.indexOf('type=magiclink') !== -1 || hash.indexOf('type%3Dmagiclink') !== -1
     )){
+        needsPasswordSetup = true;
+    }
+
+    // Check query params
+    if(search && (
+        search.indexOf('type=recovery') !== -1 || search.indexOf('type%3Drecovery') !== -1 ||
+        search.indexOf('type=invite') !== -1 || search.indexOf('type%3Dinvite') !== -1 ||
+        search.indexOf('type=signup') !== -1 || search.indexOf('type%3Dsignup') !== -1
+    )){
+        needsPasswordSetup = true;
+    }
+
+    // Check for access_token with recovery context (Supabase PKCE flow)
+    if(hash && hash.indexOf('access_token') !== -1 && (
+        hash.indexOf('type=recovery') !== -1 || hash.indexOf('type%3Drecovery') !== -1
+    )){
+        needsPasswordSetup = true;
+    }
+
+    if(needsPasswordSetup){
         console.log('Password setup detected early! (recovery/invite/signup)');
         sessionStorage.setItem('ro_password_recovery', 'true');
     }
@@ -320,9 +347,65 @@ var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 var EDGE_FUNCTION_URL=SUPABASE_URL+'/functions/v1/api';
 var supabase=null;
 var currentAuthUser=null;
+var currentUserRole='employee'; // Default to employee (most restrictive)
 var isOnline=navigator.onLine;
 var syncQueue=[];
 var realtimeChannel=null;
+
+// ==================== PERMISSION SYSTEM ====================
+// Get current user's role from D.users based on their email
+function getCurrentUserRole(){
+    if(!currentAuthUser || !currentAuthUser.email) return 'employee';
+    var user = D.users.find(function(u){ return u.email === currentAuthUser.email; });
+    return user ? user.role : 'employee';
+}
+
+// Check if current user is owner/admin
+function isOwner(){
+    return getCurrentUserRole() === 'owner';
+}
+
+// Permission checks for each feature area
+var permissions = {
+    inventory: {
+        addExisting: function(){ return true; }, // Both can add existing
+        deleteRow: function(){ return isOwner(); },
+        addLocation: function(){ return isOwner(); }
+    },
+    shopping: {
+        checkPurchased: function(){ return true; }, // Both can check items
+        viewOnly: function(){ return !isOwner(); } // Employee is view-only (except checking)
+    },
+    prep: {
+        viewOnly: function(){ return !isOwner(); } // Employee is view-only
+    },
+    ingredients: {
+        create: function(){ return true; }, // Both can create
+        edit: function(){ return isOwner(); },
+        archive: function(){ return isOwner(); },
+        delete: function(){ return isOwner(); }
+    },
+    recipes: {
+        viewOnly: function(){ return !isOwner(); }, // Employee is view-only
+        create: function(){ return isOwner(); },
+        edit: function(){ return isOwner(); },
+        archive: function(){ return isOwner(); },
+        delete: function(){ return isOwner(); }
+    },
+    menu: {
+        viewOnly: function(){ return !isOwner(); }, // Employee is view-only
+        create: function(){ return isOwner(); },
+        edit: function(){ return isOwner(); },
+        archive: function(){ return isOwner(); },
+        delete: function(){ return isOwner(); }
+    },
+    log: {
+        view: function(){ return true; } // Both can view
+    },
+    admin: {
+        visible: function(){ return isOwner(); } // Only owner can see Admin tab
+    }
+};
 
 // Initialize Supabase using dynamic import
 async function initSupabase(){
@@ -572,7 +655,7 @@ document.addEventListener('click',function(e){
 
 async function onAuthStateChange(event,session){
     console.log('Auth event:', event, 'Session:', !!session);
-    
+
     // Check for password recovery/invite - check multiple sources
     var hashParams = new URLSearchParams(window.location.hash.substring(1));
     var queryParams = new URLSearchParams(window.location.search);
@@ -580,11 +663,17 @@ async function onAuthStateChange(event,session){
     var isPasswordSetupInUrl = urlType === 'recovery' || urlType === 'invite' || urlType === 'signup';
     var isPasswordSetupInSession = sessionStorage.getItem('ro_password_recovery') === 'true';
 
-    console.log('Password setup check - URL type:', urlType, 'Session:', isPasswordSetupInSession, 'Event:', event);
+    // Also check if the session has a special aal (authentication assurance level) for recovery
+    var isRecoverySession = session?.user?.aal === 'aal1' && session?.user?.factors?.length === 0;
+
+    // Check if user has never set a password (invited but no confirmed_at or last_sign_in)
+    var needsPasswordSetup = session?.user && !session.user.confirmed_at && session.user.invited_at;
+
+    console.log('Password setup check - URL type:', urlType, 'Session flag:', isPasswordSetupInSession, 'Event:', event, 'Recovery session:', isRecoverySession, 'Needs setup:', needsPasswordSetup);
 
     // Handle password setup (recovery, invite, signup) - show update password form
     // This must be checked FIRST, even if session exists
-    if(event === 'PASSWORD_RECOVERY' || isPasswordSetupInUrl || isPasswordSetupInSession || window.isPasswordRecovery){
+    if(event === 'PASSWORD_RECOVERY' || isPasswordSetupInUrl || isPasswordSetupInSession || window.isPasswordRecovery || needsPasswordSetup){
         console.log('Password recovery mode activated');
         // Clear the flag so it doesn't trigger again after password update
         sessionStorage.removeItem('ro_password_recovery');
@@ -1791,10 +1880,21 @@ function logInventoryChange(item,oldQty,oldUnit,newQty,newUnit){
 
 // ==================== NAVIGATION ====================
 function go(t){
+    // Check permission for admin tab
+    if(t === 'admin' && !permissions.admin.visible()){
+        alert('You do not have permission to access Admin');
+        return;
+    }
     tab=t;
     document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('active');});
     document.querySelector('.tab[data-t="'+t+'"]').classList.add('active');
-    document.getElementById('fab').style.display=(t==='admin'||t==='log')?'none':'block';
+    // Hide FAB for view-only tabs (for employees) and admin/log
+    var hideFab = (t==='admin'||t==='log');
+    if(!isOwner()){
+        // Employees: hide FAB on view-only tabs
+        if(t==='recipes'||t==='menu'||t==='prep') hideFab = true;
+    }
+    document.getElementById('fab').style.display = hideFab ? 'none' : 'block';
     render();
 }
 
@@ -1805,7 +1905,13 @@ function render(){
     var val=document.getElementById('font-scale-val');
     if(slider)slider.value=D.fontScale;
     if(val)val.textContent=(D.fontScale*100).toFixed(0)+'%';
-    
+
+    // Update tab visibility based on permissions
+    var adminTab = document.querySelector('.tab[data-t="admin"]');
+    if(adminTab){
+        adminTab.style.display = permissions.admin.visible() ? '' : 'none';
+    }
+
     var c=document.getElementById('content'),h=document.getElementById('hdr-t'),s=document.getElementById('hdr-s');
     var titles={inventory:'📦 Inventory',shopping:'🛒 Shopping List',prep:'👨‍🍳 Prep Status',ingredients:'🥬 Ingredients',recipes:'📖 Recipes',menu:'🍽️ Menu',log:'📋 Activity Log',admin:'⚙️ Admin'};
     h.textContent=titles[tab];
@@ -1877,7 +1983,9 @@ function renderInvItem(inv){
     }
     getSortedUnits().forEach(function(u){html+='<option value="'+u.abbr+'"'+(inv.unit===u.abbr?' selected':'')+'>'+u.abbr+'</option>';});
     html+='</select>';
-    html+='<button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button>';
+    if(permissions.inventory.deleteRow()){
+        html+='<button class="del-btn" onclick="event.stopPropagation();delInv('+inv.id+')">🗑️</button>';
+    }
     html+='</div></div>';
 
     // Show conversion info if available
@@ -2451,16 +2559,18 @@ function renderShop(c,s){
 
     var html='';
 
-    // Calculate Shopping button
-    html+='<div style="margin-bottom:12px"><button class="btn btn-p" onclick="calculateShoppingList()" style="width:100%">🧮 Calculate Shopping List from Prep Needs</button></div>';
+    // Calculate Shopping button - owner only
+    if(isOwner()){
+        html+='<div style="margin-bottom:12px"><button class="btn btn-p" onclick="calculateShoppingList()" style="width:100%">🧮 Calculate Shopping List from Prep Needs</button></div>';
 
-    // Auto-add toggle
-    html+='<div class="card" style="padding:10px;margin-bottom:12px;background:'+(D.autoAddToInv?'rgba(0,184,148,.15)':'rgba(255,255,255,.05)')+'">';
-    html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer">';
-    html+='<input type="checkbox" id="auto-add-toggle" '+(D.autoAddToInv?'checked':'')+' onchange="toggleAutoAdd()">';
-    html+='<div><div style="font-weight:600;font-size:calc(12px * var(--font-scale));color:'+(D.autoAddToInv?'#00b894':'#a0aec0')+'">⚡ Auto-Add to Inventory</div>';
-    html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72">When checked, purchased items go directly to their designated locations</div></div>';
-    html+='</label></div>';
+        // Auto-add toggle
+        html+='<div class="card" style="padding:10px;margin-bottom:12px;background:'+(D.autoAddToInv?'rgba(0,184,148,.15)':'rgba(255,255,255,.05)')+'">';
+        html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer">';
+        html+='<input type="checkbox" id="auto-add-toggle" '+(D.autoAddToInv?'checked':'')+' onchange="toggleAutoAdd()">';
+        html+='<div><div style="font-weight:600;font-size:calc(12px * var(--font-scale));color:'+(D.autoAddToInv?'#00b894':'#a0aec0')+'">⚡ Auto-Add to Inventory</div>';
+        html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72">When checked, purchased items go directly to their designated locations</div></div>';
+        html+='</label></div>';
+    }
 
     html+='<div class="sec" style="color:#e17055">To Buy ('+toBuy.length+')</div>';
     if(toBuy.length){
@@ -2493,7 +2603,8 @@ function renderShop(c,s){
                 var item = data.item;
                 var ing = data.ing;
                 if(ing){
-                    html+='<div class="shop-item" style="flex-wrap:wrap"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info" style="flex:1;min-width:120px"><div class="shop-name">'+ing.name+'</div></div><div class="shop-qty">'+formatQty(item.qty)+' '+item.unit+'</div><button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button>';
+                    var saveBtn = isOwner() ? '<button class="btn btn-s btn-sm" onclick="saveForLater('+item.id+')">💾</button>' : '';
+                    html+='<div class="shop-item" style="flex-wrap:wrap"><div class="shop-check" onclick="togShop('+item.id+')"></div><div class="shop-info" style="flex:1;min-width:120px"><div class="shop-name">'+ing.name+'</div></div><div class="shop-qty">'+formatQty(item.qty)+' '+item.unit+'</div>'+saveBtn;
                     // Show usedFor info if available
                     if(item.usedFor || item.totalNeed){
                         html+='<div style="width:100%;padding:6px 0 0 32px;font-size:calc(10px * var(--font-scale));color:#a0aec0;line-height:1.4">';
@@ -3248,7 +3359,10 @@ function renderIngs(c,s){
             }
 
             var autoShopIcon=ing.autoShop?'<span style="color:#00b894;font-size:calc(10px * var(--font-scale));margin-left:4px" title="Auto-add to Shopping List">🛒</span>':'<span style="color:#636e72;font-size:calc(10px * var(--font-scale));margin-left:4px" title="Not auto-added to Shopping">○</span>';
-            html+='<div class="card" style="border-left:3px solid #fdcb6e"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+' <span class="standalone-badge">Standalone</span><span class="min-qty-badge">Min: '+ing.minQty+'</span>'+autoShopIcon+'</div><div class="card-s">'+infoLine+'</div></div><div style="display:flex;gap:4px;align-items:center">'+(isLinkedToMenu?'':'<span class="status-badge status-'+status+'">'+(diff>=0?'+':'')+diff+'</span>')+'<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div></div>';
+            var ingBtns='';
+            if(permissions.ingredients.edit()) ingBtns+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
+            if(permissions.ingredients.delete()) ingBtns+='<button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button>';
+            html+='<div class="card" style="border-left:3px solid #fdcb6e"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+' <span class="standalone-badge">Standalone</span><span class="min-qty-badge">Min: '+ing.minQty+'</span>'+autoShopIcon+'</div><div class="card-s">'+infoLine+'</div></div><div style="display:flex;gap:4px;align-items:center">'+(isLinkedToMenu?'':'<span class="status-badge status-'+status+'">'+(diff>=0?'+':'')+diff+'</span>')+ingBtns+'</div></div></div>';
         });
     }
     
@@ -3259,7 +3373,11 @@ function renderIngs(c,s){
         
         html+='<div class="sec ing">'+cat.name+'</div>';
         catIngs.forEach(function(ing){
-            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • Default: '+ing.defUnit+'</div></div><div style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'ings\','+ing.id+')" title="Archive">📥</button><button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button></div></div>';
+            var ingBtns2='';
+            if(permissions.ingredients.edit()) ingBtns2+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
+            if(permissions.ingredients.archive()) ingBtns2+='<button class="btn btn-s btn-sm" onclick="archiveItem(\'ings\','+ing.id+')" title="Archive">📥</button>';
+            if(permissions.ingredients.delete()) ingBtns2+='<button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button>';
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+ing.name+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • Default: '+ing.defUnit+'</div></div><div style="display:flex;gap:4px">'+ingBtns2+'</div></div>';
         });
     });
     
@@ -3550,21 +3668,29 @@ function renderRecs(c,s){
                 html+='<div class="sec ing" style="font-size:calc(11px * var(--font-scale))">Ingredients</div>';
                 if(rec.ings&&rec.ings.length){
                     rec.ings.forEach(function(ri,idx){
-                        html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" value="'+ri.qty+'" onchange="updRecIng('+rec.id+','+idx+',this.value)" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(11px * var(--font-scale))"><select onchange="updRecIngUnit('+rec.id+','+idx+',this.value)" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#a0aec0;font-size:calc(10px * var(--font-scale))">';
-                        getSortedUnits().forEach(function(u){
-                            html+='<option value="'+u.abbr+'"'+(u.abbr===ri.unit?' selected':'')+'>'+u.abbr+'</option>';
-                        });
-                        html+='</select><button class="del-btn" onclick="delRecIng('+rec.id+','+idx+')">×</button></div></div>';
+                        if(isOwner()){
+                            html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><div style="display:flex;align-items:center;gap:4px"><input type="number" value="'+ri.qty+'" onchange="updRecIng('+rec.id+','+idx+',this.value)" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(11px * var(--font-scale))"><select onchange="updRecIngUnit('+rec.id+','+idx+',this.value)" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#a0aec0;font-size:calc(10px * var(--font-scale))">';
+                            getSortedUnits().forEach(function(u){
+                                html+='<option value="'+u.abbr+'"'+(u.abbr===ri.unit?' selected':'')+'>'+u.abbr+'</option>';
+                            });
+                            html+='</select><button class="del-btn" onclick="delRecIng('+rec.id+','+idx+')">×</button></div></div>';
+                        }else{
+                            html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><span style="color:#a0aec0">'+ri.qty+' '+ri.unit+'</span></div>';
+                        }
                     });
                 }
-                html+='<button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="margin-top:4px">+ Add Ingredient</button>';
+                if(isOwner()) html+='<button class="btn btn-s btn-sm" onclick="addRecIng('+rec.id+')" style="margin-top:4px">+ Add Ingredient</button>';
                 
                 // Sub-recipes
                 if(rec.subRecs&&rec.subRecs.length){
                     html+='<div class="sec" style="font-size:calc(11px * var(--font-scale));color:#fdcb6e;margin-top:12px">Sub-Recipes (×'+rec.subRecs[0].qty+' servings)</div>';
                     rec.subRecs.forEach(function(sr,idx){
                         var subRec=D.recs.find(function(r){return r.id===sr.recId;});
-                        html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+getRecName(sr.recId)+' ×'+sr.qty+'</span><button class="del-btn" onclick="delRecSubRec('+rec.id+','+idx+')">×</button></div>';
+                        if(isOwner()){
+                            html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+getRecName(sr.recId)+' ×'+sr.qty+'</span><button class="del-btn" onclick="delRecSubRec('+rec.id+','+idx+')">×</button></div>';
+                        }else{
+                            html+='<div class="rec-ing" style="border-left:2px solid #fdcb6e"><span class="rec-ing-name">📖 '+getRecName(sr.recId)+' ×'+sr.qty+'</span></div>';
+                        }
                         // Show expanded ingredients from sub-recipe with edit link
                         if(subRec&&subRec.ings&&subRec.ings.length){
                             html+='<div style="margin-left:16px;border-left:1px solid rgba(253,203,110,.3);padding-left:8px">';
@@ -3572,19 +3698,21 @@ function renderRecs(c,s){
                                 var scaledQty=(ing.qty*sr.qty).toFixed(2).replace(/\.?0+$/,'');
                                 html+='<div style="font-size:calc(10px * var(--font-scale));color:#a0aec0;padding:2px 0">• '+getIngName(ing.ingId)+': <b style="color:#fdcb6e">'+scaledQty+' '+ing.unit+'</b></div>';
                             });
-                            html+='<button class="btn btn-s btn-sm" onclick="tog(\'rec-'+subRec.id+'\');scrollToRec('+subRec.id+')" style="margin-top:4px;font-size:calc(9px * var(--font-scale))">✏️ Edit '+subRec.name+' ingredients</button>';
+                            if(isOwner()) html+='<button class="btn btn-s btn-sm" onclick="tog(\'rec-'+subRec.id+'\');scrollToRec('+subRec.id+')" style="margin-top:4px;font-size:calc(9px * var(--font-scale))">✏️ Edit '+subRec.name+' ingredients</button>';
                             html+='</div>';
                         }
                     });
                 }
-                html+='<button class="btn btn-s btn-sm" onclick="addRecSubRec('+rec.id+')" style="margin-top:4px">+ Add Sub-Recipe</button>';
+                if(isOwner()) html+='<button class="btn btn-s btn-sm" onclick="addRecSubRec('+rec.id+')" style="margin-top:4px">+ Add Sub-Recipe</button>';
                 
                 // Notes
                 if(rec.notes){
                     html+='<div class="sec" style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-top:12px">Notes</div><p style="font-size:calc(11px * var(--font-scale));color:#a0aec0;padding:8px;background:rgba(0,0,0,.2);border-radius:6px">'+rec.notes+'</p>';
                 }
                 
-                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'recs\','+rec.id+')">📥 Archive</button><button class="del-btn" onclick="deleteRecipe('+rec.id+')" title="Delete">🗑️</button></div>';
+                if(isOwner()){
+                    html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editRec('+rec.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'recs\','+rec.id+')">📥 Archive</button><button class="del-btn" onclick="deleteRecipe('+rec.id+')" title="Delete">🗑️</button></div>';
+                }
                 html+='</div>';
             }
             html+='</div>';
@@ -3979,27 +4107,45 @@ function renderMenu(c,s){
             
             if(isExp){
                 html+='<div style="margin-top:12px">';
-                
+
                 // Direct ingredients
-                html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec ing" style="margin:0;font-size:calc(11px * var(--font-scale))">Ingredients</div><button class="btn btn-s btn-sm" onclick="addMenuIng('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
+                if(isOwner()){
+                    html+='<div style="display:flex;justify-content:space-between;align-items:center"><div class="sec ing" style="margin:0;font-size:calc(11px * var(--font-scale))">Ingredients</div><button class="btn btn-s btn-sm" onclick="addMenuIng('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
+                }else{
+                    html+='<div class="sec ing" style="margin:0;font-size:calc(11px * var(--font-scale))">Ingredients</div>';
+                }
                 if(m.ings&&m.ings.length){
                     m.ings.forEach(function(mi,idx){
-                        html+='<div class="recipe-comp ing"><span class="rec-ing-name">🥬 '+getIngName(mi.ingId)+': '+mi.qty+' '+mi.unit+'</span><button class="del-btn" onclick="delMenuIng('+m.id+','+idx+')">×</button></div>';
+                        if(isOwner()){
+                            html+='<div class="recipe-comp ing"><span class="rec-ing-name">🥬 '+getIngName(mi.ingId)+': '+mi.qty+' '+mi.unit+'</span><button class="del-btn" onclick="delMenuIng('+m.id+','+idx+')">×</button></div>';
+                        }else{
+                            html+='<div class="recipe-comp ing"><span class="rec-ing-name">🥬 '+getIngName(mi.ingId)+': '+mi.qty+' '+mi.unit+'</span></div>';
+                        }
                     });
                 }
 
                 // Recipes
-                html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="sec" style="margin:0;font-size:calc(11px * var(--font-scale));color:#fdcb6e">Recipes</div><button class="btn btn-s btn-sm" onclick="addMenuRec('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
+                if(isOwner()){
+                    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="sec" style="margin:0;font-size:calc(11px * var(--font-scale));color:#fdcb6e">Recipes</div><button class="btn btn-s btn-sm" onclick="addMenuRec('+m.id+')" style="padding:4px 8px;font-size:calc(10px * var(--font-scale))">+ Add</button></div>';
+                }else{
+                    html+='<div class="sec" style="margin:0;font-size:calc(11px * var(--font-scale));color:#fdcb6e;margin-top:8px">Recipes</div>';
+                }
                 if(m.recs&&m.recs.length){
                     m.recs.forEach(function(mr,idx){
                         var r=D.recs.find(function(x){return x.id===mr.recId;});
                         if(r){
-                            html+='<div class="recipe-comp rec"><span class="rec-ing-name">📖 '+r.name+': '+mr.qty+' '+mr.unit+'</span><button class="del-btn" onclick="delMenuRec('+m.id+','+idx+')">×</button></div>';
+                            if(isOwner()){
+                                html+='<div class="recipe-comp rec"><span class="rec-ing-name">📖 '+r.name+': '+mr.qty+' '+mr.unit+'</span><button class="del-btn" onclick="delMenuRec('+m.id+','+idx+')">×</button></div>';
+                            }else{
+                                html+='<div class="recipe-comp rec"><span class="rec-ing-name">📖 '+r.name+': '+mr.qty+' '+mr.unit+'</span></div>';
+                            }
                         }
                     });
                 }
-                
-                html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editMenuItem('+m.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'menus\','+m.id+')">📥 Archive</button></div>';
+
+                if(isOwner()){
+                    html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s btn-sm" onclick="editMenuItem('+m.id+')" style="flex:1">✏️ Edit</button><button class="btn btn-s btn-sm" onclick="archiveItem(\'menus\','+m.id+')">📥 Archive</button></div>';
+                }
                 html+='</div>';
             }
             html+='</div>';
@@ -5359,7 +5505,18 @@ function closeModal(){document.getElementById('modal-o').classList.remove('open'
 function openAdd(){
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Add New</div>';
-    
+
+    // Check permissions
+    if(!isOwner()){
+        if(tab==='shopping' || tab==='recipes' || tab==='menu' || tab==='prep'){
+            html+='<p style="color:#e17055;font-size:calc(12px * var(--font-scale))">You do not have permission to add items here.</p>';
+            html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:12px">OK</button>';
+            m.innerHTML=html;
+            mo.classList.add('open');
+            return;
+        }
+    }
+
     if(tab==='inventory'){
         html+='<p style="color:#a0aec0;font-size:calc(12px * var(--font-scale))">Expand a storage area and use the "+ Add Item" button inside.</p>';
         html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:12px">Got it</button>';
