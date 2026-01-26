@@ -4524,13 +4524,13 @@ async function saveNewUser(){
     // If email provided, send Supabase invite
     if(email){
         try{
-            showToast('Sending invite email...');
+            console.log('Sending invite email to:', email);
             var result = await secureApi('invite_user', 'auth', {email: email, name: name, role: role});
             if(result.error){
                 alert('Failed to send invite: ' + result.error.message);
                 return;
             }
-            showToast('Invite email sent to ' + email);
+            alert('Invite email sent to ' + email);
         }catch(e){
             console.error('Invite error:', e);
             alert('Failed to send invite email');
