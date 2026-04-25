@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Restaurant Oracle — Kitchen management, food cost, AI inventory scan</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<meta name="theme-color" content="#162d45">
+<meta name="description" content="Restaurant Oracle is the kitchen operating system for modern restaurants — live food cost, AI-powered inventory scan, prep sheets, vendor orders. 30-day free trial. No card charged.">
+<meta name="robots" content="index,follow">
+
+<meta property="og:title" content="Restaurant Oracle — Kitchen management for modern restaurants">
+<meta property="og:description" content="Live food cost, AI inventory scan, prep sheets, vendor orders. 30-day free trial. No card charged.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://restaurantoracle.app/">
+<meta property="og:image" content="https://restaurantoracle.app/icon.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="canonical" href="https://restaurantoracle.app/">
+
+<!-- Sentry error monitoring (DSN baked into sentry-init.js) -->
+<script src="https://browser.sentry-cdn.com/10.50.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
+<script src="sentry-init.js"></script>
+
+<!-- PostHog product analytics (loads async; swap phc_YOUR_KEY in posthog-init.js) -->
+<script src="posthog-init.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{min-height:100%;scroll-behavior:smooth}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(ellipse at 100% 100%,#cce4f7 0%,#74acdf 25%,#2e6090 55%,#162d45 100%);
+    background-attachment:fixed;
+    color:#e0e6ed;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    -webkit-tap-highlight-color:rgba(116,172,223,.35);
+    overflow-x:hidden;
+  }
+  img{max-width:100%;display:block}
+  button,a{touch-action:manipulation}
+  a{color:#74acdf;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+  .wrap-narrow{max-width:960px;margin:0 auto;padding:0 20px}
+
+  /* ── Nav ── */
+  .nav{position:sticky;top:0;z-index:50;background:rgba(10,20,46,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(116,172,223,.18)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;max-width:1200px;margin:0 auto}
+  .nav-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;color:#fff;letter-spacing:-.01em}
+  .nav-brand img{width:32px;height:32px;border-radius:8px}
+  .nav-links{display:flex;align-items:center;gap:24px}
+  .nav-links a{color:#c8d3e0;font-weight:500;font-size:14px}
+  .nav-links a:hover{color:#fff;text-decoration:none}
+  .nav-cta{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13.5px;box-shadow:0 4px 14px rgba(46,120,184,.35);transition:all .15s}
+  .nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(46,120,184,.55);text-decoration:none}
+  @media(max-width:640px){
+    .nav-links{gap:12px}
+    .nav-links .link-signin{display:none}
+    .nav-brand span{display:none}
+  }
+
+  /* ── Hero ── */
+  .hero{padding:72px 0 60px;text-align:center;position:relative}
+  .hero-eyebrow{display:inline-block;font-size:12px;font-weight:700;color:#0d1e33;background:rgba(204,228,247,.92);padding:6px 14px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:24px;border:1px solid rgba(255,255,255,.7);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .hero-title{font-size:56px;font-weight:900;color:#fff;letter-spacing:-.03em;line-height:1.02;max-width:900px;margin:0 auto 20px;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+  .hero-title .accent{background:linear-gradient(135deg,#cce4f7,#9cc4e4);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+  .hero-sub{font-size:19px;color:#e8eef5;font-weight:500;max-width:680px;margin:0 auto 32px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  .hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+  .btn-primary{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;padding:17px 30px;border-radius:14px;font-weight:700;font-size:16px;box-shadow:0 10px 30px rgba(46,120,184,.5);transition:all .15s;border:1px solid rgba(255,255,255,.18)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(46,120,184,.7);text-decoration:none}
+  .btn-secondary{background:rgba(255,255,255,.9);color:#0d1e33;padding:17px 28px;border-radius:14px;font-weight:700;font-size:16px;border:1px solid rgba(255,255,255,.9);transition:all .15s}
+  .btn-secondary:hover{background:#fff;text-decoration:none;transform:translateY(-2px)}
+  .hero-trust{font-size:13px;color:#cce4f7;font-weight:500;opacity:.95;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .hero-trust strong{font-weight:700;color:#fff}
+
+  /* ── Hero visual ── */
+  .hero-visual{margin:56px auto 0;max-width:980px;position:relative}
+  .mock{background:linear-gradient(180deg,rgba(10,20,46,.96),rgba(10,20,46,.92));border:1px solid rgba(116,172,223,.35);border-radius:18px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.05) inset}
+  .mock-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(116,172,223,.15);margin-bottom:18px}
+  .mock-dot{width:11px;height:11px;border-radius:50%}
+  .mock-dot.r{background:#ff6b6b}.mock-dot.y{background:#fdcb6e}.mock-dot.g{background:#74b781}
+  .mock-url{flex:1;text-align:center;font-size:12px;color:#7a8a9b;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .mock-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+  @media(max-width:700px){.mock-grid{grid-template-columns:1fr}}
+  .mock-panel{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px}
+  .mock-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#74acdf;margin-bottom:14px}
+  .mock-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13.5px}
+  .mock-row:last-child{border-bottom:0}
+  .mock-row .n{color:#e8eef5;font-weight:500}
+  .mock-row .v{color:#74acdf;font-weight:700;font-variant-numeric:tabular-nums}
+  .mock-row .v.warn{color:#fdcb6e}
+  .mock-row .v.bad{color:#ff7675}
+  .mock-row .v.good{color:#74b781}
+  .mock-kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .mock-kpi-card{background:rgba(116,172,223,.08);border:1px solid rgba(116,172,223,.2);border-radius:10px;padding:12px}
+  .mock-kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8da3bb;font-weight:600;margin-bottom:4px}
+  .mock-kpi-val{font-size:22px;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums}
+  .mock-kpi-delta{font-size:11px;font-weight:600;color:#74b781;margin-top:3px}
+  .mock-kpi-delta.bad{color:#ff7675}
+  .mock-bar{height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-top:6px}
+  .mock-bar-fill{height:100%;background:linear-gradient(90deg,#74acdf,#9cc4e4);border-radius:4px}
+  .mock-chat{padding:12px;background:rgba(116,172,223,.08);border:1px solid rgba(116,172,223,.2);border-radius:10px;font-size:12.5px;color:#cce4f7;line-height:1.5;margin-top:12px;position:relative}
+  .mock-chat::before{content:"💬 Oracle";position:absolute;top:-9px;left:12px;font-size:10px;background:#0a1422;padding:2px 8px;color:#74acdf;border-radius:6px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+
+  /* ── Section frame ── */
+  section{padding:72px 0;position:relative}
+  .section-bg-dark{background:rgba(10,20,46,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid rgba(116,172,223,.18);border-bottom:1px solid rgba(116,172,223,.18)}
+  .eyebrow{font-size:12px;font-weight:700;color:#74acdf;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;text-align:center}
+  .section-title{font-size:40px;font-weight:800;color:#fff;letter-spacing:-.02em;text-align:center;max-width:760px;margin:0 auto 18px;line-height:1.1}
+  .section-sub{font-size:17px;color:#a0b4c8;max-width:640px;margin:0 auto 48px;text-align:center;line-height:1.55}
+
+  /* Social proof */
+  .social{padding:28px 0;text-align:center;opacity:.85}
+  .social-label{font-size:11px;font-weight:700;color:#cce4f7;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .social-logos{display:flex;justify-content:center;align-items:center;gap:42px;flex-wrap:wrap;opacity:.7}
+  .social-slot{width:110px;height:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#cce4f7;letter-spacing:.1em}
+
+  /* Problems */
+  .problem-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;max-width:980px;margin:0 auto}
+  .problem-card{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.2);border-radius:16px;padding:22px;display:flex;align-items:flex-start;gap:14px}
+  .problem-x{flex-shrink:0;width:32px;height:32px;border-radius:8px;background:rgba(255,118,117,.15);color:#ff7675;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;border:1px solid rgba(255,118,117,.3)}
+  .problem-text{font-size:15px;color:#e8eef5;font-weight:600;line-height:1.4}
+  .problem-text small{display:block;color:#a0b4c8;font-weight:400;font-size:13.5px;margin-top:4px}
+
+  /* Features */
+  .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1200px;margin:0 auto}
+  @media(max-width:900px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.feat-grid{grid-template-columns:1fr}}
+  .feat-card{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.22);border-radius:16px;padding:26px;transition:all .2s}
+  .feat-card:hover{border-color:rgba(116,172,223,.45);transform:translateY(-3px);box-shadow:0 14px 40px rgba(0,0,0,.3)}
+  .feat-icon{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,rgba(116,172,223,.25),rgba(46,120,184,.25));border:1px solid rgba(116,172,223,.4);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
+  .feat-name{font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-.01em}
+  .feat-desc{font-size:14px;color:#a0b4c8;line-height:1.55}
+
+  /* How it works */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:1000px;margin:0 auto;position:relative}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.22);border-radius:16px;padding:28px;position:relative}
+  .step-num{position:absolute;top:-16px;left:22px;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(46,120,184,.4)}
+  .step-title{font-size:18px;font-weight:700;color:#fff;margin:12px 0 8px;letter-spacing:-.01em}
+  .step-desc{font-size:14px;color:#a0b4c8;line-height:1.55}
+  .step-detail{font-size:12.5px;color:#74acdf;margin-top:10px;font-weight:600}
+
+  /* Pricing */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1100px;margin:0 auto;align-items:stretch}
+  @media(max-width:900px){.plans{grid-template-columns:1fr;max-width:480px}}
+  .plan{position:relative;background:rgba(10,20,46,.94);border:2px solid rgba(116,172,223,.22);border-radius:18px;padding:28px 24px;display:flex;flex-direction:column;transition:all .2s}
+  .plan:hover{border-color:rgba(116,172,223,.45);transform:translateY(-3px)}
+  .plan.popular{border-color:#74acdf;background:linear-gradient(180deg,rgba(116,172,223,.12),rgba(10,20,46,.94));box-shadow:0 0 0 4px rgba(116,172,223,.12),0 14px 40px rgba(0,0,0,.3)}
+  .plan-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-size:10px;font-weight:700;padding:5px 14px;border-radius:999px;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 4px 14px rgba(46,120,184,.5)}
+  .plan-name{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;letter-spacing:.02em}
+  .plan-price{font-size:38px;font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;margin-bottom:4px}
+  .plan-price .unit{font-size:15px;font-weight:500;color:#8da3bb;letter-spacing:0}
+  .plan-blurb{font-size:13px;color:#a0b4c8;margin-bottom:20px;line-height:1.4}
+  .plan-cta{display:block;text-align:center;padding:13px;border-radius:11px;font-weight:700;font-size:14px;margin-bottom:22px;transition:all .15s;border:1px solid rgba(116,172,223,.25);background:rgba(116,172,223,.08);color:#e8eef5}
+  .plan-cta:hover{background:rgba(116,172,223,.2);text-decoration:none}
+  .plan.popular .plan-cta{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(46,120,184,.35)}
+  .plan.popular .plan-cta:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(46,120,184,.5)}
+  .plan-feats{list-style:none;padding:0;margin:0;flex:1}
+  .plan-feats li{font-size:13.5px;color:#d4dde6;padding:8px 0 8px 24px;position:relative;line-height:1.4;border-bottom:1px solid rgba(255,255,255,.05)}
+  .plan-feats li:last-child{border-bottom:0}
+  .plan-feats li::before{content:"✓";position:absolute;left:0;top:8px;color:#74acdf;font-weight:800;font-size:14px}
+  .plan-feats li.muted{color:#56677a;opacity:.65}
+  .plan-feats li.muted::before{content:"—";color:#56677a}
+  .pricing-foot{text-align:center;font-size:13px;color:#a0b4c8;margin-top:32px}
+
+  /* FAQ */
+  .faq{max-width:820px;margin:0 auto}
+  .faq-item{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.2);border-radius:14px;margin-bottom:12px;overflow:hidden}
+  .faq-item summary{padding:20px 24px;cursor:pointer;font-size:16px;font-weight:600;color:#e8eef5;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .faq-item summary::-webkit-details-marker{display:none}
+  .faq-item summary::after{content:"+";font-size:22px;font-weight:400;color:#74acdf;transition:transform .2s;flex-shrink:0}
+  .faq-item[open] summary::after{transform:rotate(45deg)}
+  .faq-item summary:hover{color:#fff}
+  .faq-answer{padding:0 24px 22px;font-size:14.5px;color:#a0b4c8;line-height:1.6}
+  .faq-answer p{margin-bottom:10px}
+  .faq-answer p:last-child{margin-bottom:0}
+
+  /* Final CTA */
+  .final{padding:84px 0;text-align:center}
+  .final-card{background:linear-gradient(135deg,rgba(10,20,46,.98),rgba(22,45,69,.98));border:1px solid rgba(116,172,223,.35);border-radius:24px;padding:56px 32px;max-width:820px;margin:0 auto;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .final-title{font-size:40px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px}
+  .final-sub{font-size:17px;color:#a0b4c8;max-width:520px;margin:0 auto 32px;line-height:1.5}
+  .final-cta{display:inline-block;background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;padding:19px 40px;border-radius:14px;font-weight:700;font-size:17px;box-shadow:0 12px 36px rgba(46,120,184,.5);transition:all .15s}
+  .final-cta:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(46,120,184,.65);text-decoration:none}
+  .final-note{font-size:13px;color:#8da3bb;margin-top:18px}
+
+  /* Footer */
+  footer{background:rgba(10,20,46,.94);border-top:1px solid rgba(116,172,223,.22);padding:44px 20px 30px;color:#8da3bb}
+  .foot-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:36px}
+  @media(max-width:760px){.foot-inner{grid-template-columns:1fr 1fr;gap:24px}}
+  .foot-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:#fff;margin-bottom:10px}
+  .foot-brand img{width:30px;height:30px;border-radius:7px}
+  .foot-blurb{font-size:13px;color:#8da3bb;line-height:1.55;max-width:320px}
+  .foot-col h4{font-size:11px;font-weight:700;color:#fff;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+  .foot-col a{display:block;font-size:13.5px;color:#a0b4c8;margin-bottom:8px;font-weight:500}
+  .foot-col a:hover{color:#fff;text-decoration:none}
+  .foot-bar{max-width:1200px;margin:36px auto 0;padding-top:20px;border-top:1px solid rgba(116,172,223,.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12.5px;color:#7a8a9b}
+  .foot-bar a{color:#7a8a9b}
+
+  /* ── Responsive ── */
+  @media(max-width:760px){
+    .hero{padding:48px 0 44px}
+    .hero-title{font-size:36px}
+    .hero-sub{font-size:16px}
+    .hero-ctas{flex-direction:column;gap:10px}
+    .hero-ctas a{width:100%}
+    .section-title{font-size:28px}
+    .section-sub{font-size:15px;margin-bottom:32px}
+    section{padding:56px 0}
+    .final{padding:56px 0}
+    .final-card{padding:40px 22px}
+    .final-title{font-size:28px}
+    .mock{padding:14px}
+    .mock-panel{padding:12px}
+  }
+  @media(max-width:420px){
+    .hero-title{font-size:30px}
+    .nav-inner{padding:12px 16px}
+    .nav-brand{font-size:15px}
+  }
+
+  /* ── Print / light mode safety ── */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <img src="icon.png" alt="" aria-hidden="true">
+      <span>Restaurant Oracle</span>
+    </a>
+    <div class="nav-links">
+      <a href="#pricing">Pricing</a>
+      <a href="#features">Features</a>
+      <a href="/app" class="link-signin">Sign in</a>
+      <a href="/signup" class="nav-cta">Start free trial</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-eyebrow">30-day free trial · no card charged</div>
+    <h1 class="hero-title">Stop guessing your food cost.<br><span class="accent">Know every plate's margin.</span></h1>
+    <p class="hero-sub">Restaurant Oracle is the kitchen operating system for modern restaurants — live recipe costing, AI-powered inventory scan, auto-generated prep sheets, and one-click vendor orders. All in one place.</p>
+    <div class="hero-ctas">
+      <a href="/signup" class="btn-primary">Start 30-day free trial →</a>
+      <a href="/app" class="btn-secondary">Sign in</a>
+    </div>
+    <div class="hero-trust">No credit card charged for 30 days · <strong>Cancel anytime</strong></div>
+
+    <!-- Product visual -->
+    <div class="hero-visual" aria-hidden="true">
+      <div class="mock">
+        <div class="mock-head">
+          <span class="mock-dot r"></span>
+          <span class="mock-dot y"></span>
+          <span class="mock-dot g"></span>
+          <span class="mock-url">restaurantoracle.app / recipes</span>
+        </div>
+        <div class="mock-grid">
+          <div class="mock-panel">
+            <div class="mock-title">Recipe · Lamb Ragù</div>
+            <div class="mock-kpi">
+              <div class="mock-kpi-card">
+                <div class="mock-kpi-label">Food cost</div>
+                <div class="mock-kpi-val">$6.41</div>
+                <div class="mock-kpi-delta">↓ $0.18 vs last week</div>
+              </div>
+              <div class="mock-kpi-card">
+                <div class="mock-kpi-label">Margin</div>
+                <div class="mock-kpi-val">72.3%</div>
+                <div class="mock-kpi-delta">Target: 70%</div>
+              </div>
+            </div>
+            <div class="mock-row"><span class="n">Lamb shoulder · 180 g</span><span class="v">$3.42</span></div>
+            <div class="mock-row"><span class="n">Pappardelle · 120 g</span><span class="v">$1.08</span></div>
+            <div class="mock-row"><span class="n">San Marzano · 90 g</span><span class="v">$0.68</span></div>
+            <div class="mock-row"><span class="n">Pecorino Romano · 20 g</span><span class="v">$1.23</span></div>
+          </div>
+          <div class="mock-panel">
+            <div class="mock-title">Prep sheet · Today</div>
+            <div class="mock-row"><span class="n">Ragù base</span><span class="v warn">2.5 L</span></div>
+            <div class="mock-row"><span class="n">Focaccia dough</span><span class="v good">Done</span></div>
+            <div class="mock-row"><span class="n">Aioli (roasted garlic)</span><span class="v">400 g</span></div>
+            <div class="mock-bar"><div class="mock-bar-fill" style="width:64%"></div></div>
+            <div class="mock-chat">Low-stock: <strong style="color:#fff">pecorino</strong> will run out Friday at current pace. Draft email order to Provvista?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ── Social proof ── -->
+<div class="social">
+  <div class="wrap">
+    <div class="social-label">Trusted by restaurants in Portland &amp; the Pacific Northwest</div>
+    <div class="social-logos" aria-hidden="true">
+      <span class="social-slot">BISTRO</span>
+      <span class="social-slot">TAQUERIA</span>
+      <span class="social-slot">OSTERIA</span>
+      <span class="social-slot">CAFÉ</span>
+      <span class="social-slot">GRILL</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Problems ── -->
+<section class="section-bg-dark" id="problems">
+  <div class="wrap-narrow">
+    <div class="eyebrow">Sound familiar?</div>
+    <h2 class="section-title">Your kitchen runs on spreadsheets and memory.</h2>
+    <p class="section-sub">Recipes get lost when your chef leaves. Food cost is a monthly guessing game. Prep sheets get rewritten every week. Inventory count night eats four hours. It shouldn't be this way.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-x">✕</div>
+        <div class="problem-text">Food cost is a mystery<small>You find out your margin drifted only after the month closes.</small></div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-x">✕</div>
+        <div class="problem-text">Prep sheets get rewritten every week<small>Hand-written Post-its, WhatsApp screenshots, a battered clipboard.</small></div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-x">✕</div>
+        <div class="problem-text">Recipes leave with your chef<small>No single source of truth for specs, yields, or sub-recipes.</small></div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-x">✕</div>
+        <div class="problem-text">Count night takes 4 hours<small>Clipboards, tally sheets, re-entering everything into Excel at midnight.</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">Everything your kitchen needs</div>
+    <h2 class="section-title">One tool. Six jobs done.</h2>
+    <p class="section-sub">No plugins. No integrations to wire up. Built for restaurants that want to know their numbers without hiring a consultant.</p>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">📐</div>
+        <div class="feat-name">Recipe Costing</div>
+        <div class="feat-desc">Live cost per plate — down to the gram. Sub-recipes roll up automatically. See margin the second an ingredient price changes.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📷</div>
+        <div class="feat-name">AI Inventory Scan</div>
+        <div class="feat-desc">Point your phone at a shelf. Google Gemini reads labels and counts. Confirm and save — count night in minutes, not hours.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📋</div>
+        <div class="feat-name">Prep Sheets</div>
+        <div class="feat-desc">Today's prep list, auto-compiled from the menu, forecasted covers, and current on-hand. Printable. Tick items off on the line.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📦</div>
+        <div class="feat-name">Vendor Orders</div>
+        <div class="feat-desc">Min-quantity thresholds fire an email to Provvista, Sysco, or your fishmonger. Draft is pre-filled — you press send.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">👥</div>
+        <div class="feat-name">Team Roles &amp; Audit</div>
+        <div class="feat-desc">Owner, chef, line, counter — each sees what they need. Every edit is logged with who, when, and what changed.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">✨</div>
+        <div class="feat-name">Oracle Assistant</div>
+        <div class="feat-desc">"What's my cost on the ragù?" "Which items run out this week?" Ask in plain English — Oracle answers from your actual data.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section class="section-bg-dark">
+  <div class="wrap-narrow">
+    <div class="eyebrow">Go from zero to live in a day</div>
+    <h2 class="section-title">Three steps. No consultants.</h2>
+    <p class="section-sub">Most kitchens are importing their first recipes within an hour of signup. No onboarding fee on Starter or Pro.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Sign up</div>
+        <div class="step-desc">30-day free trial. Card verified at signup for fraud prevention, but nothing charged for 30 days.</div>
+        <div class="step-detail">~2 min</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Import your menu</div>
+        <div class="step-desc">Add ingredients (paste a Sysco order or start from our 40-item starter set). Build recipes with sub-recipes. Set vendors.</div>
+        <div class="step-detail">~30–60 min</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Track cost live</div>
+        <div class="step-desc">Every count, every order, every recipe edit updates your food cost in real time. Prep sheets generate themselves.</div>
+        <div class="step-detail">Daily, forever</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing ── -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="eyebrow">Simple pricing</div>
+    <h2 class="section-title" style="color:#0d1e33;text-shadow:0 2px 8px rgba(255,255,255,.25)">Pick a plan. Try 30 days free.</h2>
+    <p class="section-sub" style="color:#1e3d5c">Every plan includes the full feature set — no artificial gates. Difference is team size, locations, and AI scan.</p>
+    <div class="plans">
+
+      <div class="plan">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$29<span class="unit">/mo</span></div>
+        <div class="plan-blurb">Solo chef · 1 location · up to 100 ingredients, 20 recipes.</div>
+        <a href="/signup" class="plan-cta">Start 30-day trial</a>
+        <ul class="plan-feats">
+          <li>1 user · 1 location</li>
+          <li>100 ingredients · 20 recipes</li>
+          <li>Menu builder + prep targets</li>
+          <li>Inventory counts by area</li>
+          <li>Printable count sheets</li>
+          <li>Auto shopping lists</li>
+          <li>Vendor email orders</li>
+          <li>Role-based permissions</li>
+          <li>Full audit log</li>
+          <li>Email support</li>
+          <li class="muted">AI photo-scan counting</li>
+          <li class="muted">Multi-location rollup</li>
+        </ul>
+      </div>
+
+      <div class="plan popular">
+        <div class="plan-badge">Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$49<span class="unit">/mo</span></div>
+        <div class="plan-blurb">Growing team · 1 location · unlimited recipes · AI scan included.</div>
+        <a href="/signup" class="plan-cta">Start 30-day trial</a>
+        <ul class="plan-feats">
+          <li>Up to 10 users</li>
+          <li>Unlimited ingredients &amp; recipes</li>
+          <li>Menu builder + prep targets</li>
+          <li>Inventory counts by area</li>
+          <li>Printable count sheets</li>
+          <li>Auto shopping lists</li>
+          <li>Vendor email orders</li>
+          <li>Role-based permissions</li>
+          <li>Full audit log</li>
+          <li>Priority email support</li>
+          <li><strong style="color:#fff">AI photo-scan counting</strong></li>
+          <li class="muted">Multi-location rollup</li>
+        </ul>
+      </div>
+
+      <div class="plan">
+        <div class="plan-name">Scale</div>
+        <div class="plan-price">$99<span class="unit">/mo</span></div>
+        <div class="plan-blurb">Multi-location · unlimited team · priority phone support.</div>
+        <a href="/signup" class="plan-cta">Start 30-day trial</a>
+        <ul class="plan-feats">
+          <li>Unlimited users</li>
+          <li>Up to 5 locations</li>
+          <li>Unlimited ingredients &amp; recipes</li>
+          <li>Everything in Pro</li>
+          <li>AI photo-scan counting</li>
+          <li>Multi-location rollup</li>
+          <li>Custom roles</li>
+          <li>Priority phone + email</li>
+          <li>Dedicated onboarding</li>
+          <li>Invoice billing on request</li>
+          <li>Data export on demand</li>
+          <li>SSO (on request)</li>
+        </ul>
+      </div>
+
+    </div>
+    <div class="pricing-foot">
+      All plans: 30 days free · No card charged for 30 days · Cancel anytime · Billed monthly via Square
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ── -->
+<section class="section-bg-dark" id="faq">
+  <div class="wrap-narrow">
+    <div class="eyebrow">Common questions</div>
+    <h2 class="section-title">FAQ</h2>
+    <div class="faq">
+
+      <details class="faq-item">
+        <summary>Do I need a POS to use Restaurant Oracle?</summary>
+        <div class="faq-answer">
+          <p>No. Restaurant Oracle works standalone — you can run your entire kitchen on it without any POS connection. If you already use Square or Toast, menu sync is available, but it's optional.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Can my team use it?</summary>
+        <div class="faq-answer">
+          <p>Yes. Every plan includes role-based permissions: owner, chef, line cook, counter staff, etc. <strong>Starter</strong> is solo (1 user). <strong>Pro</strong> supports up to 10 users. <strong>Scale</strong> is unlimited.</p>
+          <p>Every edit is logged in the audit trail with who, when, and what changed.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>What happens after the 30-day free trial?</summary>
+        <div class="faq-answer">
+          <p>Your card is charged the plan price you selected ($29, $49, or $99/mo) and the subscription auto-renews monthly. You can cancel anytime — cancellation takes effect at the end of the current billing period. No partial-month refunds, but we never charge you after cancellation.</p>
+          <p>Card data is handled by Square — we never see the card number or CVV.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Do you handle multi-location restaurants?</summary>
+        <div class="faq-answer">
+          <p>Yes, on the <strong>Scale</strong> plan. Up to 5 locations with cross-location rollup for inventory, recipes, prep targets, and cost. Each location has its own on-hand counts but shares the recipe library and vendor directory.</p>
+          <p>Need more than 5 locations? Email <a href="mailto:support@restaurantoracle.com">support@restaurantoracle.com</a> — we'll quote a custom plan.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Is my data private?</summary>
+        <div class="faq-answer">
+          <p>Yes. Each restaurant's data is isolated in its own Firestore namespace — other tenants cannot read or write your data. Firestore security rules enforce this at the database level, not just in application code.</p>
+          <p>AI features (photo-scan, Oracle Assistant) send the relevant data to Google Gemini to return a result. <strong>We do not train public AI models on your Customer Data</strong> and neither does Google Gemini (Google's enterprise terms apply). See our <a href="/privacy.html">Privacy Policy</a> for the full detail.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>How does the AI photo-scan work?</summary>
+        <div class="faq-answer">
+          <p>Open Inventory → Scan. Point your phone at a shelf. Google Gemini reads the labels and estimates quantities. You review and confirm — nothing is saved to inventory until you approve it.</p>
+          <p>Accuracy depends on shelf clarity. It works best on clearly labeled dry goods and bottled items. For bulk produce and unlabeled containers, manual entry is still faster. Pro and Scale plans only.</p>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Final CTA ── -->
+<section class="final">
+  <div class="wrap-narrow">
+    <div class="final-card">
+      <h2 class="final-title">Know your numbers.<br>Feed your people.</h2>
+      <p class="final-sub">Stop guessing food cost. Stop losing recipes. Stop rewriting prep sheets. Get it all in one place — free for 30 days.</p>
+      <a href="/signup" class="final-cta">Start 30-day free trial →</a>
+      <div class="final-note">No card charged for 30 days · Cancel anytime · Set up in under an hour</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="foot-inner">
+    <div>
+      <div class="foot-brand">
+        <img src="icon.png" alt="">
+        <span>Restaurant Oracle</span>
+      </div>
+      <div class="foot-blurb">The kitchen operating system for modern restaurants. Live food cost, AI inventory, prep sheets, vendor orders — in one place.</div>
+    </div>
+    <div class="foot-col">
+      <h4>Product</h4>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="/signup">Start free trial</a>
+    </div>
+    <div class="foot-col">
+      <h4>Account</h4>
+      <a href="/app">Sign in</a>
+      <a href="/signup">Sign up</a>
+      <a href="mailto:support@restaurantoracle.com">Support</a>
+    </div>
+    <div class="foot-col">
+      <h4>Legal</h4>
+      <a href="/terms">Terms of Service</a>
+      <a href="/privacy">Privacy Policy</a>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <span>© 2026 Restaurant Oracle. All rights reserved.</span>
+    <span>Made for restaurants in Portland, OR.</span>
+  </div>
+</footer>
+
+<script>
+// ── PostHog: landing page events ───────────────────────────────────────────
+(function(){
+  'use strict';
+  if(!window.posthog) return;
+  try {
+    posthog.capture('landing_viewed', {
+      path: location.pathname,
+      referrer: document.referrer || null,
+      utm_source:   new URLSearchParams(location.search).get('utm_source')   || null,
+      utm_medium:   new URLSearchParams(location.search).get('utm_medium')   || null,
+      utm_campaign: new URLSearchParams(location.search).get('utm_campaign') || null,
+    });
+  } catch(_) {}
+
+  // Delegate click listener — tag CTAs by destination + nearest section.
+  document.addEventListener('click', function(e){
+    var a = e.target.closest('a');
+    if(!a || !a.href) return;
+    var href = a.getAttribute('href') || '';
+    if(href !== '/signup' && href !== '/app' && !href.startsWith('/signup') && !href.startsWith('/app')) return;
+    var section = a.closest('section');
+    var sectionId = section && section.id ? section.id : (a.closest('.nav') ? 'nav' : (a.closest('footer') ? 'footer' : 'body'));
+    try {
+      posthog.capture('landing_cta_clicked', {
+        destination: href.startsWith('/signup') ? 'signup' : 'signin',
+        section: sectionId,
+        label: (a.textContent || '').trim().slice(0, 80),
+      });
+    } catch(_) {}
+  }, true);
+})();
+</script>
+
+</body>
+</html>

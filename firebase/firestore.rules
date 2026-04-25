@@ -1,0 +1,238 @@
+rules_version = '2';
+
+/**
+ * Security strategy (Multi-Tenant SaaS — Phase 1 + Operator Dashboard):
+ *
+ * - ALL kitchen data lives under /tenants/{tenantId}/ — complete path-level isolation.
+ * - Approved users: READ access only to their own tenant's collections.
+ *   "Approved" = request.auth.token.approved == true
+ *              + request.auth.token.tenantId == tenantId (path variable must match claim).
+ * - Super admins: READ access to operator-dashboard collections (via superAdmin == true claim).
+ * - All writes from clients: DENIED — go through Cloud Function (Admin SDK bypasses rules).
+ * - approved_emails: per-tenant, server-side only.
+ * - audit_log: per-tenant (primary) + root (fallback for pre-auth events),
+ *   both server-side only.
+ * - tenants registry: each tenant can read their own tenant doc.
+ * - platform_announcements: readable by any signed-in user.
+ *
+ * DEPLOY TOGETHER with the multi-tenant Cloud Function refactor.
+ * Running old CF against these rules will break (old CF uses root paths).
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // User is approved AND belongs to this specific tenant
+    function isApprovedForTenant(tenantId) {
+      return request.auth != null
+        && request.auth.token.approved == true
+        && request.auth.token.tenantId == tenantId;
+    }
+
+    // Aliased helper names used by the operator-dashboard rule blocks.
+    function belongsToTenant(tenantId) {
+      return isApprovedForTenant(tenantId);
+    }
+
+    // Super admin claim (set via CF superAdmin grant op)
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.superAdmin == true;
+    }
+
+    // ── Tenant registry ──────────────────────────────────────────────────────
+    // Each customer has one top-level tenant doc. Read allowed if JWT tenantId matches.
+    // Super admins can read any tenant doc for the operator dashboard.
+    match /tenants/{tenantId} {
+      allow read: if isSuperAdmin()
+        || (request.auth != null && request.auth.token.tenantId == tenantId);
+      allow write: if false;
+    }
+
+    // ── 15 data collections (tenant-namespaced) ──────────────────────────────
+
+    match /tenants/{tenantId}/team_members/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/areas/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/cats/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/menu_cats/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/rec_cats/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/units/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/ings/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/inv/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/shopping/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/preps/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/recs/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/menus/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/log/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/conversions/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/vendors/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/settings/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    match /tenants/{tenantId}/counters/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
+    // ── Per-tenant server-side-only collections ──────────────────────────────
+    // approved_emails: never readable by clients, stamped by Cloud Function only.
+    // (Super admin reads via Admin SDK which bypasses rules.)
+    match /tenants/{tenantId}/approved_emails/{document=**} {
+      allow read, write: if false;
+    }
+
+    // audit_log (per-tenant): never readable by clients.
+    match /tenants/{tenantId}/audit_log/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ── OPERATOR DASHBOARD COLLECTIONS ────────────────────────────────────────
+
+    // Support tickets (tenant-scoped). Created via CF only. Tenant users may read
+    // their own tenant's tickets (surfaces to future in-app support widget).
+    match /tenants/{tenantId}/support_tickets/{ticketId} {
+      allow read: if isSuperAdmin() || belongsToTenant(tenantId);
+      allow write: if isSuperAdmin();
+    }
+    match /tenants/{tenantId}/support_tickets/{ticketId}/messages/{msg} {
+      allow read: if isSuperAdmin() || belongsToTenant(tenantId);
+      allow write: if isSuperAdmin();
+    }
+
+    // Product feedback events. Tenant users can submit their own (create-only,
+    // must belong to this tenant); super admins manage & read all.
+    // CF `submitFeedback` op writes via Admin SDK (bypasses rules) and is the
+    // primary path — direct-client create is allowed as a fallback.
+    match /tenants/{tenantId}/feedback_events/{eventId} {
+      allow read: if isSuperAdmin() || belongsToTenant(tenantId);
+      allow create: if belongsToTenant(tenantId);
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Operator-only internal notes on a tenant.
+    match /tenants/{tenantId}/internal_notes/{noteId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Flat daily rollups — read-only for operators (written by scheduled CFs via Admin SDK).
+    match /tenant_costs_daily/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /tenant_usage_daily/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /tenant_health/{tenantId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // Operator-editable metadata on a tenant.
+    match /tenant_meta/{tenantId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Operator profiles (for agent assignment UI). Each operator may read/write their own doc.
+    match /operators/{uid} {
+      allow read: if isSuperAdmin();
+      allow write: if isSuperAdmin() || (request.auth != null && request.auth.uid == uid);
+    }
+
+    // Platform announcements — readable by any signed-in user (tenant clients render banners).
+    match /platform_announcements/{id} {
+      allow read: if request.auth.uid != null;
+      allow write: if isSuperAdmin();
+    }
+
+    // Feature flags — super-admin only.
+    match /feature_flags/{flag} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Gemini token usage log — super-admin read (aggregated into costs); writes via Admin SDK only.
+    match /gemini_usage_log/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // Per-tenant Gemini usage subcollection — written by logGeminiUsage helper
+    // via Admin SDK. Super-admins read all; tenant owners may read their own
+    // for future in-tenant cost transparency.
+    match /tenants/{tenantId}/geminiUsage/{eventId} {
+      allow read: if isSuperAdmin() || belongsToTenant(tenantId);
+      allow write: if false;
+    }
+
+    // ── Root-level server-side-only collections ──────────────────────────────
+    // Root /audit_log fallback for pre-auth events (auth_failure, tenant_not_found).
+    match /audit_log/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ── Catch-all ─────────────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

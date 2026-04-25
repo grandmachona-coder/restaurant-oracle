@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operator Console — Restaurant Oracle</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<meta name="theme-color" content="#0d1e33">
+
+<!-- Firebase Auth SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- Sentry error monitoring (DSN baked into sentry-init.js) -->
+<script src="https://browser.sentry-cdn.com/10.50.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
+<script src="sentry-init.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    font-family:'Inter',sans-serif;
+    background:radial-gradient(ellipse at 100% 100%,#cce4f7 0%,#74acdf 30%,#2e6090 60%,#162d45 100%);
+    color:#e0e6ed; min-height:100vh;
+    font-size:14px; line-height:1.45;
+  }
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  #app{display:none}
+  .shell{display:flex;min-height:100vh}
+  .sidebar{
+    width:220px;flex-shrink:0;background:rgba(10,20,46,.96);
+    border-right:1px solid rgba(116,172,223,.22);padding:22px 14px;
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+  }
+  .main{flex:1;padding:26px 28px 60px;max-width:1500px}
+
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+  .brand img{width:36px;height:36px;border-radius:8px}
+  .brand-title{font-size:15px;font-weight:800;color:#fff;line-height:1.1}
+  .brand-sub{font-size:10px;color:#74acdf;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+
+  .tab-nav{display:flex;flex-direction:column;gap:2px}
+  .tab-btn{
+    background:none;border:none;color:#a0b4c8;padding:10px 12px;text-align:left;
+    font-size:13px;font-weight:600;cursor:pointer;border-radius:8px;
+    display:flex;align-items:center;gap:10px;font-family:inherit;
+  }
+  .tab-btn:hover{background:rgba(116,172,223,.1);color:#fff}
+  .tab-btn.active{background:linear-gradient(135deg,rgba(116,172,223,.22),rgba(46,120,184,.18));color:#fff}
+  .tab-btn .ico{font-size:15px;opacity:.8}
+  .tab-btn .ct{margin-left:auto;background:rgba(214,48,49,.3);color:#ffadad;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px}
+  .tab-btn .ct.zero{display:none}
+
+  .sidebar-foot{margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#7a8a9b}
+  .sidebar-foot .who{color:#e0e6ed;font-weight:600;font-size:12px;word-break:break-all}
+  .sidebar-foot button{background:none;border:1px solid rgba(255,255,255,.12);color:#a0b4c8;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:6px;font-family:inherit}
+  .sidebar-foot button:hover{background:rgba(255,255,255,.08);color:#fff}
+
+  /* ── Cards ───────────────────────────────────────────────────── */
+  .card{
+    background:rgba(10,20,46,.92);border:1px solid rgba(116,172,223,.26);
+    border-radius:16px;padding:20px;margin-bottom:16px;
+    box-shadow:0 8px 30px rgba(0,0,0,.25);
+  }
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+  .card-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#74acdf}
+  .card-sub{font-size:11px;color:#7a8a9b}
+
+  .page-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+  .page-h1{font-size:22px;font-weight:800;color:#fff}
+  .page-h1 .count{color:#74acdf;font-weight:600;font-size:14px;margin-left:8px}
+
+  /* ── KPI ─────────────────────────────────────────────────────── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .kpi{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px}
+  .kpi-label{font-size:10px;color:#8a9bad;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+  .kpi-val{font-size:22px;font-weight:800;color:#fff;line-height:1}
+  .kpi-sub{font-size:11px;color:#7a8a9b;margin-top:4px}
+  .kpi.up .kpi-val{color:#6bd68a}
+  .kpi.down .kpi-val{color:#ff9a9a}
+  .kpi.warn .kpi-val{color:#fdcb6e}
+
+  /* ── Tables ──────────────────────────────────────────────────── */
+  table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+  table.tbl th{text-align:left;padding:9px 8px;font-size:10px;color:#8a9bad;font-weight:800;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;background:rgba(10,20,46,.96);z-index:1}
+  table.tbl td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+  table.tbl tbody tr{cursor:pointer}
+  table.tbl tbody tr:hover td{background:rgba(116,172,223,.08)}
+  table.tbl tbody tr.selected td{background:rgba(116,172,223,.18)}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+
+  .chip{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:10px;background:rgba(116,172,223,.18);color:#9ec6ea}
+  .chip.ok{background:rgba(0,184,148,.2);color:#6bd68a}
+  .chip.warn{background:rgba(253,203,110,.2);color:#fdcb6e}
+  .chip.bad{background:rgba(214,48,49,.22);color:#ff9a9a}
+  .chip.mute{background:rgba(255,255,255,.06);color:#a0b4c8}
+
+  .score-bar{display:inline-block;width:72px;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;vertical-align:middle;margin-right:6px}
+  .score-bar>div{height:100%;border-radius:3px;background:linear-gradient(90deg,#ff7675,#fdcb6e,#6bd68a)}
+
+  /* ── Filter row ──────────────────────────────────────────────── */
+  .filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .filter-row input,.filter-row select{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);color:#e0e6ed;padding:8px 12px;border-radius:8px;font-size:13px;font-family:inherit}
+  .filter-row input:focus,.filter-row select:focus{outline:none;border-color:#74acdf}
+  .filter-row input[type="search"]{flex:1;min-width:220px}
+
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  .btn{padding:8px 14px;background:linear-gradient(135deg,#74acdf,#2e78b8);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 18px rgba(46,120,184,.45)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:#e0e6ed}
+  .btn.ghost:hover:not(:disabled){background:rgba(255,255,255,.12)}
+  .btn.danger{background:linear-gradient(135deg,#ff7675,#d63031)}
+  .btn.warn{background:linear-gradient(135deg,#fdcb6e,#e17055);color:#0d1e33}
+  .btn.sm{padding:5px 10px;font-size:11px;border-radius:6px}
+
+  /* ── Forms ───────────────────────────────────────────────────── */
+  label.lbl{display:block;font-size:11px;color:#8a9bad;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:10px 0 4px}
+  input.fld,select.fld,textarea.fld{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);color:#e0e6ed;padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical}
+  input.fld:focus,select.fld:focus,textarea.fld:focus{outline:none;border-color:#74acdf}
+  textarea.fld{min-height:80px;font-family:'JetBrains Mono',monospace;font-size:12px}
+
+  /* ── Gate / loader ───────────────────────────────────────────── */
+  .gate{width:100%;max-width:440px;background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.35);border-radius:22px;padding:36px;box-shadow:0 14px 50px rgba(0,0,0,.35);text-align:center;margin:80px auto}
+  .gate h1{font-size:22px;font-weight:800;margin-bottom:10px;color:#fff}
+  .gate p{font-size:14px;color:#a0b4c8;margin-bottom:20px;line-height:1.5}
+  .gate-btn{padding:13px 24px;background:linear-gradient(135deg,#74acdf,#2e78b8);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+
+  /* ── Drawer ──────────────────────────────────────────────────── */
+  .drawer-back{position:fixed;inset:0;background:rgba(5,10,22,.6);z-index:80;display:none;backdrop-filter:blur(2px)}
+  .drawer-back.open{display:block}
+  .drawer{
+    position:fixed;top:0;right:0;width:820px;max-width:95vw;height:100vh;
+    background:rgba(10,20,46,.99);border-left:1px solid rgba(116,172,223,.35);
+    box-shadow:-10px 0 40px rgba(0,0,0,.45);transform:translateX(100%);
+    transition:transform .2s ease;z-index:90;display:flex;flex-direction:column;
+  }
+  .drawer.open{transform:translateX(0)}
+  .drawer-head{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .drawer-title{font-size:15px;font-weight:800;color:#fff}
+  .drawer-sub{font-size:11px;color:#a0b4c8;margin-top:2px}
+  .drawer-close{background:none;border:1px solid rgba(255,255,255,.15);color:#e0e6ed;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
+  .drawer-close:hover{background:rgba(255,255,255,.08)}
+  .drawer-tabs{display:flex;gap:4px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.08);overflow-x:auto;flex-wrap:nowrap;white-space:nowrap}
+  .drawer-tab{background:none;border:none;color:#8a9bad;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;font-family:inherit;text-transform:uppercase;letter-spacing:.05em}
+  .drawer-tab:hover{color:#fff;background:rgba(116,172,223,.1)}
+  .drawer-tab.active{color:#fff;background:rgba(116,172,223,.2)}
+  .drawer-body{flex:1;overflow-y:auto;padding:18px 22px 40px}
+
+  /* ── Toast ───────────────────────────────────────────────────── */
+  #toast-stack{position:fixed;bottom:18px;right:18px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:360px}
+  .toast{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.4);background:rgba(46,120,184,.95);border:1px solid rgba(116,172,223,.35);animation:slideIn .18s ease}
+  .toast.ok{background:rgba(0,120,90,.95);border-color:rgba(0,184,148,.55)}
+  .toast.err{background:rgba(160,30,30,.95);border-color:rgba(214,48,49,.6)}
+  @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+  /* ── Confirm modal ───────────────────────────────────────────── */
+  .modal-back{position:fixed;inset:0;background:rgba(5,10,22,.7);z-index:150;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+  .modal-back.open{display:flex}
+  .modal{width:100%;max-width:480px;background:rgba(10,20,46,.99);border:1px solid rgba(116,172,223,.4);border-radius:14px;padding:22px}
+  .modal h3{font-size:16px;font-weight:800;color:#fff;margin-bottom:8px}
+  .modal p{font-size:13px;color:#a0b4c8;margin-bottom:14px;line-height:1.5}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+  /* ── Sparkline ───────────────────────────────────────────────── */
+  canvas.spark{width:100%;height:70px;display:block}
+
+  /* ── Detail grid ─────────────────────────────────────────────── */
+  .kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:12.5px}
+  .kv .k{color:#8a9bad;font-weight:600}
+  .kv .v{color:#e0e6ed;word-break:break-word}
+  .section-h{font-size:11px;color:#74acdf;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin:16px 0 10px}
+
+  /* ── Messages / feed ────────────────────────────────────────── */
+  .msg{padding:10px 12px;border-left:3px solid #74acdf;background:rgba(116,172,223,.06);border-radius:0 8px 8px 0;margin-bottom:8px;font-size:13px}
+  .msg.op{border-left-color:#fdcb6e;background:rgba(253,203,110,.08)}
+  .msg .meta{font-size:10.5px;color:#8a9bad;margin-bottom:3px}
+  .msg .body{color:#e0e6ed;white-space:pre-wrap;word-break:break-word}
+
+  .tag{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;border-radius:10px;background:rgba(116,172,223,.18);color:#9ec6ea;margin:0 4px 4px 0}
+  .tag button{background:none;border:none;color:#ff9a9a;margin-left:4px;cursor:pointer;font-weight:700;font-family:inherit}
+
+  .empty{padding:24px;text-align:center;color:#7a8a9b;font-size:13px;font-style:italic}
+
+  /* Hidden utility */
+  .hide{display:none !important}
+
+  @media (max-width:900px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .sidebar{width:80px}
+    .sidebar .tab-btn span.label{display:none}
+    .brand-title,.brand-sub{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Gate (loading / unauth) ──────────────────────────────── -->
+<div id="gate" class="gate">
+  <h1 id="gate-title">Verifying access…</h1>
+  <p id="gate-msg">Checking super-admin credentials.</p>
+  <button id="gate-signin" class="gate-btn hide">Sign in with Google</button>
+  <a href="/app/" id="gate-back" class="gate-btn hide" style="background:rgba(255,255,255,.08);margin-top:8px">Back to app</a>
+</div>
+
+<!-- ── Main app shell (hidden until gate passes) ────────────── -->
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="icon.png" alt="Restaurant Oracle">
+        <div>
+          <div class="brand-title">Oracle</div>
+          <div class="brand-sub">Operator</div>
+        </div>
+      </div>
+      <nav class="tab-nav" id="tab-nav">
+        <button class="tab-btn active" data-tab="overview"><span class="ico">●</span><span class="label">Overview</span></button>
+        <button class="tab-btn" data-tab="tenants"><span class="ico">◈</span><span class="label">Tenants</span></button>
+        <button class="tab-btn" data-tab="tickets"><span class="ico">✉</span><span class="label">Tickets</span><span class="ct zero" id="ct-tickets">0</span></button>
+        <button class="tab-btn" data-tab="feedback"><span class="ico">♡</span><span class="label">Feedback</span></button>
+        <button class="tab-btn" data-tab="agents"><span class="ico">◇</span><span class="label">Agents</span></button>
+        <button class="tab-btn" data-tab="announce"><span class="ico">◎</span><span class="label">Announce</span></button>
+        <button class="tab-btn" data-tab="flags"><span class="ico">⚑</span><span class="label">Flags</span></button>
+        <button class="tab-btn" data-tab="settings"><span class="ico">⚙</span><span class="label">Settings</span></button>
+      </nav>
+      <div class="sidebar-foot">
+        <div>Signed in as</div>
+        <div class="who" id="who-email">—</div>
+        <button id="btn-signout">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- Overview ─────────────────────────────────────── -->
+      <section class="tab-pane" data-pane="overview">
+        <div class="page-head">
+          <div class="page-h1">Platform overview</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost sm" id="btn-refresh-overview">Refresh</button>
+            <button class="btn sm" id="btn-run-rollups">Run rollups now</button>
+          </div>
+        </div>
+        <div class="kpi-grid" id="kpi-grid">
+          <!-- rendered -->
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px" id="overview-grid">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">MRR trend · last 30 days</div>
+                <div class="card-sub" id="mrr-sub">—</div>
+              </div>
+            </div>
+            <canvas class="spark" id="spark-mrr"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Top at-risk tenants</div></div>
+            <div id="top-risk">—</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Recent audit activity</div>
+            <button class="btn ghost sm" id="btn-audit-refresh">Refresh</button>
+          </div>
+          <div id="recent-audit"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- Tenants ─────────────────────────────────────── -->
+      <section class="tab-pane hide" data-pane="tenants">
+        <div class="page-head">
+          <div class="page-h1">Tenants <span class="count" id="tenants-count">—</span></div>
+          <button class="btn ghost sm" id="btn-tenants-refresh">Refresh</button>
+        </div>
+        <div class="card">
+          <div class="filter-row">
+            <input id="tenants-search" type="search" placeholder="Search slug / email / restaurant name… (/)">
+            <select id="tenants-status">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="trialing">Trialing</option>
+              <option value="suspended">Suspended</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="trial_expired">Trial expired</option>
+            </select>
+            <select id="tenants-plan">
+              <option value="">All plans</option>
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+            <select id="tenants-sort">
+              <option value="recent">Sort: recent activity</option>
+              <option value="health">Sort: health (worst first)</option>
+              <option value="slug">Sort: slug</option>
+              <option value="mrr">Sort: MRR</option>
+            </select>
+          </div>
+          <div style="overflow:auto;max-height:72vh">
+            <table class="tbl" id="tenants-tbl">
+              <thead>
+                <tr>
+                  <th>Slug</th>
+                  <th>Restaurant</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Users</th>
+                  <th>Health</th>
+                  <th>MRR</th>
+                  <th>Last activity</th>
+                </tr>
+              </thead>
+              <tbody><tr><td colspan="8" class="empty">Loading tenants…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tickets ─────────────────────────────────────── -->
+      <section class="tab-pane hide" data-pane="tickets">
+        <div class="page-head">
+          <div class="page-h1">Support tickets <span class="count" id="tickets-count">—</span></div>
+          <button class="btn sm" id="btn-ticket-create">+ New ticket</button>
+        </div>
+        <div class="card">
+          <div class="filter-row">
+            <input id="ticket-search" type="search" placeholder="Search ticket / tenant / subject…">
+            <select id="ticket-status">
+              <option value="open">Open</option>
+              <option value="pending">Pending</option>
+              <option value="closed">Closed</option>
+              <option value="">All</option>
+            </select>
+            <select id="ticket-priority">
+              <option value="">All priorities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="normal">Normal</option>
+              <option value="low">Low</option>
+            </select>
+            <select id="ticket-assignee">
+              <option value="">All assignees</option>
+              <option value="unassigned">Unassigned</option>
+              <option value="me">Assigned to me</option>
+            </select>
+          </div>
+          <div style="overflow:auto;max-height:72vh">
+            <table class="tbl" id="tickets-tbl">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Tenant</th>
+                  <th>Subject</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Assignee</th>
+                  <th>Opened</th>
+                </tr>
+              </thead>
+              <tbody><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feedback ───────────────────────────────────── -->
+      <section class="tab-pane hide" data-pane="feedback">
+        <div class="page-head">
+          <div class="page-h1">Product feedback</div>
+          <button class="btn ghost sm" id="btn-feedback-refresh">Refresh</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Summary by feature</div></div>
+          <div id="feedback-agg"><div class="empty">Loading…</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Recent events</div>
+            <select id="feedback-sentiment" class="" style="background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);color:#e0e6ed;padding:6px 10px;border-radius:6px;font-size:12px;font-family:inherit">
+              <option value="">All sentiments</option>
+              <option value="positive">Positive</option>
+              <option value="neutral">Neutral</option>
+              <option value="negative">Negative</option>
+            </select>
+          </div>
+          <div id="feedback-list"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- Agents ─────────────────────────────────────── -->
+      <section class="tab-pane hide" data-pane="agents">
+        <div class="page-head">
+          <div class="page-h1">Operators & super-admins</div>
+          <button class="btn ghost sm" id="btn-agents-refresh">Refresh</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Super admins</div></div>
+            <div id="super-admins"><div class="empty">Loading…</div></div>
+            <div style="margin-top:14px">
+              <label class="lbl">Grant by email</label>
+              <div style="display:flex;gap:8px">
+                <input id="grant-email" class="fld" placeholder="email@restaurantoracle.com">
+                <button class="btn" id="btn-grant">Grant</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Operator profiles</div></div>
+            <div id="operators-list"><div class="empty">Loading…</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Announce ──────────────────────────────────── -->
+      <section class="tab-pane hide" data-pane="announce">
+        <div class="page-head">
+          <div class="page-h1">Platform announcements</div>
+          <button class="btn ghost sm" id="btn-announce-refresh">Refresh</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Compose</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label class="lbl">Title</label>
+              <input id="ann-title" class="fld" placeholder="Scheduled maintenance…">
+              <label class="lbl">Severity</label>
+              <select id="ann-severity" class="fld">
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl">Expires at (ISO, optional)</label>
+              <input id="ann-expires" class="fld" placeholder="2026-05-01T00:00:00Z">
+              <label class="lbl">Link URL (optional)</label>
+              <input id="ann-link" class="fld" placeholder="https://…">
+            </div>
+          </div>
+          <label class="lbl">Body</label>
+          <textarea id="ann-body" class="fld" placeholder="Markdown / plain text body for the banner body."></textarea>
+          <div style="margin-top:10px;text-align:right">
+            <button class="btn" id="btn-ann-publish">Publish</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Active / recent</div></div>
+          <div id="announce-list"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- Flags ─────────────────────────────────────── -->
+      <section class="tab-pane hide" data-pane="flags">
+        <div class="page-head">
+          <div class="page-h1">Feature flags</div>
+          <button class="btn ghost sm" id="btn-flags-refresh">Refresh</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Set flag</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div><label class="lbl">Flag name</label><input id="flag-name" class="fld" placeholder="gemini_scan"></div>
+            <div><label class="lbl">Value</label>
+              <select id="flag-value" class="fld">
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+            <div><label class="lbl">Target</label>
+              <select id="flag-target" class="fld">
+                <option value="global">Global</option>
+                <option value="tenant">Specific tenant</option>
+              </select>
+            </div>
+          </div>
+          <div id="flag-tenant-wrap" class="hide">
+            <label class="lbl">Tenant slug</label>
+            <input id="flag-tenant" class="fld" placeholder="acme-bistro">
+          </div>
+          <div style="margin-top:10px;text-align:right">
+            <button class="btn" id="btn-flag-save">Save flag</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Current flags</div></div>
+          <div id="flags-list"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- Settings ─────────────────────────────────── -->
+      <section class="tab-pane hide" data-pane="settings">
+        <div class="page-head"><div class="page-h1">Console settings</div></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Rate card</div></div>
+          <div class="kv">
+            <div class="k">Firestore reads</div><div class="v">$0.036 per 100k</div>
+            <div class="k">Firestore writes</div><div class="v">$0.108 per 100k</div>
+            <div class="k">Firestore deletes</div><div class="v">$0.012 per 100k</div>
+            <div class="k">CF invocations</div><div class="v">$0.40 per 1M</div>
+            <div class="k">Gemini input tokens</div><div class="v">$0.075 per 1M</div>
+            <div class="k">Gemini output tokens</div><div class="v">$0.30 per 1M</div>
+            <div class="k">Resend email</div><div class="v">$0.0004 per email</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Manual audit entry</div></div>
+          <label class="lbl">Tenant slug (leave blank for platform)</label>
+          <input id="maudit-tenant" class="fld">
+          <label class="lbl">Action</label>
+          <input id="maudit-action" class="fld" placeholder="investigated_incident">
+          <label class="lbl">Notes</label>
+          <textarea id="maudit-notes" class="fld"></textarea>
+          <div style="margin-top:10px;text-align:right">
+            <button class="btn" id="btn-maudit">Record audit entry</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ── Drawer (tenant / ticket) ────────────────────────────── -->
+<div class="drawer-back" id="drawer-back"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title" id="drawer-title">—</div>
+      <div class="drawer-sub" id="drawer-sub">—</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span id="drawer-actions"></span>
+      <button class="drawer-close" id="drawer-close">Close (esc)</button>
+    </div>
+  </div>
+  <div class="drawer-tabs" id="drawer-tabs"></div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<!-- ── Confirm modal ─────────────────────────────────────── -->
+<div class="modal-back" id="modal-back">
+  <div class="modal">
+    <h3 id="modal-title">Confirm action</h3>
+    <p id="modal-msg">—</p>
+    <label class="lbl" id="modal-confirm-lbl">Type the confirmation to proceed</label>
+    <input id="modal-confirm-input" class="fld" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn ghost sm" id="modal-cancel">Cancel</button>
+      <button class="btn danger sm" id="modal-ok">Proceed</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast stack ─────────────────────────────────────── -->
+<div id="toast-stack"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+ *  Operator Console — Restaurant Oracle
+ * ════════════════════════════════════════════════════════════════════════
+ *  Thin tabbed UI over the superAdmin Cloud Function (54 ops).
+ *  Hash routes:  #/overview  #/tenants  #/tenants/{slug}  #/tickets
+ *                #/tickets/{id}  #/feedback  #/agents  #/announce  #/flags
+ *                #/settings
+ * ════════════════════════════════════════════════════════════════════════
+ */
+const SUPER_ENDPOINT = 'https://us-central1-restaurant-oracle.cloudfunctions.net/superAdmin';
+
+const STATE = {
+  user: null,
+  idToken: null,
+  overview: null,
+  tenants: [],
+  tenantsIndex: new Map(),   // by tenantId AND by slug
+  tickets: [],
+  feedbackAgg: null,
+  feedbackList: [],
+  announcements: [],
+  flags: [],
+  operators: [],
+  superAdmins: [],
+  topRisk: [],
+  mrrSeries: [],
+  recentAudit: [],
+  // Drawer state
+  drawer: { type: null, id: null, tab: null, data: null },
+  // Confirm modal promise-resolver
+  confirmResolve: null,
+};
+
+/* ── Firebase init ─────────────────────────────────────── */
+firebase.initializeApp(window.FIREBASE_CONFIG || window.firebaseConfig);
+const auth = firebase.auth();
+
+auth.onAuthStateChanged(async (u) => {
+  if (!u) { showGate('signin'); return; }
+  try {
+    const tok = await u.getIdTokenResult(true);
+    if (!tok.claims.superAdmin) { showGate('denied', u.email); return; }
+    STATE.user = u;
+    STATE.idToken = tok.token;
+    document.getElementById('who-email').textContent = u.email || '—';
+    enterApp();
+  } catch (e) {
+    console.error('auth check failed', e);
+    showGate('err', null, e.message);
+  }
+});
+
+/* ── Gate UI ──────────────────────────────────────────── */
+function showGate(mode, email, msg) {
+  const g = document.getElementById('gate');
+  const app = document.getElementById('app');
+  const title = document.getElementById('gate-title');
+  const body  = document.getElementById('gate-msg');
+  const si    = document.getElementById('gate-signin');
+  const back  = document.getElementById('gate-back');
+  app.style.display = 'none'; g.style.display = 'block';
+  si.classList.add('hide'); back.classList.add('hide');
+  if (mode === 'signin') {
+    title.textContent = 'Operator Console';
+    body.textContent  = 'Sign in with an account that has super-admin access.';
+    si.classList.remove('hide');
+  } else if (mode === 'denied') {
+    title.textContent = 'Access denied';
+    body.textContent  = (email || 'This account') + ' is not a super-admin. Ask an existing operator to grant access.';
+    back.classList.remove('hide');
+  } else {
+    title.textContent = 'Verification error';
+    body.textContent  = msg || 'Could not verify credentials.';
+    back.classList.remove('hide');
+  }
+}
+
+document.getElementById('gate-signin').addEventListener('click', async () => {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch (e) { toast('Sign-in failed: ' + (e.message||e), 'err'); }
+});
+
+document.getElementById('btn-signout').addEventListener('click', async () => {
+  await auth.signOut();
+});
+
+function enterApp() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display  = 'block';
+  bindTabs();
+  bindDrawer();
+  bindModal();
+  bindTabsBehavior();
+  applyHash();
+  loadOverview().catch(e => toast(e.message, 'err'));
+}
+
+/* ── Call helper ──────────────────────────────────────── */
+async function callSuper(op, params = {}) {
+  const idToken = await STATE.user.getIdToken(false);
+  const res = await fetch(SUPER_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + idToken,
+    },
+    body: JSON.stringify({ op, ...params }),
+  });
+  const body = await res.json().catch(() => ({ error: 'Invalid response' }));
+  if (!res.ok || body.error) {
+    const err = new Error(body.error || ('HTTP ' + res.status));
+    err.status = res.status;
+    throw err;
+  }
+  return body.data;
+}
+
+/* ── Toast ────────────────────────────────────────────── */
+function toast(msg, kind) {
+  const stack = document.getElementById('toast-stack');
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+  stack.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 3800);
+}
+
+/* ── Confirm modal ────────────────────────────────────── */
+function bindModal() {
+  document.getElementById('modal-cancel').addEventListener('click', () => closeModal(false));
+  document.getElementById('modal-ok').addEventListener('click', () => closeModal(true));
+}
+function closeModal(ok) {
+  document.getElementById('modal-back').classList.remove('open');
+  if (STATE.confirmResolve) {
+    const val = STATE.confirmInput ? document.getElementById('modal-confirm-input').value : ok;
+    STATE.confirmResolve(ok ? val : null);
+    STATE.confirmResolve = null;
+    STATE.confirmInput = false;
+  }
+}
+function confirmAction({ title, message, requireText, okLabel }) {
+  return new Promise(resolve => {
+    STATE.confirmResolve = resolve;
+    STATE.confirmInput = !!requireText;
+    document.getElementById('modal-title').textContent = title || 'Confirm action';
+    document.getElementById('modal-msg').textContent = message || 'Are you sure?';
+    const lbl = document.getElementById('modal-confirm-lbl');
+    const inp = document.getElementById('modal-confirm-input');
+    if (requireText) {
+      lbl.classList.remove('hide'); inp.classList.remove('hide');
+      lbl.textContent = 'Type "' + requireText + '" to proceed';
+      inp.value = ''; inp.placeholder = requireText;
+      setTimeout(() => inp.focus(), 50);
+    } else {
+      lbl.classList.add('hide'); inp.classList.add('hide');
+    }
+    document.getElementById('modal-ok').textContent = okLabel || 'Proceed';
+    document.getElementById('modal-back').classList.add('open');
+  });
+}
+
+/* ── Tabs & routing ───────────────────────────────────── */
+const TABS = ['overview','tenants','tickets','feedback','agents','announce','flags','settings'];
+function bindTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      location.hash = '#/' + btn.dataset.tab;
+    });
+  });
+  window.addEventListener('hashchange', applyHash);
+}
+function activateTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('hide', p.dataset.pane !== tab));
+}
+function applyHash() {
+  const h = (location.hash || '#/overview').replace(/^#\/?/, '');
+  const [root, id] = h.split('/').filter(Boolean);
+  const tab = TABS.includes(root) ? root : 'overview';
+  activateTab(tab);
+  // Kick loads per tab
+  if (tab === 'tenants') loadTenants().catch(e => toast(e.message, 'err'));
+  if (tab === 'tickets') loadTickets().catch(e => toast(e.message, 'err'));
+  if (tab === 'feedback') loadFeedback().catch(e => toast(e.message, 'err'));
+  if (tab === 'agents') loadAgents().catch(e => toast(e.message, 'err'));
+  if (tab === 'announce') loadAnnouncements().catch(e => toast(e.message, 'err'));
+  if (tab === 'flags') loadFlags().catch(e => toast(e.message, 'err'));
+  // Drawer if deep-link
+  if (tab === 'tenants' && id) openTenantDrawer(id).catch(e => toast(e.message, 'err'));
+  else if (tab === 'tickets' && id) openTicketDrawer(id).catch(e => toast(e.message, 'err'));
+  else if (!id) closeDrawer();
+}
+
+/* ── Keyboard shortcuts ──────────────────────────────── */
+function bindTabsBehavior() {
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input,textarea,select')) return;
+    if (e.key === '/') {
+      e.preventDefault();
+      const el = document.querySelector('.tab-pane:not(.hide) input[type="search"]');
+      if (el) el.focus();
+    } else if (e.key === 'Escape') {
+      if (document.getElementById('drawer').classList.contains('open')) closeDrawer();
+      if (document.getElementById('modal-back').classList.contains('open')) closeModal(false);
+    } else if (e.key === 'j' || e.key === 'k') {
+      navigateTableRow(e.key === 'j' ? 1 : -1);
+    } else if (e.key === 'Enter') {
+      const sel = document.querySelector('.tbl tbody tr.selected');
+      if (sel) sel.click();
+    }
+  });
+}
+function navigateTableRow(dir) {
+  const tbl = document.querySelector('.tab-pane:not(.hide) table.tbl tbody');
+  if (!tbl) return;
+  const rows = Array.from(tbl.querySelectorAll('tr:not(.empty-row)'));
+  if (!rows.length) return;
+  let idx = rows.findIndex(r => r.classList.contains('selected'));
+  idx = idx < 0 ? 0 : Math.max(0, Math.min(rows.length - 1, idx + dir));
+  rows.forEach(r => r.classList.remove('selected'));
+  rows[idx].classList.add('selected');
+  rows[idx].scrollIntoView({ block: 'nearest' });
+}
+
+/* ── Format helpers ───────────────────────────────────── */
+function fmtUsd(n) { if (!Number.isFinite(n)) return '—'; return '$' + n.toFixed(n < 10 ? 2 : 0); }
+function fmtNum(n) { if (n == null) return '—'; return n.toLocaleString(); }
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = typeof ts === 'number' ? new Date(ts)
+          : ts && ts._seconds ? new Date(ts._seconds * 1000)
+          : ts && ts.toDate ? ts.toDate()
+          : new Date(ts);
+  if (!(d instanceof Date) || isNaN(d)) return '—';
+  return d.toISOString().slice(0, 16).replace('T', ' ');
+}
+function fmtRel(ts) {
+  if (!ts) return '—';
+  const d = typeof ts === 'number' ? new Date(ts)
+          : ts && ts._seconds ? new Date(ts._seconds * 1000)
+          : ts && ts.toDate ? ts.toDate()
+          : new Date(ts);
+  if (!(d instanceof Date) || isNaN(d)) return '—';
+  const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (sec < 60) return sec + 's ago';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+  if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+  return Math.floor(sec / 86400) + 'd ago';
+}
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" }[ch]));
+}
+function chipForStatus(s) {
+  s = String(s || '').toLowerCase();
+  if (s === 'active' || s === 'trialing' || s === 'open') return 'ok';
+  if (s === 'suspended' || s === 'pending' || s === 'trial_expired') return 'warn';
+  if (s === 'cancelled' || s === 'canceled' || s === 'closed') return 'bad';
+  return 'mute';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  OVERVIEW
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function loadOverview() {
+  const btn = document.getElementById('btn-refresh-overview');
+  btn && (btn.disabled = true);
+  try {
+    const [kpi, risk, audit] = await Promise.all([
+      callSuper('getKpiOverview'),
+      callSuper('topAtRiskTenants').catch(() => ({ tenants: [] })),
+      callSuper('recentAudit', { limit: 30 }).catch(() => ({ entries: [] })),
+    ]);
+    STATE.overview    = kpi;
+    STATE.topRisk     = risk.tenants || [];
+    STATE.mrrSeries   = kpi.mrrSeries || [];
+    STATE.recentAudit = audit.entries || [];
+    renderKpis();
+    renderRisk();
+    renderMrrSpark();
+    renderRecentAudit();
+    // Open tickets count → sidebar badge
+    const openTickets = kpi.openTickets || 0;
+    const badge = document.getElementById('ct-tickets');
+    badge.textContent = String(openTickets);
+    badge.classList.toggle('zero', !openTickets);
+  } finally { btn && (btn.disabled = false); }
+}
+function renderKpis() {
+  const k = STATE.overview || {};
+  const rows = [
+    { label: 'Tenants · total',     val: fmtNum(k.totalTenants), sub: k.newTenants7d != null ? `+${k.newTenants7d} last 7 d` : '' },
+    { label: 'Active subscriptions',val: fmtNum(k.activeSubscriptions), cls: 'up' },
+    { label: 'Trialing',            val: fmtNum(k.trialing), sub: (k.trialEndingSoon != null ? `${k.trialEndingSoon} end within 7 d` : ''), cls: 'warn' },
+    { label: 'MRR',                 val: fmtUsd(k.mrrUsd), sub: k.mrrChangePct != null ? (k.mrrChangePct >= 0 ? '▲ ' : '▼ ') + Math.abs(k.mrrChangePct).toFixed(1) + '% MoM' : '', cls: k.mrrChangePct >= 0 ? 'up' : 'down' },
+    { label: 'Platform cost / day', val: fmtUsd(k.platformCostUsdPerDay), sub: k.costMonthToDate != null ? fmtUsd(k.costMonthToDate) + ' MTD' : '' },
+    { label: 'Open tickets',        val: fmtNum(k.openTickets), sub: k.criticalTickets ? `${k.criticalTickets} critical` : '', cls: k.criticalTickets ? 'down' : '' },
+    { label: 'Avg health score',    val: (k.avgHealthScore != null ? Math.round(k.avgHealthScore) : '—'), sub: (k.tenantsAtRisk != null ? `${k.tenantsAtRisk} at risk` : ''), cls: (k.avgHealthScore >= 70 ? 'up' : k.avgHealthScore >= 50 ? 'warn' : 'down') },
+    { label: 'Super admins',        val: fmtNum(k.superAdminCount) },
+    { label: 'Feedback · last 7 d', val: fmtNum(k.feedback7d), sub: k.negativeFeedback7d ? k.negativeFeedback7d + ' negative' : '' },
+    { label: 'Churn · last 30 d',   val: fmtNum(k.churnCount30d), cls: k.churnCount30d > 0 ? 'down' : '' },
+    { label: 'Signups · last 7 d',  val: fmtNum(k.signups7d), cls: 'up' },
+    { label: 'Active users / day',  val: fmtNum(k.dailyActiveUsers) },
+  ];
+  document.getElementById('kpi-grid').innerHTML = rows.map(r => `
+    <div class="kpi ${r.cls || ''}">
+      <div class="kpi-label">${escHtml(r.label)}</div>
+      <div class="kpi-val">${r.val == null ? '—' : r.val}</div>
+      <div class="kpi-sub">${escHtml(r.sub || '')}</div>
+    </div>
+  `).join('');
+}
+function renderRisk() {
+  const box = document.getElementById('top-risk');
+  if (!STATE.topRisk.length) { box.innerHTML = '<div class="empty">No at-risk tenants.</div>'; return; }
+  box.innerHTML = STATE.topRisk.slice(0, 8).map(t => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer" onclick="location.hash='#/tenants/${escHtml(t.tenantId)}'">
+      <div>
+        <div style="color:#fff;font-weight:600;font-size:13px">${escHtml(t.restaurantName || t.slug || t.tenantId)}</div>
+        <div style="font-size:11px;color:#8a9bad">${escHtml(t.reason || 'low health score')}</div>
+      </div>
+      <div>
+        <span class="score-bar"><div style="width:${Math.max(0, Math.min(100, t.score || 0))}%"></div></span>
+        <span class="mono" style="color:${t.score < 40 ? '#ff9a9a' : t.score < 60 ? '#fdcb6e' : '#e0e6ed'}">${t.score || '—'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+function renderMrrSpark() {
+  const cv = document.getElementById('spark-mrr');
+  const sub = document.getElementById('mrr-sub');
+  const series = STATE.mrrSeries || [];
+  const ctx = cv.getContext('2d');
+  const rect = cv.getBoundingClientRect();
+  cv.width = rect.width * (window.devicePixelRatio || 1);
+  cv.height = rect.height * (window.devicePixelRatio || 1);
+  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  if (!series.length) {
+    ctx.fillStyle = '#7a8a9b'; ctx.font = '12px Inter'; ctx.fillText('No data yet', 10, 30);
+    sub.textContent = '—'; return;
+  }
+  const vals = series.map(s => Number(s.mrrUsd || 0));
+  const max = Math.max(...vals, 1), min = Math.min(...vals, 0);
+  const pad = 8;
+  const w = rect.width - pad * 2, h = rect.height - pad * 2;
+  // Gradient fill area
+  const grad = ctx.createLinearGradient(0, 0, 0, rect.height);
+  grad.addColorStop(0, 'rgba(116,172,223,.4)');
+  grad.addColorStop(1, 'rgba(116,172,223,0)');
+  ctx.beginPath();
+  series.forEach((p, i) => {
+    const x = pad + (w * i) / Math.max(series.length - 1, 1);
+    const y = pad + h - ((p.mrrUsd - min) / Math.max(max - min, 1)) * h;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pad + w, pad + h); ctx.lineTo(pad, pad + h); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  // Line
+  ctx.beginPath();
+  series.forEach((p, i) => {
+    const x = pad + (w * i) / Math.max(series.length - 1, 1);
+    const y = pad + h - ((p.mrrUsd - min) / Math.max(max - min, 1)) * h;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#74acdf'; ctx.lineWidth = 2; ctx.stroke();
+  sub.textContent = `min ${fmtUsd(min)} · max ${fmtUsd(max)} · latest ${fmtUsd(vals[vals.length - 1])}`;
+}
+function renderRecentAudit() {
+  const box = document.getElementById('recent-audit');
+  if (!STATE.recentAudit.length) { box.innerHTML = '<div class="empty">No recent audit entries.</div>'; return; }
+  box.innerHTML = '<div style="max-height:320px;overflow:auto">' + STATE.recentAudit.map(e => `
+    <div class="msg ${e.operation && e.operation.startsWith('super_admin_') ? 'op' : ''}">
+      <div class="meta">${fmtRel(e.timestamp)} · <span class="mono">${escHtml(e.operation || 'unknown')}</span> · ${escHtml(e.user_email || e.user_id || 'system')} · tenant=${escHtml(e.tenant_id || 'platform')}</div>
+      <div class="body">${escHtml(JSON.stringify(e).slice(0, 240))}</div>
+    </div>
+  `).join('') + '</div>';
+}
+
+document.getElementById('btn-refresh-overview').addEventListener('click', () => loadOverview().catch(e => toast(e.message, 'err')));
+document.getElementById('btn-audit-refresh').addEventListener('click', async () => {
+  try {
+    const r = await callSuper('recentAudit', { limit: 30 });
+    STATE.recentAudit = r.entries || []; renderRecentAudit();
+    toast('Audit refreshed', 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+});
+document.getElementById('btn-run-rollups').addEventListener('click', async () => {
+  const ok = await confirmAction({
+    title: 'Run rollups now?',
+    message: 'Triggers cost, usage, and health aggregation immediately. Safe — overwrites today\'s rollup docs idempotently.',
+    okLabel: 'Run',
+  });
+  if (!ok) return;
+  try {
+    toast('Running rollups…');
+    const r = await callSuper('runRollupsNow');
+    toast('Rollups done: ' + JSON.stringify(r), 'ok');
+    loadOverview();
+  } catch (e) { toast(e.message, 'err'); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  TENANTS
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function loadTenants() {
+  const tbody = document.querySelector('#tenants-tbl tbody');
+  tbody.innerHTML = '<tr><td colspan="8" class="empty">Loading…</td></tr>';
+  try {
+    const data = await callSuper('listTenantsEnriched');
+    STATE.tenants = data.tenants || [];
+    STATE.tenantsIndex = new Map();
+    for (const t of STATE.tenants) {
+      STATE.tenantsIndex.set(t.tenantId, t);
+      if (t.slug) STATE.tenantsIndex.set(t.slug, t);
+    }
+    document.getElementById('tenants-count').textContent = STATE.tenants.length;
+    renderTenantsTable();
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">Failed: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+function renderTenantsTable() {
+  const tbody = document.querySelector('#tenants-tbl tbody');
+  const q = (document.getElementById('tenants-search').value || '').toLowerCase().trim();
+  const statusF = document.getElementById('tenants-status').value;
+  const planF = document.getElementById('tenants-plan').value;
+  const sort = document.getElementById('tenants-sort').value;
+  let list = STATE.tenants.slice();
+  if (q) list = list.filter(t => [t.slug, t.ownerEmail, t.restaurantName, t.tenantId].filter(Boolean).some(s => String(s).toLowerCase().includes(q)));
+  if (statusF) list = list.filter(t => String(t.status || '').toLowerCase() === statusF);
+  if (planF) list = list.filter(t => String(t.plan || '').toLowerCase() === planF);
+  if (sort === 'health') list.sort((a, b) => (a.healthScore || 0) - (b.healthScore || 0));
+  else if (sort === 'slug') list.sort((a, b) => String(a.slug || '').localeCompare(String(b.slug || '')));
+  else if (sort === 'mrr') list.sort((a, b) => (b.mrrUsd || 0) - (a.mrrUsd || 0));
+  else list.sort((a, b) => (b.lastActivityMs || 0) - (a.lastActivityMs || 0));
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No tenants match.</td></tr>'; return; }
+  tbody.innerHTML = list.map(t => `
+    <tr data-tenant="${escHtml(t.tenantId)}" data-slug="${escHtml(t.slug || '')}">
+      <td class="mono">${escHtml(t.slug || t.tenantId.slice(0, 10))}</td>
+      <td><div style="color:#fff;font-weight:600">${escHtml(t.restaurantName || '—')}</div><div class="mono" style="font-size:11px;color:#8a9bad">${escHtml(t.ownerEmail || '')}</div></td>
+      <td><span class="chip mute">${escHtml(t.plan || '—')}</span></td>
+      <td><span class="chip ${chipForStatus(t.status)}">${escHtml(t.status || '—')}</span></td>
+      <td>${fmtNum(t.userCount)}</td>
+      <td><span class="score-bar"><div style="width:${Math.max(0, Math.min(100, t.healthScore || 0))}%"></div></span><span class="mono">${t.healthScore || '—'}</span></td>
+      <td class="mono">${fmtUsd(t.mrrUsd || 0)}</td>
+      <td class="mono" style="font-size:11.5px;color:#a0b4c8">${fmtRel(t.lastActivityMs)}</td>
+    </tr>
+  `).join('');
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => {
+      const slug = row.dataset.slug || row.dataset.tenant;
+      location.hash = '#/tenants/' + slug;
+    });
+  });
+}
+['tenants-search','tenants-status','tenants-plan','tenants-sort'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', renderTenantsTable);
+  el.addEventListener('change', renderTenantsTable);
+});
+document.getElementById('btn-tenants-refresh').addEventListener('click', () => loadTenants().catch(e => toast(e.message, 'err')));
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  TENANT DRAWER  (22-tab detail)
+ * ═══════════════════════════════════════════════════════════════════════ */
+const TENANT_DRAWER_TABS = [
+  { id: 'summary',   label: 'Summary' },
+  { id: 'users',     label: 'Users' },
+  { id: 'billing',   label: 'Billing' },
+  { id: 'costs',     label: 'Costs' },
+  { id: 'usage',     label: 'Usage' },
+  { id: 'health',    label: 'Health' },
+  { id: 'tickets',   label: 'Tickets' },
+  { id: 'feedback',  label: 'Feedback' },
+  { id: 'notes',     label: 'Notes' },
+  { id: 'meta',      label: 'Meta & tags' },
+  { id: 'data',      label: 'Data volume' },
+  { id: 'audit',     label: 'Audit log' },
+  { id: 'rawdata',   label: 'Collections' },
+  { id: 'flags',     label: 'Flags' },
+  { id: 'announce',  label: 'Announce' },
+  { id: 'actions',   label: 'Actions' },
+  { id: 'impersonate', label: 'Impersonate' },
+  { id: 'refund',    label: 'Refund' },
+  { id: 'plan',      label: 'Plan' },
+  { id: 'comp',      label: 'Comp' },
+  { id: 'export',    label: 'Export' },
+  { id: 'danger',    label: 'Danger' },
+];
+const TICKET_DRAWER_TABS = [
+  { id: 'thread', label: 'Thread' },
+  { id: 'meta',   label: 'Meta' },
+  { id: 'tenant', label: 'Tenant snapshot' },
+];
+
+function bindDrawer() {
+  document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+  document.getElementById('drawer-back').addEventListener('click', closeDrawer);
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-back').classList.remove('open');
+  STATE.drawer = { type: null, id: null, tab: null, data: null };
+  // Strip deep-link
+  const h = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
+  if ((h[0] === 'tenants' || h[0] === 'tickets') && h[1]) {
+    location.hash = '#/' + h[0];
+  }
+}
+
+async function openTenantDrawer(idOrSlug) {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-back').classList.add('open');
+  document.getElementById('drawer-title').textContent = idOrSlug;
+  document.getElementById('drawer-sub').textContent = 'Loading…';
+  document.getElementById('drawer-actions').innerHTML = '';
+  document.getElementById('drawer-tabs').innerHTML = '';
+  document.getElementById('drawer-body').innerHTML = '<div class="empty">Loading tenant…</div>';
+  try {
+    // Resolve tenantId from slug/id
+    let tenantId = idOrSlug;
+    const fromIndex = STATE.tenantsIndex.get(idOrSlug);
+    if (fromIndex) tenantId = fromIndex.tenantId;
+    else {
+      // Fall through to server resolution via getTenantFull
+    }
+    const full = await callSuper('getTenantFull', { tenantIdOrSlug: idOrSlug });
+    STATE.drawer = { type: 'tenant', id: full.tenant.tenantId, tab: 'summary', data: full };
+    document.getElementById('drawer-title').textContent = (full.tenant.restaurantName || full.tenant.slug || full.tenant.tenantId);
+    document.getElementById('drawer-sub').innerHTML = `<span class="mono">${escHtml(full.tenant.slug || full.tenant.tenantId)}</span> · <span class="chip ${chipForStatus(full.tenant.status)}">${escHtml(full.tenant.status || '—')}</span> · <span class="chip mute">${escHtml(full.tenant.plan || '—')}</span>`;
+    document.getElementById('drawer-actions').innerHTML = `
+      <button class="btn ghost sm" id="drw-suspend">${full.tenant.status === 'suspended' ? 'Unsuspend' : 'Suspend'}</button>
+      <button class="btn ghost sm" id="drw-impersonate">Impersonate</button>
+    `;
+    document.getElementById('drw-suspend').onclick = () => toggleSuspend(full.tenant);
+    document.getElementById('drw-impersonate').onclick = () => impersonateTenant(full.tenant);
+    document.getElementById('drawer-tabs').innerHTML = TENANT_DRAWER_TABS.map(t =>
+      `<button class="drawer-tab${t.id === 'summary' ? ' active' : ''}" data-dtab="${t.id}">${escHtml(t.label)}</button>`
+    ).join('');
+    document.getElementById('drawer-tabs').querySelectorAll('.drawer-tab').forEach(b => {
+      b.addEventListener('click', () => { setDrawerTab(b.dataset.dtab); });
+    });
+    setDrawerTab('summary');
+  } catch (e) {
+    document.getElementById('drawer-body').innerHTML = `<div class="empty">Failed: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function setDrawerTab(id) {
+  STATE.drawer.tab = id;
+  document.getElementById('drawer-tabs').querySelectorAll('.drawer-tab').forEach(b => b.classList.toggle('active', b.dataset.dtab === id));
+  if (STATE.drawer.type === 'tenant') renderTenantTab(id);
+  else if (STATE.drawer.type === 'ticket') renderTicketTab(id);
+}
+
+function renderTenantTab(tab) {
+  const body = document.getElementById('drawer-body');
+  const f = STATE.drawer.data;
+  if (!f) return;
+  const t = f.tenant || {};
+  const tenantId = t.tenantId;
+  if (tab === 'summary') {
+    body.innerHTML = `
+      <div class="kv">
+        <div class="k">Tenant ID</div><div class="v mono">${escHtml(tenantId)}</div>
+        <div class="k">Slug</div><div class="v mono">${escHtml(t.slug || '—')}</div>
+        <div class="k">Restaurant</div><div class="v">${escHtml(t.restaurantName || '—')}</div>
+        <div class="k">Owner email</div><div class="v">${escHtml(t.ownerEmail || '—')}</div>
+        <div class="k">Owner UID</div><div class="v mono">${escHtml(t.ownerUid || '—')}</div>
+        <div class="k">Plan</div><div class="v">${escHtml(t.plan || '—')}</div>
+        <div class="k">Status</div><div class="v"><span class="chip ${chipForStatus(t.status)}">${escHtml(t.status || '—')}</span></div>
+        <div class="k">Signed up</div><div class="v">${fmtDate(t.signedUpAt)}</div>
+        <div class="k">Trial ends</div><div class="v">${fmtDate(t.trialEndsAt)}</div>
+        <div class="k">Active users</div><div class="v">${fmtNum((f.users || []).length)}</div>
+        <div class="k">Approved emails</div><div class="v">${fmtNum((f.approvedEmails || []).length)}</div>
+        <div class="k">Last activity</div><div class="v">${fmtRel(t.lastActivityMs)}</div>
+      </div>
+      <div class="section-h">Quick stats</div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi"><div class="kpi-label">Health</div><div class="kpi-val">${f.health?.score ?? '—'}</div><div class="kpi-sub">${escHtml(f.health?.status || '—')}</div></div>
+        <div class="kpi"><div class="kpi-label">MRR</div><div class="kpi-val">${fmtUsd(t.mrrUsd || 0)}</div></div>
+        <div class="kpi"><div class="kpi-label">Cost last 30 d</div><div class="kpi-val">${fmtUsd(f.costs30dUsd || 0)}</div></div>
+      </div>
+    `;
+  } else if (tab === 'users') {
+    const users = f.users || [];
+    body.innerHTML = users.length ? `
+      <table class="tbl">
+        <thead><tr><th>Email</th><th>Role</th><th>UID</th><th>Actions</th></tr></thead>
+        <tbody>${users.map(u => `
+          <tr>
+            <td>${escHtml(u.email || '—')}</td>
+            <td><span class="chip mute">${escHtml(u.role || 'owner')}</span></td>
+            <td class="mono">${escHtml(u.uid || '—')}</td>
+            <td>
+              <button class="btn ghost sm" data-action="resetpw" data-uid="${escHtml(u.uid || '')}">Reset password</button>
+              <button class="btn ghost sm" data-action="revoketok" data-uid="${escHtml(u.uid || '')}">Revoke tokens</button>
+              <button class="btn ghost sm" data-action="resendverif" data-uid="${escHtml(u.uid || '')}">Resend verification</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    ` : '<div class="empty">No team members yet.</div>';
+    body.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const uid = btn.dataset.uid; const action = btn.dataset.action;
+        try {
+          if (action === 'resetpw')       { const r = await callSuper('resetUserPassword', { uid }); toast('Reset link: ' + r.link, 'ok'); }
+          else if (action === 'revoketok'){ await callSuper('revokeTokens', { uid }); toast('Tokens revoked', 'ok'); }
+          else if (action === 'resendverif'){ await callSuper('resendVerification', { uid }); toast('Verification re-sent', 'ok'); }
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    });
+  } else if (tab === 'billing') {
+    const s = f.subscription || {};
+    body.innerHTML = `
+      <div class="kv">
+        <div class="k">Subscription ID</div><div class="v mono">${escHtml(s.id || '—')}</div>
+        <div class="k">Status</div><div class="v"><span class="chip ${chipForStatus(s.status)}">${escHtml(s.status || '—')}</span></div>
+        <div class="k">Plan</div><div class="v">${escHtml(s.planId || t.plan || '—')}</div>
+        <div class="k">Price / month</div><div class="v">${fmtUsd((s.priceCents || 0) / 100)}</div>
+        <div class="k">Card last 4</div><div class="v mono">${escHtml(s.cardLast4 || t.cardLast4 || '—')}</div>
+        <div class="k">Next billing</div><div class="v">${fmtDate(s.chargedThroughDate)}</div>
+        <div class="k">Square customer</div><div class="v mono">${escHtml(t.squareCustomerId || '—')}</div>
+      </div>
+      <div class="section-h">Recent charges</div>
+      ${f.charges && f.charges.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>${f.charges.map(c => `
+        <tr><td>${fmtDate(c.createdAt)}</td><td class="mono">${fmtUsd((c.amountCents || 0) / 100)}</td><td><span class="chip ${chipForStatus(c.status)}">${escHtml(c.status || '—')}</span></td></tr>
+      `).join('')}</tbody></table>` : '<div class="empty">No charges on record.</div>'}
+    `;
+  } else if (tab === 'costs') {
+    const costs = f.costsSeries || [];
+    body.innerHTML = `
+      <div class="kv">
+        <div class="k">Cost last 30 d</div><div class="v mono">${fmtUsd(f.costs30dUsd || 0)}</div>
+        <div class="k">Cost today (est)</div><div class="v mono">${fmtUsd(f.costToday || 0)}</div>
+        <div class="k">Month to date</div><div class="v mono">${fmtUsd(f.costMonthToDate || 0)}</div>
+      </div>
+      <div class="section-h">Daily breakdown</div>
+      ${costs.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Reads</th><th>Writes</th><th>CF inv</th><th>Gemini tok</th><th>Emails</th><th>Total USD</th></tr></thead><tbody>${costs.map(c => `
+        <tr><td>${escHtml(c.date)}</td><td>${fmtNum(c.reads)}</td><td>${fmtNum(c.writes)}</td><td>${fmtNum(c.cfInvocations)}</td><td>${fmtNum((c.geminiInputTokens || 0) + (c.geminiOutputTokens || 0))}</td><td>${fmtNum(c.emailsSent)}</td><td class="mono">${fmtUsd(c.totalUsdCost)}</td></tr>
+      `).join('')}</tbody></table>` : '<div class="empty">No cost rollups yet. Run the scheduler or click "Run rollups now" on Overview.</div>'}
+    `;
+  } else if (tab === 'usage') {
+    const usage = f.usageSeries || [];
+    body.innerHTML = `
+      <div class="section-h">Daily activity</div>
+      ${usage.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Active users</th><th>Total ops</th><th>Top op</th></tr></thead><tbody>${usage.map(u => `
+        <tr><td>${escHtml(u.date)}</td><td>${fmtNum(u.activeUsers)}</td><td>${fmtNum(u.totalOps)}</td><td class="mono">${escHtml((u.topOps || [])[0]?.op || '—')}</td></tr>
+      `).join('')}</tbody></table>` : '<div class="empty">No usage rollups yet.</div>'}
+    `;
+  } else if (tab === 'health') {
+    const h = f.health || {};
+    body.innerHTML = `
+      <div class="kv">
+        <div class="k">Score</div><div class="v"><span class="score-bar"><div style="width:${Math.max(0,Math.min(100, h.score || 0))}%"></div></span><span class="mono">${h.score ?? '—'}</span></div>
+        <div class="k">Status</div><div class="v">${escHtml(h.status || '—')}</div>
+        <div class="k">Active users / 30 d</div><div class="v">${h.activeUsers30d ?? '—'}</div>
+        <div class="k">Open critical tickets</div><div class="v">${h.openCriticalTickets ?? '—'}</div>
+        <div class="k">Last activity</div><div class="v">${fmtRel(h.lastActivityMs)}</div>
+      </div>
+      <div class="section-h">Signals</div>
+      <pre style="background:rgba(0,0,0,.4);padding:10px;border-radius:8px;font-family:JetBrains Mono;font-size:11px;color:#9ec6ea;white-space:pre-wrap">${escHtml(JSON.stringify(h.signals || {}, null, 2))}</pre>
+    `;
+  } else if (tab === 'tickets') {
+    const ts = f.tickets || [];
+    body.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn sm" id="t-new-ticket">+ New ticket for this tenant</button>
+      </div>
+      ${ts.length ? `<table class="tbl"><thead><tr><th>#</th><th>Subject</th><th>Priority</th><th>Status</th><th>Opened</th></tr></thead><tbody>${ts.map(tk => `
+        <tr data-ticket="${escHtml(tk.id)}" data-tenant="${escHtml(tenantId)}"><td class="mono">${escHtml(tk.id.slice(0,8))}</td><td>${escHtml(tk.subject || '—')}</td><td><span class="chip ${tk.priority === 'critical' ? 'bad' : tk.priority === 'high' ? 'warn' : 'mute'}">${escHtml(tk.priority || 'normal')}</span></td><td><span class="chip ${chipForStatus(tk.status)}">${escHtml(tk.status || '—')}</span></td><td>${fmtRel(tk.openedAt)}</td></tr>
+      `).join('')}</tbody></table>` : '<div class="empty">No tickets.</div>'}
+    `;
+    document.getElementById('t-new-ticket').onclick = () => createTicketFlow(tenantId);
+    body.querySelectorAll('tr[data-ticket]').forEach(r => {
+      r.addEventListener('click', () => openTicketDrawer(r.dataset.ticket, r.dataset.tenant));
+    });
+  } else if (tab === 'feedback') {
+    const fb = f.feedback || [];
+    body.innerHTML = fb.length ? fb.map(e => `
+      <div class="msg">
+        <div class="meta">${fmtRel(e.timestamp)} · <span class="chip ${e.sentiment === 'negative' ? 'bad' : e.sentiment === 'positive' ? 'ok' : 'mute'}">${escHtml(e.sentiment || '—')}</span> · feature=${escHtml(e.feature || '—')} · user=${escHtml(e.userEmail || e.userId || '—')}</div>
+        <div class="body">${escHtml(e.message || '')}</div>
+      </div>
+    `).join('') : '<div class="empty">No feedback.</div>';
+  } else if (tab === 'notes') {
+    const notes = f.notes || [];
+    body.innerHTML = `
+      <div style="margin-bottom:12px">
+        <label class="lbl">Add internal note (operators only)</label>
+        <textarea id="note-body" class="fld" placeholder="What should future operators know about this tenant?"></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+          <label style="font-size:11px;color:#a0b4c8"><input type="checkbox" id="note-pinned"> Pin</label>
+          <button class="btn sm" id="note-add">Add note</button>
+        </div>
+      </div>
+      ${notes.length ? notes.map(n => `
+        <div class="msg op">
+          <div class="meta">${fmtRel(n.createdAt)} · ${escHtml(n.authorEmail || n.authorUid || 'unknown')} ${n.pinned ? '· <span class="chip warn">pinned</span>' : ''}
+            <button class="btn ghost sm" data-del="${escHtml(n.id)}" style="float:right">Delete</button>
+          </div>
+          <div class="body">${escHtml(n.body || '')}</div>
+        </div>
+      `).join('') : '<div class="empty">No notes yet.</div>'}
+    `;
+    document.getElementById('note-add').onclick = async () => {
+      const body = document.getElementById('note-body').value.trim();
+      const pinned = document.getElementById('note-pinned').checked;
+      if (!body) return;
+      try { await callSuper('addNote', { tenantId, body, pinned }); toast('Note added', 'ok'); reloadDrawer(); } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelectorAll('button[data-del]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!(await confirmAction({ title: 'Delete note?', message: 'This cannot be undone.', okLabel: 'Delete' }))) return;
+        try { await callSuper('deleteNote', { tenantId, noteId: btn.dataset.del }); toast('Deleted', 'ok'); reloadDrawer(); } catch (e) { toast(e.message, 'err'); }
+      });
+    });
+  } else if (tab === 'meta') {
+    const meta = f.meta || {};
+    const tags = meta.tags || [];
+    body.innerHTML = `
+      <div>
+        <label class="lbl">Tags</label>
+        <div id="tags-list">${tags.map(tag => `<span class="tag">${escHtml(tag)}<button data-tag="${escHtml(tag)}">×</button></span>`).join('') || '<span style="color:#7a8a9b;font-size:12px">no tags</span>'}</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="tag-new" class="fld" placeholder="vip · beta · watchlist">
+          <button class="btn sm" id="tag-add">Add</button>
+        </div>
+      </div>
+      <label class="lbl">Priority</label>
+      <select id="meta-priority" class="fld">
+        <option value="">—</option>
+        <option value="high" ${meta.priority === 'high' ? 'selected' : ''}>High</option>
+        <option value="normal" ${meta.priority === 'normal' ? 'selected' : ''}>Normal</option>
+        <option value="low" ${meta.priority === 'low' ? 'selected' : ''}>Low</option>
+      </select>
+      <label class="lbl">Assigned operator email</label>
+      <input id="meta-assignee" class="fld" value="${escHtml(meta.assignedOperator || '')}">
+      <label class="lbl">Free-form notes</label>
+      <textarea id="meta-notes" class="fld">${escHtml(meta.notes || '')}</textarea>
+      <div style="margin-top:10px;text-align:right"><button class="btn" id="meta-save">Save meta</button></div>
+    `;
+    document.getElementById('tag-add').onclick = async () => {
+      const tag = (document.getElementById('tag-new').value || '').trim();
+      if (!tag) return;
+      try { await callSuper('addTenantTag', { tenantId, tag }); reloadDrawer(); } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelectorAll('#tags-list button[data-tag]').forEach(btn => {
+      btn.onclick = async () => {
+        try { await callSuper('removeTenantTag', { tenantId, tag: btn.dataset.tag }); reloadDrawer(); } catch (e) { toast(e.message, 'err'); }
+      };
+    });
+    document.getElementById('meta-save').onclick = async () => {
+      try {
+        await callSuper('setTenantMeta', {
+          tenantId,
+          priority: document.getElementById('meta-priority').value || null,
+          assignedOperator: document.getElementById('meta-assignee').value || null,
+          notes: document.getElementById('meta-notes').value || null,
+        });
+        toast('Meta saved', 'ok'); reloadDrawer();
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'data') {
+    body.innerHTML = `<div class="kv">${Object.entries(f.dataVolume || {}).map(([k, v]) => `<div class="k">${escHtml(k)}</div><div class="v mono">${fmtNum(v)}</div>`).join('')}</div>`;
+    if (!f.dataVolume || !Object.keys(f.dataVolume).length) body.innerHTML = '<div class="empty">No data volume captured.</div>';
+  } else if (tab === 'audit') {
+    const entries = f.auditRecent || [];
+    body.innerHTML = entries.length ? entries.map(e => `
+      <div class="msg ${e.operation && e.operation.startsWith('super_admin_') ? 'op' : ''}">
+        <div class="meta">${fmtRel(e.timestamp)} · <span class="mono">${escHtml(e.operation || '')}</span> · ${escHtml(e.user_email || e.user_id || '—')}</div>
+        <div class="body">${escHtml(JSON.stringify(e).slice(0, 400))}</div>
+      </div>`).join('') : '<div class="empty">No audit entries.</div>';
+  } else if (tab === 'rawdata') {
+    const dv = f.dataVolume || {};
+    body.innerHTML = `
+      <p style="color:#a0b4c8;font-size:13px;margin-bottom:10px">Raw document counts by collection (from /tenants/${escHtml(tenantId)}/…).</p>
+      <table class="tbl"><thead><tr><th>Collection</th><th>Docs</th></tr></thead>
+      <tbody>${Object.entries(dv).map(([k, v]) => `<tr><td class="mono">${escHtml(k)}</td><td>${fmtNum(v)}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">No data.</td></tr>'}</tbody></table>
+    `;
+  } else if (tab === 'flags') {
+    const flags = f.featureFlags || [];
+    body.innerHTML = flags.length ? `<table class="tbl"><thead><tr><th>Flag</th><th>Value</th><th>Scope</th></tr></thead>
+      <tbody>${flags.map(fl => `<tr><td class="mono">${escHtml(fl.name)}</td><td><span class="chip ${fl.value ? 'ok' : 'mute'}">${fl.value ? 'true' : 'false'}</span></td><td>${escHtml(fl.scope || 'global')}</td></tr>`).join('')}</tbody></table>` :
+      '<div class="empty">No tenant-specific flag overrides.</div>';
+  } else if (tab === 'announce') {
+    body.innerHTML = `
+      <label class="lbl">Target announcement (tenant-scoped)</label>
+      <input id="ann-tn-title" class="fld" placeholder="Title"><label class="lbl">Severity</label>
+      <select id="ann-tn-sev" class="fld"><option value="info">Info</option><option value="warning">Warning</option><option value="critical">Critical</option></select>
+      <label class="lbl">Body</label><textarea id="ann-tn-body" class="fld"></textarea>
+      <div style="margin-top:10px;text-align:right"><button class="btn" id="ann-tn-send">Push to this tenant</button></div>
+    `;
+    document.getElementById('ann-tn-send').onclick = async () => {
+      try {
+        await callSuper('pushAnnouncement', {
+          title: document.getElementById('ann-tn-title').value,
+          body: document.getElementById('ann-tn-body').value,
+          severity: document.getElementById('ann-tn-sev').value,
+          targetTenantId: tenantId,
+        });
+        toast('Announcement sent', 'ok');
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'actions') {
+    body.innerHTML = `
+      <div class="section-h">Common actions</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        <button class="btn ghost" data-x="suspend">${t.status === 'suspended' ? 'Unsuspend tenant' : 'Suspend tenant'}</button>
+        <button class="btn ghost" data-x="impersonate">Impersonate</button>
+        <button class="btn ghost" data-x="export">Export data (JSON)</button>
+        <button class="btn ghost" data-x="softdelete">Soft-delete tenant</button>
+        <button class="btn ghost" data-x="force-cancel">Force-cancel Square subscription</button>
+        <button class="btn ghost" data-x="resend-welcome">Re-send welcome email</button>
+      </div>
+    `;
+    body.querySelector('[data-x="suspend"]').onclick = () => toggleSuspend(t);
+    body.querySelector('[data-x="impersonate"]').onclick = () => impersonateTenant(t);
+    body.querySelector('[data-x="export"]').onclick = async () => {
+      try {
+        toast('Preparing export…');
+        const r = await callSuper('exportTenant', { tenantId });
+        const blob = new Blob([JSON.stringify(r, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (t.slug || tenantId) + '-export.json';
+        a.click();
+        toast('Download started', 'ok');
+      } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelector('[data-x="softdelete"]').onclick = async () => {
+      if (!(await confirmAction({ title: 'Soft-delete tenant?', message: 'Marks tenant as deleted; data is retained for 30 days then purged.', requireText: t.slug, okLabel: 'Soft-delete' }))) return;
+      try { await callSuper('softDeleteTenant', { tenantId, confirmation: t.slug }); toast('Tenant soft-deleted', 'ok'); } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelector('[data-x="force-cancel"]').onclick = async () => {
+      if (!(await confirmAction({ title: 'Force-cancel subscription?', message: 'Cancels Square subscription now. Cannot be reverted — must resubscribe.', requireText: t.slug, okLabel: 'Cancel sub' }))) return;
+      try { await callSuper('forceCancel', { tenantId, confirmation: t.slug }); toast('Subscription cancelled', 'ok'); reloadDrawer(); } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelector('[data-x="resend-welcome"]').onclick = async () => {
+      try { await callSuper('resendVerification', { uid: t.ownerUid }); toast('Welcome re-sent', 'ok'); } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'impersonate') {
+    body.innerHTML = `
+      <p style="color:#a0b4c8;font-size:13px;margin-bottom:12px">Generate a one-time custom token to sign in as this tenant. Your operator UID remains the principal — all actions are audit-logged with <code>impersonatedBy</code>.</p>
+      <button class="btn warn" id="go-impersonate">Generate & open impersonation link</button>
+    `;
+    document.getElementById('go-impersonate').onclick = () => impersonateTenant(t);
+  } else if (tab === 'refund') {
+    body.innerHTML = `
+      <label class="lbl">Payment ID (Square)</label>
+      <input id="ref-payment" class="fld" placeholder="sqp_…">
+      <label class="lbl">Amount (USD)</label>
+      <input id="ref-amt" class="fld" type="number" step="0.01" placeholder="49.00">
+      <label class="lbl">Reason</label>
+      <input id="ref-reason" class="fld" placeholder="Billed after cancellation">
+      <div style="margin-top:10px;text-align:right"><button class="btn danger" id="ref-go">Issue refund</button></div>
+    `;
+    document.getElementById('ref-go').onclick = async () => {
+      const amt = Number(document.getElementById('ref-amt').value);
+      if (!amt) { toast('Amount required', 'err'); return; }
+      if (!(await confirmAction({ title: 'Issue refund?', message: `Refund $${amt.toFixed(2)} via Square. Cannot be un-refunded.`, requireText: t.slug, okLabel: 'Refund' }))) return;
+      try {
+        const r = await callSuper('issueRefund', {
+          tenantId,
+          paymentId: document.getElementById('ref-payment').value,
+          amountCents: Math.round(amt * 100),
+          reason: document.getElementById('ref-reason').value,
+        });
+        toast('Refund: ' + (r.refundId || 'ok'), 'ok');
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'plan') {
+    body.innerHTML = `
+      <label class="lbl">New plan</label>
+      <select id="plan-new" class="fld">
+        <option value="starter">Starter ($19/mo)</option>
+        <option value="pro" ${t.plan === 'pro' ? 'selected' : ''}>Pro ($49/mo)</option>
+        <option value="enterprise" ${t.plan === 'enterprise' ? 'selected' : ''}>Enterprise ($199/mo)</option>
+      </select>
+      <label class="lbl">Prorate</label>
+      <select id="plan-prorate" class="fld">
+        <option value="true">Yes — prorate mid-cycle</option>
+        <option value="false">No — charge full price next cycle</option>
+      </select>
+      <div style="margin-top:10px;text-align:right"><button class="btn warn" id="plan-go">Change plan</button></div>
+    `;
+    document.getElementById('plan-go').onclick = async () => {
+      const newPlan = document.getElementById('plan-new').value;
+      if (!(await confirmAction({ title: `Change plan to ${newPlan}?`, message: 'Square subscription will be swapped; billing adjusts immediately.', requireText: t.slug, okLabel: 'Swap plan' }))) return;
+      try {
+        await callSuper('adjustPlan', { tenantId, newPlan, prorate: document.getElementById('plan-prorate').value === 'true' });
+        toast('Plan swapped', 'ok'); reloadDrawer();
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'comp') {
+    body.innerHTML = `
+      <label class="lbl">Comp months</label>
+      <input id="comp-months" class="fld" type="number" min="1" max="12" value="1">
+      <label class="lbl">Reason</label>
+      <input id="comp-reason" class="fld" placeholder="Courtesy credit for outage">
+      <div style="margin-top:10px;text-align:right"><button class="btn" id="comp-go">Comp</button></div>
+    `;
+    document.getElementById('comp-go').onclick = async () => {
+      try {
+        const r = await callSuper('compInvoice', {
+          tenantId,
+          months: Number(document.getElementById('comp-months').value) || 1,
+          reason: document.getElementById('comp-reason').value,
+        });
+        toast('Comp applied: ' + (r.newTrialEndsAt || 'ok'), 'ok'); reloadDrawer();
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'export') {
+    body.innerHTML = `
+      <p style="color:#a0b4c8;font-size:13px;margin-bottom:12px">Download a JSON snapshot of all tenant data. Streams via Cloud Function — large tenants may take 20–40 s.</p>
+      <button class="btn" id="exp-go">Download full export</button>
+    `;
+    document.getElementById('exp-go').onclick = async () => {
+      try {
+        toast('Preparing export…');
+        const r = await callSuper('exportTenant', { tenantId });
+        const blob = new Blob([JSON.stringify(r, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = (t.slug || tenantId) + '-export.json'; a.click();
+        toast('Export downloaded', 'ok');
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'danger') {
+    body.innerHTML = `
+      <p style="color:#ff9a9a;font-size:13px;margin-bottom:12px;font-weight:600">Hard-delete wipes ALL tenant data (subcollections, users, auth accounts, rollups). This is irreversible. Always export first.</p>
+      <button class="btn danger" id="dd-go">Hard-delete tenant</button>
+    `;
+    document.getElementById('dd-go').onclick = async () => {
+      const v = await confirmAction({
+        title: 'HARD DELETE tenant?',
+        message: `Type the tenant ID to confirm: ${tenantId}`,
+        requireText: tenantId, okLabel: 'DELETE FOREVER',
+      });
+      if (!v) return;
+      try {
+        toast('Deleting… this may take 30 s');
+        const r = await callSuper('hardDeleteTenant', { tenantId, force: true, confirmation: tenantId });
+        toast('Tenant deleted: ' + JSON.stringify(r), 'ok');
+        closeDrawer();
+        loadTenants();
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  }
+}
+
+async function reloadDrawer() {
+  if (STATE.drawer.type !== 'tenant') return;
+  const full = await callSuper('getTenantFull', { tenantIdOrSlug: STATE.drawer.id });
+  STATE.drawer.data = full;
+  renderTenantTab(STATE.drawer.tab);
+}
+
+async function toggleSuspend(t) {
+  const currentlySuspended = t.status === 'suspended';
+  const op = currentlySuspended ? 'unsuspendTenant' : 'suspendTenant';
+  const conf = await confirmAction({
+    title: currentlySuspended ? 'Unsuspend tenant?' : 'Suspend tenant?',
+    message: currentlySuspended
+      ? `Re-enable access for ${t.slug || t.tenantId}. Users will be able to sign in again.`
+      : `Block all users from ${t.slug || t.tenantId}. They will see a "tenant suspended" screen.`,
+    requireText: t.slug, okLabel: currentlySuspended ? 'Unsuspend' : 'Suspend',
+  });
+  if (!conf) return;
+  try {
+    await callSuper(op, { tenantId: t.tenantId, confirmation: t.slug });
+    toast(currentlySuspended ? 'Tenant unsuspended' : 'Tenant suspended', 'ok');
+    reloadDrawer(); loadTenants();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function impersonateTenant(t) {
+  if (!(await confirmAction({
+    title: 'Impersonate tenant?',
+    message: `Open ${t.slug || t.tenantId} as super-admin in a new tab. Read-only — writes blocked. Auto-expires in 30 min. All actions audit-logged.`,
+    okLabel: 'Impersonate',
+  }))) return;
+  try {
+    const r = await callSuper('impersonateTenant', { tenantId: t.tenantId });
+    if (!r.customToken) { toast('No token returned', 'err'); return; }
+    const params = new URLSearchParams({
+      impersonateToken: r.customToken,
+      tenant: t.slug || t.tenantId,
+      expiresAt: String(r.expiresAtMs || ''),
+    });
+    const url = '/?' + params.toString();
+    window.open(url, '_blank', 'noopener');
+    toast('Impersonation tab opened — 30 min read-only window', 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  TICKETS
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function loadTickets() {
+  const tbody = document.querySelector('#tickets-tbl tbody');
+  tbody.innerHTML = '<tr><td colspan="7" class="empty">Loading…</td></tr>';
+  try {
+    const params = {
+      status: document.getElementById('ticket-status').value || null,
+      priority: document.getElementById('ticket-priority').value || null,
+      assignee: document.getElementById('ticket-assignee').value || null,
+    };
+    const data = await callSuper('listTickets', params);
+    STATE.tickets = data.tickets || [];
+    document.getElementById('tickets-count').textContent = STATE.tickets.length;
+    renderTickets();
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">Failed: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+function renderTickets() {
+  const tbody = document.querySelector('#tickets-tbl tbody');
+  const q = (document.getElementById('ticket-search').value || '').toLowerCase();
+  let list = STATE.tickets.slice();
+  if (q) list = list.filter(t => [t.id, t.subject, t.tenantSlug, t.tenantName].some(s => String(s || '').toLowerCase().includes(q)));
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No tickets match.</td></tr>'; return; }
+  tbody.innerHTML = list.map(t => `
+    <tr data-ticket="${escHtml(t.id)}" data-tenant="${escHtml(t.tenantId)}">
+      <td class="mono">${escHtml(t.id.slice(0,8))}</td>
+      <td>${escHtml(t.tenantName || t.tenantSlug || t.tenantId)}</td>
+      <td>${escHtml(t.subject || '—')}</td>
+      <td><span class="chip ${t.priority === 'critical' ? 'bad' : t.priority === 'high' ? 'warn' : 'mute'}">${escHtml(t.priority || 'normal')}</span></td>
+      <td><span class="chip ${chipForStatus(t.status)}">${escHtml(t.status || 'open')}</span></td>
+      <td>${escHtml(t.assignedTo || '—')}</td>
+      <td>${fmtRel(t.openedAt)}</td>
+    </tr>
+  `).join('');
+  tbody.querySelectorAll('tr').forEach(r => {
+    r.addEventListener('click', () => {
+      location.hash = '#/tickets/' + r.dataset.ticket + '__' + r.dataset.tenant;
+    });
+  });
+}
+['ticket-search','ticket-status','ticket-priority','ticket-assignee'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => { if (id === 'ticket-search') renderTickets(); else loadTickets(); });
+  el.addEventListener('change', () => loadTickets());
+});
+
+async function openTicketDrawer(composite) {
+  // composite is `${ticketId}__${tenantId}` OR just ticketId (need to resolve)
+  let ticketId = composite, tenantId = null;
+  if (composite.includes('__')) { [ticketId, tenantId] = composite.split('__'); }
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-back').classList.add('open');
+  document.getElementById('drawer-title').textContent = 'Ticket ' + ticketId.slice(0, 8);
+  document.getElementById('drawer-sub').textContent = 'Loading…';
+  document.getElementById('drawer-actions').innerHTML = '';
+  document.getElementById('drawer-tabs').innerHTML = '';
+  document.getElementById('drawer-body').innerHTML = '<div class="empty">Loading ticket…</div>';
+  try {
+    const data = await callSuper('getTicket', { ticketId, tenantId });
+    STATE.drawer = { type: 'ticket', id: ticketId, tab: 'thread', data };
+    const t = data.ticket || {};
+    document.getElementById('drawer-title').textContent = t.subject || ('Ticket ' + ticketId.slice(0, 8));
+    document.getElementById('drawer-sub').innerHTML = `<span class="mono">${escHtml(ticketId.slice(0, 12))}</span> · <span class="chip ${chipForStatus(t.status)}">${escHtml(t.status || '—')}</span> · <span class="chip ${t.priority === 'critical' ? 'bad' : t.priority === 'high' ? 'warn' : 'mute'}">${escHtml(t.priority || 'normal')}</span> · tenant <a href="#/tenants/${escHtml(t.tenantId)}" style="color:#74acdf">${escHtml(t.tenantSlug || t.tenantName || t.tenantId)}</a>`;
+    document.getElementById('drawer-actions').innerHTML = `
+      ${t.status === 'closed' ? `<button class="btn ghost sm" id="drw-reopen">Reopen</button>` : `<button class="btn ghost sm" id="drw-close">Close</button>`}
+      <button class="btn ghost sm" id="drw-assign">Assign</button>
+    `;
+    document.getElementById('drawer-tabs').innerHTML = TICKET_DRAWER_TABS.map(tb => `<button class="drawer-tab${tb.id === 'thread' ? ' active' : ''}" data-dtab="${tb.id}">${escHtml(tb.label)}</button>`).join('');
+    document.getElementById('drawer-tabs').querySelectorAll('.drawer-tab').forEach(b => b.addEventListener('click', () => setDrawerTab(b.dataset.dtab)));
+    const closeBtn = document.getElementById('drw-close');
+    if (closeBtn) closeBtn.onclick = () => closeTicket(t);
+    const reopenBtn = document.getElementById('drw-reopen');
+    if (reopenBtn) reopenBtn.onclick = () => reopenTicket(t);
+    document.getElementById('drw-assign').onclick = () => assignTicket(t);
+    setDrawerTab('thread');
+  } catch (e) {
+    document.getElementById('drawer-body').innerHTML = `<div class="empty">Failed: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderTicketTab(tab) {
+  const body = document.getElementById('drawer-body');
+  const d = STATE.drawer.data; if (!d) return;
+  const t = d.ticket || {}; const msgs = d.messages || [];
+  if (tab === 'thread') {
+    body.innerHTML = `
+      ${msgs.length ? msgs.map(m => `
+        <div class="msg ${m.authorKind === 'operator' ? 'op' : ''}">
+          <div class="meta">${fmtRel(m.createdAt)} · <strong>${escHtml(m.authorEmail || m.authorUid || '—')}</strong> ${m.authorKind === 'operator' ? '· <span class="chip warn">operator</span>' : ''}</div>
+          <div class="body">${escHtml(m.body || '')}</div>
+        </div>`).join('') : '<div class="empty">No replies yet.</div>'}
+      <div style="margin-top:14px">
+        <label class="lbl">Reply</label>
+        <textarea id="tk-reply-body" class="fld" placeholder="Reply to tenant…"></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center;justify-content:space-between">
+          <label style="font-size:11px;color:#a0b4c8"><input type="checkbox" id="tk-reply-internal"> Internal note (not emailed)</label>
+          <button class="btn sm" id="tk-reply-go">Send reply</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('tk-reply-go').onclick = async () => {
+      const body = document.getElementById('tk-reply-body').value.trim();
+      if (!body) return;
+      try {
+        await callSuper('replyTicket', {
+          ticketId: t.id, tenantId: t.tenantId,
+          body, internal: document.getElementById('tk-reply-internal').checked,
+        });
+        toast('Reply sent', 'ok');
+        openTicketDrawer(t.id + '__' + t.tenantId);
+      } catch (e) { toast(e.message, 'err'); }
+    };
+  } else if (tab === 'meta') {
+    body.innerHTML = `
+      <div class="kv">
+        <div class="k">Ticket ID</div><div class="v mono">${escHtml(t.id || '')}</div>
+        <div class="k">Tenant</div><div class="v">${escHtml(t.tenantSlug || t.tenantId || '—')}</div>
+        <div class="k">Opened by</div><div class="v">${escHtml(t.openedByEmail || t.openedByUid || '—')}</div>
+        <div class="k">Opened</div><div class="v">${fmtDate(t.openedAt)}</div>
+        <div class="k">Last updated</div><div class="v">${fmtDate(t.lastUpdatedAt)}</div>
+        <div class="k">Assigned to</div><div class="v">${escHtml(t.assignedTo || '—')}</div>
+        <div class="k">Priority</div><div class="v"><span class="chip ${t.priority === 'critical' ? 'bad' : t.priority === 'high' ? 'warn' : 'mute'}">${escHtml(t.priority || 'normal')}</span></div>
+        <div class="k">Status</div><div class="v"><span class="chip ${chipForStatus(t.status)}">${escHtml(t.status || '—')}</span></div>
+      </div>
+      <div class="section-h">Tags</div>
+      <div id="tk-tags">${(t.tags || []).map(tg => `<span class="tag">${escHtml(tg)}<button data-tag="${escHtml(tg)}">×</button></span>`).join('') || '<span style="color:#7a8a9b;font-size:12px">no tags</span>'}</div>
+      <div style="display:flex;gap:6px;margin-top:8px"><input id="tk-tag-new" class="fld" placeholder="tag-name"><button class="btn sm" id="tk-tag-add">Add</button></div>
+    `;
+    document.getElementById('tk-tag-add').onclick = async () => {
+      const tag = (document.getElementById('tk-tag-new').value || '').trim();
+      if (!tag) return;
+      try { await callSuper('addTicketTag', { ticketId: t.id, tenantId: t.tenantId, tag }); openTicketDrawer(t.id + '__' + t.tenantId); } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelectorAll('#tk-tags button[data-tag]').forEach(btn => btn.onclick = async () => {
+      try { await callSuper('removeTicketTag', { ticketId: t.id, tenantId: t.tenantId, tag: btn.dataset.tag }); openTicketDrawer(t.id + '__' + t.tenantId); } catch (e) { toast(e.message, 'err'); }
+    });
+  } else if (tab === 'tenant') {
+    const ts = d.tenantSnapshot || {};
+    body.innerHTML = `
+      <div class="kv">
+        <div class="k">Slug</div><div class="v mono">${escHtml(ts.slug || '—')}</div>
+        <div class="k">Restaurant</div><div class="v">${escHtml(ts.restaurantName || '—')}</div>
+        <div class="k">Plan</div><div class="v">${escHtml(ts.plan || '—')}</div>
+        <div class="k">Status</div><div class="v"><span class="chip ${chipForStatus(ts.status)}">${escHtml(ts.status || '—')}</span></div>
+        <div class="k">Health</div><div class="v">${ts.healthScore ?? '—'}</div>
+      </div>
+      <div style="margin-top:12px"><a class="btn ghost sm" href="#/tenants/${escHtml(ts.slug || ts.tenantId || t.tenantId)}">Open full tenant drawer →</a></div>
+    `;
+  }
+}
+
+async function closeTicket(t) {
+  if (!(await confirmAction({ title: 'Close ticket?', okLabel: 'Close' }))) return;
+  try { await callSuper('closeTicket', { ticketId: t.id, tenantId: t.tenantId }); toast('Closed', 'ok'); openTicketDrawer(t.id + '__' + t.tenantId); loadTickets(); } catch (e) { toast(e.message, 'err'); }
+}
+async function reopenTicket(t) {
+  try { await callSuper('reopenTicket', { ticketId: t.id, tenantId: t.tenantId }); toast('Reopened', 'ok'); openTicketDrawer(t.id + '__' + t.tenantId); loadTickets(); } catch (e) { toast(e.message, 'err'); }
+}
+async function assignTicket(t) {
+  const to = prompt('Assign to operator email (blank = unassign):', t.assignedTo || '');
+  if (to === null) return;
+  try { await callSuper('assignTicket', { ticketId: t.id, tenantId: t.tenantId, assignedTo: to || null }); toast('Assigned', 'ok'); openTicketDrawer(t.id + '__' + t.tenantId); loadTickets(); } catch (e) { toast(e.message, 'err'); }
+}
+
+async function createTicketFlow(tenantId) {
+  const subject = prompt('Ticket subject:');
+  if (!subject) return;
+  const body = prompt('First message to tenant:');
+  if (!body) return;
+  const priority = prompt('Priority (low/normal/high/critical):', 'normal') || 'normal';
+  try {
+    const r = await callSuper('createTicket', { tenantId, subject, body, priority });
+    toast('Ticket created: ' + r.ticketId, 'ok');
+    if (STATE.drawer.type === 'tenant') reloadDrawer();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+document.getElementById('btn-ticket-create').addEventListener('click', async () => {
+  const tenant = prompt('Tenant slug or ID for the new ticket:');
+  if (!tenant) return;
+  const resolved = STATE.tenantsIndex.get(tenant);
+  const tenantId = resolved ? resolved.tenantId : tenant;
+  createTicketFlow(tenantId);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  FEEDBACK
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function loadFeedback() {
+  try {
+    const [agg, list] = await Promise.all([
+      callSuper('aggregateFeedbackByFeature').catch(() => ({ features: [] })),
+      callSuper('listFeedback', { sentiment: document.getElementById('feedback-sentiment').value || null, limit: 80 }).catch(() => ({ events: [] })),
+    ]);
+    STATE.feedbackAgg = agg; STATE.feedbackList = list.events || [];
+    renderFeedback();
+  } catch (e) { toast(e.message, 'err'); }
+}
+function renderFeedback() {
+  const agg = (STATE.feedbackAgg && STATE.feedbackAgg.features) || [];
+  document.getElementById('feedback-agg').innerHTML = agg.length ? `
+    <table class="tbl"><thead><tr><th>Feature</th><th>Positive</th><th>Neutral</th><th>Negative</th><th>Total</th></tr></thead>
+    <tbody>${agg.map(f => `<tr><td class="mono">${escHtml(f.feature || '—')}</td><td>${fmtNum(f.positive)}</td><td>${fmtNum(f.neutral)}</td><td style="color:${f.negative > 0 ? '#ff9a9a' : '#e0e6ed'}">${fmtNum(f.negative)}</td><td><strong>${fmtNum(f.total)}</strong></td></tr>`).join('')}</tbody></table>` :
+    '<div class="empty">No feedback yet.</div>';
+  const list = STATE.feedbackList;
+  document.getElementById('feedback-list').innerHTML = list.length ? list.map(e => `
+    <div class="msg">
+      <div class="meta">${fmtRel(e.timestamp)} · <span class="chip ${e.sentiment === 'negative' ? 'bad' : e.sentiment === 'positive' ? 'ok' : 'mute'}">${escHtml(e.sentiment || '—')}</span> · <span class="mono">${escHtml(e.feature || '—')}</span> · ${escHtml(e.tenantSlug || e.tenantId || '—')} · ${escHtml(e.userEmail || '—')}
+        ${e.reviewed ? '<span class="chip ok">reviewed</span>' : `<button class="btn ghost sm" data-rev="${escHtml(e.id)}" data-tn="${escHtml(e.tenantId)}" style="float:right">Mark reviewed</button>`}
+      </div>
+      <div class="body">${escHtml(e.message || '')}</div>
+    </div>`).join('') : '<div class="empty">No feedback matches.</div>';
+  document.querySelectorAll('button[data-rev]').forEach(btn => {
+    btn.onclick = async () => {
+      try { await callSuper('markFeedbackReviewed', { eventId: btn.dataset.rev, tenantId: btn.dataset.tn }); toast('Marked', 'ok'); loadFeedback(); } catch (e) { toast(e.message, 'err'); }
+    };
+  });
+}
+document.getElementById('feedback-sentiment').addEventListener('change', loadFeedback);
+document.getElementById('btn-feedback-refresh').addEventListener('click', loadFeedback);
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  AGENTS (super-admins & operators)
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function loadAgents() {
+  try {
+    const [sa, ops] = await Promise.all([
+      callSuper('listSuperAdmins').catch(() => ({ admins: [] })),
+      callSuper('listOperators').catch(() => ({ operators: [] })),
+    ]);
+    STATE.superAdmins = sa.admins || [];
+    STATE.operators = ops.operators || [];
+    renderAgents();
+  } catch (e) { toast(e.message, 'err'); }
+}
+function renderAgents() {
+  document.getElementById('super-admins').innerHTML = STATE.superAdmins.length ? STATE.superAdmins.map(a => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div>
+        <div style="color:#fff;font-weight:600">${escHtml(a.email || a.uid)}</div>
+        <div style="color:#8a9bad;font-size:11px" class="mono">${escHtml(a.uid)}</div>
+      </div>
+      <button class="btn ghost sm" data-revoke="${escHtml(a.uid)}" data-email="${escHtml(a.email || '')}">Revoke</button>
+    </div>`).join('') : '<div class="empty">No super-admins.</div>';
+  document.querySelectorAll('button[data-revoke]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!(await confirmAction({ title: 'Revoke super-admin?', message: 'They will lose all operator access immediately.', requireText: btn.dataset.email, okLabel: 'Revoke' }))) return;
+      try { await callSuper('revokeSuperAdmin', { uid: btn.dataset.revoke }); toast('Revoked', 'ok'); loadAgents(); } catch (e) { toast(e.message, 'err'); }
+    };
+  });
+  document.getElementById('operators-list').innerHTML = STATE.operators.length ? STATE.operators.map(o => `
+    <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><strong>${escHtml(o.displayName || o.email)}</strong><div class="mono" style="font-size:11px;color:#8a9bad">${escHtml(o.email)}</div></div>
+        <span class="chip ${o.status === 'available' ? 'ok' : o.status === 'busy' ? 'warn' : 'mute'}">${escHtml(o.status || 'offline')}</span>
+      </div>
+      <div style="font-size:11px;color:#a0b4c8;margin-top:4px">Assigned tickets: ${fmtNum(o.assignedTicketCount)} · Last active: ${fmtRel(o.lastActiveMs)}</div>
+    </div>`).join('') : '<div class="empty">No operator profiles.</div>';
+}
+document.getElementById('btn-grant').addEventListener('click', async () => {
+  const email = (document.getElementById('grant-email').value || '').trim();
+  if (!email) return;
+  try { await callSuper('grantSuperAdmin', { email }); toast('Granted — user must re-login', 'ok'); document.getElementById('grant-email').value = ''; loadAgents(); } catch (e) { toast(e.message, 'err'); }
+});
+document.getElementById('btn-agents-refresh').addEventListener('click', loadAgents);
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  ANNOUNCEMENTS
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function loadAnnouncements() {
+  try {
+    const r = await callSuper('listAnnouncements');
+    STATE.announcements = r.announcements || [];
+    renderAnnouncements();
+  } catch (e) { toast(e.message, 'err'); }
+}
+function renderAnnouncements() {
+  document.getElementById('announce-list').innerHTML = STATE.announcements.length ? STATE.announcements.map(a => `
+    <div class="msg ${a.severity === 'critical' ? 'op' : ''}">
+      <div class="meta">${fmtRel(a.createdAt)} · <span class="chip ${a.severity === 'critical' ? 'bad' : a.severity === 'warning' ? 'warn' : 'mute'}">${escHtml(a.severity || 'info')}</span> · <strong>${escHtml(a.title)}</strong>
+        <button class="btn ghost sm" data-ann-del="${escHtml(a.id)}" style="float:right">Delete</button>
+      </div>
+      <div class="body">${escHtml(a.body || '')}</div>
+      <div style="font-size:11px;color:#8a9bad;margin-top:4px">${a.link ? `link: <a href="${escHtml(a.link)}" style="color:#74acdf">${escHtml(a.link)}</a>` : ''}${a.expiresAt ? ` · expires ${fmtDate(a.expiresAt)}` : ''}${a.targetTenantId ? ` · tenant ${escHtml(a.targetTenantId)}` : ' · global'}</div>
+    </div>`).join('') : '<div class="empty">No announcements.</div>';
+  document.querySelectorAll('button[data-ann-del]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!(await confirmAction({ title: 'Delete announcement?', okLabel: 'Delete' }))) return;
+      try { await callSuper('deleteAnnouncement', { announcementId: btn.dataset.annDel }); toast('Deleted', 'ok'); loadAnnouncements(); } catch (e) { toast(e.message, 'err'); }
+    };
+  });
+}
+document.getElementById('btn-ann-publish').addEventListener('click', async () => {
+  const title = document.getElementById('ann-title').value.trim();
+  if (!title) { toast('Title required', 'err'); return; }
+  try {
+    await callSuper('pushAnnouncement', {
+      title,
+      body: document.getElementById('ann-body').value,
+      severity: document.getElementById('ann-severity').value,
+      link: document.getElementById('ann-link').value || null,
+      expiresAt: document.getElementById('ann-expires').value || null,
+    });
+    toast('Published', 'ok');
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-body').value = '';
+    loadAnnouncements();
+  } catch (e) { toast(e.message, 'err'); }
+});
+document.getElementById('btn-announce-refresh').addEventListener('click', loadAnnouncements);
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  FEATURE FLAGS
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function loadFlags() {
+  try {
+    const r = await callSuper('listFeatureFlags');
+    STATE.flags = r.flags || [];
+    renderFlags();
+  } catch (e) { toast(e.message, 'err'); }
+}
+function renderFlags() {
+  document.getElementById('flags-list').innerHTML = STATE.flags.length ? `
+    <table class="tbl"><thead><tr><th>Flag</th><th>Scope</th><th>Value</th><th>Updated</th></tr></thead>
+    <tbody>${STATE.flags.map(f => `<tr><td class="mono">${escHtml(f.name)}</td><td>${escHtml(f.scope || (f.targetTenantId ? 'tenant:' + f.targetTenantId : 'global'))}</td><td><span class="chip ${f.value ? 'ok' : 'mute'}">${f.value ? 'true' : 'false'}</span></td><td>${fmtRel(f.updatedAt)}</td></tr>`).join('')}</tbody></table>` :
+    '<div class="empty">No flags.</div>';
+}
+document.getElementById('flag-target').addEventListener('change', (e) => {
+  document.getElementById('flag-tenant-wrap').classList.toggle('hide', e.target.value !== 'tenant');
+});
+document.getElementById('btn-flag-save').addEventListener('click', async () => {
+  const name = document.getElementById('flag-name').value.trim();
+  if (!name) { toast('Name required', 'err'); return; }
+  const target = document.getElementById('flag-target').value;
+  const payload = {
+    name,
+    value: document.getElementById('flag-value').value === 'true',
+  };
+  if (target === 'tenant') {
+    const slug = document.getElementById('flag-tenant').value.trim();
+    if (!slug) { toast('Tenant slug required', 'err'); return; }
+    const resolved = STATE.tenantsIndex.get(slug);
+    payload.targetTenantId = resolved ? resolved.tenantId : slug;
+  }
+  try { await callSuper('setFeatureFlag', payload); toast('Flag saved', 'ok'); loadFlags(); } catch (e) { toast(e.message, 'err'); }
+});
+document.getElementById('btn-flags-refresh').addEventListener('click', loadFlags);
+
+/* ═══════════════════════════════════════════════════════════════════════
+ *  SETTINGS — manual audit
+ * ═══════════════════════════════════════════════════════════════════════ */
+document.getElementById('btn-maudit').addEventListener('click', async () => {
+  const action = document.getElementById('maudit-action').value.trim();
+  if (!action) { toast('Action required', 'err'); return; }
+  try {
+    await callSuper('manualAuditEntry', {
+      tenantIdOrSlug: document.getElementById('maudit-tenant').value.trim() || null,
+      action,
+      notes: document.getElementById('maudit-notes').value,
+    });
+    toast('Audit entry recorded', 'ok');
+    document.getElementById('maudit-action').value = '';
+    document.getElementById('maudit-notes').value = '';
+  } catch (e) { toast(e.message, 'err'); }
+});
+</script>
+</body>
+</html>

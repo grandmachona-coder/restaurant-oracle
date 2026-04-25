@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sign up — Restaurant Oracle</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="Start your 30-day free trial of Restaurant Oracle — smart kitchen management for modern restaurants. No charge for 30 days, cancel anytime.">
+
+<!--
+  Square Web Payments SDK — PRODUCTION build.
+  For sandbox testing, swap to https://sandbox.web.squarecdn.com/v1/square.js
+  and swap SQUARE_APP_ID / SQUARE_LOC_ID below to the sandbox values.
+  The Application ID + Location ID below are PUBLIC identifiers (safe to embed).
+-->
+<script src="https://web.squarecdn.com/v1/square.js"></script>
+
+<!-- Sentry error monitoring (DSN baked into sentry-init.js) -->
+<script src="https://browser.sentry-cdn.com/10.50.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
+<script src="sentry-init.js"></script>
+
+<!-- PostHog product analytics (loads async; swap phc_YOUR_KEY in posthog-init.js) -->
+<script src="posthog-init.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{min-height:100%}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{
+    font-family:'Inter',sans-serif;
+    background:radial-gradient(ellipse at 100% 100%,#cce4f7 0%,#74acdf 30%,#2e6090 60%,#162d45 100%);
+    color:#e0e6ed;
+    min-height:100vh;
+    padding:40px 20px;
+    padding:max(40px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(40px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    -webkit-tap-highlight-color:rgba(116,172,223,.35);
+  }
+  /* Touch targets — prevent 300 ms delay on iOS */
+  button,input,[role=button]{touch-action:manipulation}
+
+  .signup-wrap{width:100%;max-width:960px}
+
+  .hero{text-align:center;margin-bottom:28px}
+  .hero-logo{width:192px;height:192px;margin:0 auto 16px;border-radius:32px;box-shadow:0 14px 48px rgba(0,0,0,.35);display:block;object-fit:cover;object-position:center}
+  .hero-title{font-size:28px;font-weight:800;color:#0d1e33;letter-spacing:-.02em;margin-bottom:6px;text-shadow:0 2px 4px rgba(255,255,255,.4)}
+  .hero-sub{font-size:14px;color:#1e3d5c;font-weight:500}
+
+  .card{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.35);border-radius:22px;padding:28px;box-shadow:0 14px 50px rgba(0,0,0,.35);margin-bottom:20px}
+
+  .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#74acdf;margin-bottom:12px}
+
+  /* Plan picker */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;align-items:stretch}
+  .plan{position:relative;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 14px 16px;cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column}
+  .plan:hover{border-color:rgba(116,172,223,.5);transform:translateY(-2px)}
+  .plan.active{border-color:#74acdf;background:linear-gradient(135deg,rgba(116,172,223,.18),rgba(46,120,184,.18));box-shadow:0 0 0 3px rgba(116,172,223,.25)}
+  .plan-head{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .plan-name{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px;letter-spacing:.02em}
+  .plan-price{font-size:22px;font-weight:800;color:#fff;line-height:1}
+  .plan-price .unit{font-size:12px;font-weight:500;color:#a0b4c8}
+  .plan-blurb{font-size:11px;color:#a0b4c8;margin-top:6px;line-height:1.35}
+  .plan-features{list-style:none;padding:0;margin:0;text-align:left;display:flex;flex-direction:column;gap:0;flex:1}
+  .plan-features li{font-size:12.5px;color:#d4dde6;line-height:1.3;padding:7px 0 7px 22px;position:relative;min-height:30px;display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+  .plan-features li:last-child{border-bottom:none}
+  .plan-features li::before{content:"✓";position:absolute;left:2px;top:50%;transform:translateY(-50%);color:#74acdf;font-size:13px;font-weight:800;line-height:1}
+  .plan.active .plan-features li{color:#e8eef5}
+  .plan.active .plan-features li::before{color:#9cc4e4}
+  .plan-features li.muted{color:#3a4554;opacity:.55;font-weight:400}
+  .plan-features li.muted::before{content:"✗";color:#3a4554;font-size:12px;font-weight:700}
+  .plan-badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-size:9px;font-weight:700;padding:3px 10px;border-radius:10px;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 2px 8px rgba(46,120,184,.4)}
+
+  /* Form fields */
+  .field{margin-bottom:14px}
+  .field-label{display:block;font-size:12px;font-weight:600;color:#a0b4c8;margin-bottom:6px}
+  .input{width:100%;padding:13px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#e0e6ed;font-size:14px;font-family:inherit;transition:border-color .15s}
+  .input:focus{outline:none;border-color:#74acdf;box-shadow:0 0 0 3px rgba(116,172,223,.25)}
+  .input::placeholder{color:#5a6b7e}
+
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  /* Square card iframe container */
+  #card-container{min-height:52px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:2px 4px}
+
+  .btn{width:100%;padding:15px;background:linear-gradient(135deg,#74acdf,#2e78b8);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:4px}
+  .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(46,120,184,.5)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+  .alert{padding:12px 14px;border-radius:10px;font-size:13px;font-weight:500;margin-bottom:14px;display:none;line-height:1.45}
+  .alert.show{display:block}
+  .alert.error{background:rgba(214,48,49,.18);border:1px solid rgba(214,48,49,.4);color:#ff9a9a}
+  .alert.info{background:rgba(116,172,223,.15);border:1px solid rgba(116,172,223,.3);color:#9ec6ea}
+
+  .trust{font-size:11px;color:#7a8a9b;text-align:center;margin-top:14px;line-height:1.6}
+  .trust a{color:#74acdf;text-decoration:none}
+  .trust a:hover{text-decoration:underline}
+
+  .consent-field{margin:14px 0 10px}
+  .consent-label{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12.5px;color:#c8d3e0;line-height:1.5}
+  .consent-check{width:18px;height:18px;flex:0 0 18px;margin-top:1px;accent-color:#74acdf;cursor:pointer}
+  .consent-label a{color:#74acdf;text-decoration:none}
+  .consent-label a:hover{text-decoration:underline}
+
+  .footer{font-size:12px;color:rgba(255,255,255,.75);text-align:center;margin-top:8px}
+  .footer a{color:#fff;font-weight:600;text-decoration:none}
+  .footer a:hover{text-decoration:underline}
+
+  /* Spinner */
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Success overlay */
+  .done-overlay{position:fixed;inset:0;background:radial-gradient(ellipse at center,#162d45 0%,#0a1422 100%);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .done-overlay.show{display:flex}
+  .done-icon{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#00b894,#00cec9);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:18px;box-shadow:0 10px 40px rgba(0,184,148,.4)}
+  .done-title{font-size:24px;font-weight:800;color:#fff;margin-bottom:8px;text-align:center}
+  .done-sub{font-size:14px;color:#a0b4c8;margin-bottom:22px;text-align:center;max-width:420px;line-height:1.5}
+  .done-btn{padding:14px 28px;background:linear-gradient(135deg,#74acdf,#2e78b8);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+  .done-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(46,120,184,.5)}
+
+  /* ─────────────────────────────────────────────────────────────────────
+     ORACLE LOOP infographic (between plans and restaurant info)
+     ───────────────────────────────────────────────────────────────────── */
+  .oracle-card{padding:40px 40px 36px;background:linear-gradient(155deg,rgba(10,20,46,.96) 0%,rgba(14,30,60,.98) 100%);border:1px solid rgba(116,172,223,.35);position:relative;overflow:hidden}
+  .oracle-card::before{content:"";position:absolute;top:-120px;right:-120px;width:320px;height:320px;background:radial-gradient(circle,rgba(116,172,223,.18) 0%,transparent 70%);pointer-events:none}
+  .oracle-card::after{content:"";position:absolute;bottom:-120px;left:-120px;width:320px;height:320px;background:radial-gradient(circle,rgba(46,120,184,.16) 0%,transparent 70%);pointer-events:none}
+  .oracle-head{font-size:28px;font-weight:800;color:#fff;text-align:center;margin:6px 0 10px;letter-spacing:-.02em;position:relative;z-index:1}
+  .oracle-intro{font-size:14px;color:#c3d1e0;text-align:center;max-width:720px;margin:0 auto 32px;line-height:1.6;position:relative;z-index:1}
+  .oracle-intro b{color:#74acdf;font-weight:700}
+
+  /* The big circle layout */
+  .oracle-circle{position:relative;width:100%;height:780px;margin:0 auto 32px;max-width:880px;z-index:1}
+  .oracle-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:220px;height:220px;border-radius:50%;
+    background:#fff;
+    box-shadow:0 0 0 6px rgba(116,172,223,.22),0 0 0 14px rgba(116,172,223,.1),0 20px 60px rgba(46,120,184,.5);
+    overflow:hidden;z-index:5;
+    animation:hubPulse 4s ease-in-out infinite}
+  @keyframes hubPulse{0%,100%{box-shadow:0 0 0 6px rgba(116,172,223,.22),0 0 0 14px rgba(116,172,223,.1),0 20px 60px rgba(46,120,184,.5)}50%{box-shadow:0 0 0 6px rgba(116,172,223,.34),0 0 0 20px rgba(116,172,223,.14),0 20px 72px rgba(46,120,184,.65)}}
+  /* Hub logo: icon.png is 927x532 with the chef-circle design centered horizontally at ~(463, 240) and "RESTAURANT ORACLE" text at y~470-504.
+     width:230% scales the image to 506×290.5 inside the 220px hub. Chef circle radius (210px) becomes ~115px — overflows hub by 5px → clipped to hub edge, so the outer-most pixels of the cream ring get clipped but the chef circle fills the hub tightly.
+     Circle centroid in original (463, 240) → scaled to (252.8, 131.0). To land it on hub center (110, 110):
+       left = (110 − 252.8) / 220 = −65% (base), shifted to −68% to pull the design slightly left for visual balance
+       top  = (110 − 131.0) / 220 = −9.5%
+     Text band (scaled y ~256-275) ends up at hub y ~235+, well below hub bottom at 220 → clipped. */
+  .oracle-hub-img{position:absolute;top:-9.5%;left:-68%;width:230%;height:auto;display:block;pointer-events:none}
+
+  /* Dotted connector ring that visually ties the 5 nodes to the hub */
+  .oracle-circle::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;height:560px;border-radius:50%;border:2px dashed rgba(116,172,223,.35);z-index:1;pointer-events:none}
+  .oracle-circle::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;height:480px;border-radius:50%;border:1px solid rgba(116,172,223,.18);z-index:1;pointer-events:none}
+
+  /* Bubble positioning — true 60° hexagon around hub, evenly spaced
+     CLOCKWISE Menu(0°)→Recipes(60°)→Prep(120°)→Inventory(180°)→Shopping(240°)→Vendors(300°) */
+  .oracle-node{position:absolute;z-index:3;width:240px}
+  .oracle-node.n-menu{top:0;left:50%;transform:translateX(-50%)}          /*   0° — 12:00 */
+  .oracle-node.n-recipes{top:18%;left:66%}                                 /*  60° —  2:00 */
+  .oracle-node.n-prep{top:50%;left:66%}                                    /* 120° —  4:00 */
+  .oracle-node.n-inventory{top:71%;left:50%;transform:translateX(-50%)}    /* 180° —  6:00 */
+  .oracle-node.n-shopping{top:50%;left:3%}                                 /* 240° —  8:00 */
+  .oracle-node.n-vendors{top:18%;left:3%}                                  /* 300° — 10:00 */
+
+  /* The thought-bubble card */
+  .oracle-bubble{width:240px;background:linear-gradient(155deg,#1a2d4a,#0f1e36);border:2px solid rgba(116,172,223,.45);border-radius:18px;padding:16px 16px 14px;box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 0 1px rgba(116,172,223,.1) inset;position:relative;transition:transform .2s,border-color .2s,box-shadow .2s}
+  .oracle-bubble:hover{transform:translateY(-4px);border-color:#74acdf;box-shadow:0 18px 50px rgba(46,120,184,.5),0 0 0 1px rgba(116,172,223,.2) inset}
+  .bubble-num{position:absolute;top:-12px;left:-12px;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(46,120,184,.5)}
+  .bubble-emoji{font-size:32px;line-height:1;margin-bottom:6px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+  .bubble-title{font-size:15px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:.01em}
+  .bubble-body{font-size:12px;color:#c3d1e0;line-height:1.5}
+  .bubble-body b{color:#9cc4e4;font-weight:700}
+
+  /* Speech-bubble pointers toward the center hub */
+  .oracle-bubble::after{content:"";position:absolute;width:14px;height:14px;background:linear-gradient(155deg,#1a2d4a,#0f1e36);border:2px solid rgba(116,172,223,.45);z-index:-1}
+  .n-menu .oracle-bubble::after{bottom:-9px;left:50%;transform:translateX(-50%) rotate(45deg);border-top:none;border-left:none}           /* 12 → points down */
+  .n-recipes .oracle-bubble::after{bottom:-9px;left:20%;transform:rotate(45deg);border-top:none;border-left:none}                          /*  2 → points down-left */
+  .n-prep .oracle-bubble::after{top:-9px;left:20%;transform:rotate(45deg);border-bottom:none;border-right:none}                            /*  4 → points up-left */
+  .n-inventory .oracle-bubble::after{top:-9px;left:50%;transform:translateX(-50%) rotate(45deg);border-bottom:none;border-right:none}      /*  6 → points up */
+  .n-shopping .oracle-bubble::after{top:-9px;right:20%;transform:rotate(45deg);border-bottom:none;border-left:none}                        /*  8 → points up-right */
+  .n-vendors .oracle-bubble::after{bottom:-9px;right:20%;transform:rotate(45deg);border-top:none;border-right:none}                        /* 10 → points down-right */
+
+  /* 3-step workflow narrative */
+  .oracle-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0 28px;position:relative;z-index:1}
+  .oracle-step{background:rgba(0,0,0,.35);border:1px solid rgba(116,172,223,.25);border-radius:14px;padding:18px 18px 16px;position:relative}
+  .oracle-step-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:10px;box-shadow:0 4px 12px rgba(46,120,184,.4)}
+  .oracle-step-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px}
+  .oracle-step-body{font-size:12.5px;color:#c3d1e0;line-height:1.55}
+  .oracle-step-body em{color:#9cc4e4;font-style:normal;font-weight:700}
+
+  /* Benefit tiles at the bottom */
+  .oracle-benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:8px;position:relative;z-index:1}
+  .benefit{background:rgba(116,172,223,.07);border:1px solid rgba(116,172,223,.2);border-radius:12px;padding:16px 14px 14px;text-align:center}
+  .benefit-icon{font-size:28px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+  .benefit-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;line-height:1.3}
+  .benefit-body{font-size:11.5px;color:#a8bbcf;line-height:1.5}
+
+  /* Tablet */
+  @media (max-width:960px){
+    .oracle-circle{height:640px;max-width:100%}
+    .oracle-bubble{width:200px;padding:14px}
+    .bubble-body{font-size:11.5px}
+    .oracle-benefits{grid-template-columns:repeat(2,1fr)}
+  }
+
+  @media (max-width:640px){
+    .hero-title{font-size:24px}
+    .plans{grid-template-columns:1fr;gap:10px}
+    .plan{padding:16px 16px 14px;text-align:left}
+    .plan-head{text-align:left;padding-bottom:10px;margin-bottom:10px}
+    .plan-price{display:inline-block;margin-left:8px}
+    .plan-blurb{margin-top:2px}
+    .plan-badge{position:static;display:inline-block;transform:none;margin-bottom:6px}
+    .plan-features li{white-space:normal}
+    .row{grid-template-columns:1fr}
+    .card{padding:22px}
+
+    /* Mobile: stack the loop vertically — no more circle */
+    .oracle-card{padding:24px 20px}
+    .oracle-head{font-size:22px}
+    .oracle-circle{height:auto;display:flex;flex-direction:column;gap:14px;align-items:center}
+    .oracle-circle::before,.oracle-circle::after{display:none}
+    .oracle-hub{position:static;transform:none;width:160px;height:160px;margin:12px auto 6px}
+    .oracle-node{position:static !important;transform:none !important;top:auto;left:auto;right:auto;bottom:auto;width:100%;max-width:360px}
+    .oracle-bubble{width:100%}
+    .oracle-bubble::after{display:none}
+    .oracle-steps{grid-template-columns:1fr;gap:12px}
+    .oracle-benefits{grid-template-columns:1fr 1fr;gap:10px}
+  }
+
+  /* ─── Feature carousel ────────────────────────────────────────────────
+     Horizontal scroll-snap carousel with prev/next buttons and dot nav.
+     Each slide is a 2-col grid: CSS-drawn app mockup (left) + copy (right).
+     ────────────────────────────────────────────────────────────────────── */
+  .carousel-card{padding:32px 28px}
+  .carousel{position:relative;margin-top:18px}
+  .carousel-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;gap:0;scrollbar-width:none;border-radius:14px}
+  .carousel-track::-webkit-scrollbar{display:none}
+  .slide{flex:0 0 100%;scroll-snap-align:center;display:grid;grid-template-columns:1.15fr 1fr;gap:28px;padding:6px 4px}
+
+  .slide-visual{min-width:0}
+  .slide-copy{display:flex;flex-direction:column;justify-content:center;padding:8px 4px}
+  .slide-kicker{font-size:11px;font-weight:700;color:#74acdf;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}
+  .slide-title{font-size:24px;font-weight:800;color:#fff;margin:0 0 10px}
+  .slide-body{font-size:14px;color:#c3d1e0;line-height:1.6;margin:0 0 14px}
+  .slide-body b{color:#9cc4e4;font-weight:700}
+  .slide-features{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:6px}
+  .slide-features li{font-size:12.5px;color:#a8bbcf;line-height:1.45}
+  .slide-connects{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:12px;border-top:1px dashed rgba(116,172,223,.2)}
+  .connects-label{font-size:11px;color:#8a9bb0;font-weight:600;margin-right:4px}
+  .slide-connects .tag{font-size:11px;font-weight:700;color:#74acdf;background:rgba(116,172,223,.12);border:1px solid rgba(116,172,223,.3);padding:3px 9px;border-radius:10px}
+
+  /* Mock app-screen */
+  .mock-screen{background:#0a1422;border:1px solid rgba(116,172,223,.28);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;min-height:380px}
+  .mock-topbar{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#050b14;border-bottom:1px solid rgba(116,172,223,.14)}
+  .mock-dot{width:10px;height:10px;border-radius:50%;background:#2a3a54}
+  .mock-dot:nth-child(1){background:#ff5f57}
+  .mock-dot:nth-child(2){background:#febc2e}
+  .mock-dot:nth-child(3){background:#28c840}
+  .mock-title{font-size:11px;font-weight:700;color:#8a9bb0;margin-left:10px;letter-spacing:.04em}
+  .mock-tabs{display:flex;gap:2px;padding:0 10px;background:#14233b;border-bottom:1px solid rgba(116,172,223,.18);overflow-x:auto;scrollbar-width:none}
+  .mock-tabs::-webkit-scrollbar{display:none}
+  .mock-tab{padding:9px 11px;font-size:11px;font-weight:700;color:#6b7a8f;border-bottom:2px solid transparent;white-space:nowrap;letter-spacing:.01em}
+  .mock-tab.active{color:#74acdf;border-bottom-color:#74acdf;background:rgba(116,172,223,.05)}
+  .mock-body{padding:14px 16px;flex:1;overflow:auto}
+  .mock-section-h{font-size:10.5px;font-weight:800;color:#74acdf;text-transform:uppercase;letter-spacing:.1em;margin:6px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(116,172,223,.15)}
+  .mock-section-h:first-child{margin-top:0}
+
+  /* Row variants per tab */
+  .mock-row{display:grid;grid-template-columns:1fr auto auto;gap:14px;padding:7px 0;border-bottom:1px dashed rgba(116,172,223,.1);font-size:12px;color:#c3d1e0;align-items:center}
+  .mock-row .mock-price{color:#9cc4e4;font-weight:700}
+  .mock-row .mock-target{color:#74acdf;font-size:11px;font-weight:700;background:rgba(116,172,223,.12);padding:2px 8px;border-radius:8px}
+
+  .mock-row2{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;font-size:12px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.08)}
+  .mock-row2 .mock-qty{color:#9cc4e4;font-family:ui-monospace,monospace;font-size:11px}
+  .mock-row2.mock-sub{color:#74acdf;font-weight:700;border-top:1px solid rgba(116,172,223,.12);padding-top:8px;margin-top:4px}
+  .mock-row2.mock-indent{padding-left:16px;color:#a8bbcf;font-size:11.5px}
+
+  .mock-row3{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 0;font-size:12px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.1)}
+  .mock-row3 input{accent-color:#74acdf;width:14px;height:14px}
+  .mock-row3 .mock-qty{color:#8a9bb0;font-size:10.5px;font-family:ui-monospace,monospace}
+
+  .mock-row4{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;padding:7px 0;font-size:12px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.1);align-items:center}
+  .mock-row4 .mock-qty{color:#9cc4e4;font-family:ui-monospace,monospace;font-size:11px}
+  .mock-row4 .mock-par{color:#6b7a8f;font-size:10.5px}
+  .mock-row4 .mock-short{color:#ff9a9a;font-weight:800;font-size:11px;font-family:ui-monospace,monospace}
+  .mock-row4 .mock-ok{color:#7ddfaa;font-weight:700;font-size:11px;font-family:ui-monospace,monospace}
+  .mock-scan-cta{margin-top:12px;padding:10px 12px;background:linear-gradient(135deg,rgba(116,172,223,.16),rgba(46,120,184,.18));border:1px dashed rgba(116,172,223,.45);border-radius:8px;font-size:11.5px;font-weight:700;color:#9cc4e4;text-align:center}
+
+  .mock-row5{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:7px 0;font-size:12px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.1)}
+  .mock-row5 input{accent-color:#74acdf;width:14px;height:14px}
+  .mock-row5 .mock-qty{color:#9cc4e4;font-family:ui-monospace,monospace;font-size:11px;font-weight:700}
+  .mock-row5 .mock-why{color:#8a9bb0;font-size:10.5px;font-style:italic}
+
+  .mock-row6{display:grid;grid-template-columns:1.2fr .8fr 1fr;gap:10px;padding:6px 0;font-size:12px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.08)}
+  .mock-row6 :nth-child(2){color:#9cc4e4;font-family:ui-monospace,monospace;font-size:11px}
+  .mock-row6 :nth-child(3){color:#8a9bb0;font-size:11px}
+
+  .mock-row7{display:grid;grid-template-columns:auto auto auto 1fr;gap:10px;align-items:baseline;padding:6px 0;font-size:11.5px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.08)}
+  .mock-row7 .mock-time{color:#6b7a8f;font-size:10.5px;font-family:ui-monospace,monospace;min-width:42px}
+  .mock-row7 .mock-user{color:#74acdf;font-weight:700;font-size:11px;min-width:58px}
+  .mock-row7 .mock-action{color:#9cc4e4;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;min-width:70px}
+
+  .mock-row8{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:6px 0;font-size:12px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.08);align-items:center}
+  .mock-row8 .mock-role{color:#9cc4e4;font-size:11px;font-weight:700;background:rgba(116,172,223,.1);padding:2px 7px;border-radius:7px}
+  .mock-row8 .mock-ok{color:#7ddfaa;font-size:10.5px;font-weight:700}
+  .mock-row8 .mock-pending{color:#febc2e;font-size:10.5px;font-weight:700}
+  .mock-row-v{display:grid;grid-template-columns:1.1fr 1.3fr auto;gap:10px;padding:6px 0;font-size:11.5px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.08);align-items:center}
+  .mock-row-v .mock-vname{color:#fff;font-weight:700;font-size:12px}
+  .mock-row-v .mock-vcontact{color:#a8bbcf;font-size:11px}
+  .mock-row-v .mock-vassigned{color:#9cc4e4;font-size:10.5px;font-weight:700;background:rgba(116,172,223,.1);padding:2px 7px;border-radius:7px;white-space:nowrap}
+  .mock-row-order{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:5px 0;font-size:11.5px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.08);align-items:center;font-family:ui-monospace,monospace}
+  .mock-row-order .mock-oqty{color:#9cc4e4;font-weight:700}
+  .mock-email-cta{margin-top:10px;padding:8px 10px;background:linear-gradient(135deg,rgba(116,172,223,.18),rgba(46,120,184,.12));border:1px dashed rgba(116,172,223,.35);border-radius:8px;color:#c3d1e0;font-size:11px;text-align:center;font-weight:700}
+  .mock-perm{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;font-size:11.5px;color:#a8bbcf}
+  .mock-perm .mock-check{color:#7ddfaa;font-size:10.5px;font-weight:700}
+
+  .mock-foot{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(116,172,223,.12);font-size:10.5px;color:#6b7a8f;font-style:italic}
+
+  /* Prep card — target/on-hand/batch-complete button */
+  .mock-prep-card{background:rgba(116,172,223,.06);border:1px solid rgba(116,172,223,.18);border-left:3px solid #74acdf;border-radius:8px;padding:8px 10px;margin-bottom:8px}
+  .mock-prep-card.mock-prep-short{border-left-color:#ff9a9a;background:rgba(255,154,154,.05)}
+  .mock-prep-card.mock-prep-ok{border-left-color:#7ddfaa;background:rgba(125,223,170,.05)}
+  .mock-prep-h{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .mock-prep-name{color:#fff;font-weight:700;font-size:12px;flex:1}
+  .mock-prep-badge{background:rgba(255,154,154,.18);color:#ff9a9a;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 7px;border-radius:6px}
+  .mock-prep-badge-ok{background:rgba(125,223,170,.18);color:#7ddfaa;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 7px;border-radius:6px}
+  .mock-prep-sub{color:#8a9bb0;font-size:10.5px;margin-bottom:6px}
+  .mock-prep-row{display:flex;align-items:center;gap:10px;font-size:11.5px;color:#c3d1e0}
+  .mock-prep-row b{color:#9cc4e4;font-family:ui-monospace,monospace;font-weight:700}
+  .mock-prep-btn{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:6px;box-shadow:0 2px 6px rgba(46,120,184,.4);letter-spacing:.02em}
+  .mock-prep-diff{margin-left:auto;color:#ff9a9a;font-weight:800;font-family:ui-monospace,monospace;font-size:12px}
+  .mock-prep-diff-ok{margin-left:auto;color:#7ddfaa;font-weight:800;font-family:ui-monospace,monospace;font-size:12px}
+
+  /* Dual device — desktop + phone side-by-side (Slide 10) */
+  .mock-dual{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;align-items:stretch}
+  .mock-dual .mock-screen{min-height:380px;margin:0}
+  .mock-phone{background:#0a1422;border:3px solid #1a2d4a;border-radius:26px;overflow:hidden;display:flex;flex-direction:column;min-height:380px;box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 0 1px rgba(116,172,223,.25) inset;position:relative}
+  .mock-phone-notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:56px;height:14px;background:#000;border-radius:10px;z-index:5}
+  .mock-phone-head{padding:26px 12px 10px;background:#050b14;border-bottom:1px solid rgba(116,172,223,.14);font-size:12px;font-weight:800;color:#74acdf;text-align:center;letter-spacing:.04em}
+  .mock-phone-body{padding:10px 10px 12px;flex:1;overflow:auto}
+  .mock-phone-section{font-size:9.5px;font-weight:800;color:#74acdf;text-transform:uppercase;letter-spacing:.1em;margin:4px 0 6px;padding-bottom:4px;border-bottom:1px solid rgba(116,172,223,.15)}
+  .mock-phone-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:5px 0;font-size:11px;color:#c3d1e0;border-bottom:1px dashed rgba(116,172,223,.1);align-items:center}
+  .mock-phone-row .mock-qty{color:#9cc4e4;font-family:ui-monospace,monospace;font-size:10.5px;font-weight:700}
+  .mock-phone-scan{margin-top:10px;padding:8px 10px;background:linear-gradient(135deg,rgba(116,172,223,.16),rgba(46,120,184,.18));border:1px dashed rgba(116,172,223,.45);border-radius:8px;font-size:10.5px;font-weight:700;color:#9cc4e4;text-align:center}
+  .mock-sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7ddfaa;box-shadow:0 0 8px rgba(125,223,170,.85);animation:syncPulse 1.6s ease-in-out infinite;vertical-align:middle;margin-right:5px}
+  @keyframes syncPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+  .mock-sync-label{font-size:10px;color:#7ddfaa;font-weight:700;letter-spacing:.03em}
+  @media (max-width:640px){
+    .mock-dual{grid-template-columns:1fr;gap:12px}
+    .mock-phone{min-height:320px;max-width:240px;margin:0 auto}
+  }
+
+  /* Prev / Next buttons */
+  .carousel-btn{position:absolute;top:calc(50% - 28px);width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#74acdf,#2e78b8);border:none;color:#fff;font-size:26px;font-weight:800;line-height:1;cursor:pointer;z-index:5;box-shadow:0 6px 20px rgba(46,120,184,.5);transition:transform .2s,box-shadow .2s,opacity .2s;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+  .carousel-btn:hover{transform:scale(1.08);box-shadow:0 10px 26px rgba(46,120,184,.7)}
+  .carousel-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+  .carousel-prev{left:-22px}
+  .carousel-next{right:-22px}
+
+  /* Dots */
+  .carousel-dots{display:flex;gap:8px;justify-content:center;margin-top:22px}
+  .carousel-dot{width:9px;height:9px;border-radius:50%;background:rgba(116,172,223,.3);border:none;cursor:pointer;padding:0;transition:background .2s,transform .2s}
+  .carousel-dot.active{background:#74acdf;transform:scale(1.3);box-shadow:0 0 10px rgba(116,172,223,.6)}
+
+  /* Carousel responsive */
+  @media (max-width:900px){
+    .slide{grid-template-columns:1fr;gap:18px}
+    .carousel-prev{left:4px}
+    .carousel-next{right:4px}
+  }
+  @media (max-width:640px){
+    .carousel-card{padding:24px 20px}
+    .slide-title{font-size:20px}
+    .mock-tab{font-size:10px;padding:8px 9px}
+    .mock-screen{min-height:320px}
+    .carousel-btn{width:36px;height:36px;font-size:22px}
+  }
+
+  /* ════════════════════════════════════════════════════════════════════
+     MOBILE REFINEMENTS — additive rules that cascade on top of the
+     @media blocks above. Layered by breakpoint, smallest wins.
+
+       ≤ 768 px  · stack the hexagon loop (was fighting the hub at 641–960)
+       ≤ 640 px  · phone: reduce body padding, shrink hero & card, stack
+                   the dual-device mockup
+       ≤ 480 px  · small phone (iPhone SE / 12 mini): tighter type & pads,
+                   drop the "par" column from mock-row4 to fit 320 px wide
+       ≤ 360 px  · android minimum: last-ditch shrink pass
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* ── Tablet portrait / large phone — stack the hexagon loop ────────── */
+  @media (max-width:768px){
+    .oracle-card{padding:28px 22px 24px}
+    .oracle-head{font-size:24px}
+    .oracle-intro{font-size:13.5px;margin-bottom:22px}
+    .oracle-circle{height:auto;display:flex;flex-direction:column;gap:14px;align-items:center}
+    .oracle-circle::before,.oracle-circle::after{display:none}
+    .oracle-hub{position:static;transform:none;width:170px;height:170px;margin:12px auto 6px}
+    .oracle-node{position:static !important;transform:none !important;top:auto;left:auto;right:auto;bottom:auto;width:100%;max-width:380px}
+    .oracle-bubble{width:100%;padding:15px}
+    .oracle-bubble::after{display:none}
+    .bubble-body{font-size:12.5px}
+    .oracle-steps{grid-template-columns:1fr;gap:12px}
+  }
+
+  /* ── Phone — reduce body padding, shrink hero, lighter cards ───────── */
+  @media (max-width:640px){
+    body{padding:24px 14px;padding:max(24px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+    .signup-wrap{max-width:100%}
+    .hero{margin-bottom:22px}
+    .hero-logo{width:160px;height:160px;border-radius:28px;box-shadow:0 10px 32px rgba(0,0,0,.35)}
+    .hero-sub{font-size:13px;padding:0 10px;line-height:1.5}
+    .card{padding:22px 18px;border-radius:18px;margin-bottom:16px}
+    .oracle-card{padding:24px 18px}
+    .oracle-intro{font-size:13px;margin-bottom:22px}
+    /* Keep the loop stacked from the 768 px block (already applies here) */
+  }
+
+  /* ── Small phone (≤ 480 px) — iPhone SE / Android compact ──────────── */
+  @media (max-width:480px){
+    body{padding:16px 10px;padding:max(16px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+    .hero-logo{width:128px;height:128px;border-radius:24px;margin-bottom:12px}
+    .hero-title{font-size:22px;letter-spacing:-.01em}
+    .hero-sub{font-size:12.5px;padding:0 6px;line-height:1.45}
+    .card{padding:18px 14px;border-radius:16px}
+    .section-label{font-size:10.5px;letter-spacing:.12em;margin-bottom:10px}
+
+    /* Oracle card */
+    .oracle-card{padding:20px 14px 18px}
+    .oracle-head{font-size:20px}
+    .oracle-intro{font-size:12.5px;line-height:1.55;margin-bottom:20px}
+    .oracle-hub{width:136px;height:136px}
+    .bubble-num{width:24px;height:24px;font-size:11px;top:-10px;left:-10px}
+    .bubble-emoji{font-size:26px;margin-bottom:4px}
+    .bubble-title{font-size:14px}
+    .bubble-body{font-size:12px;line-height:1.45}
+    .oracle-steps{margin:12px 0 22px}
+    .oracle-step{padding:14px 14px 12px}
+    .oracle-step-title{font-size:14px}
+    .oracle-step-body{font-size:12px}
+    .oracle-benefits{grid-template-columns:1fr}
+    .benefit{padding:14px 12px 12px}
+    .benefit-title{font-size:12.5px}
+    .benefit-body{font-size:11px;line-height:1.45}
+
+    /* Plans */
+    .plan{padding:14px 14px 12px}
+    .plan-name{font-size:13.5px}
+    .plan-price{font-size:20px}
+    .plan-blurb{font-size:10.5px}
+    .plan-features li{font-size:12px;padding:6px 0 6px 20px;min-height:26px}
+    .plan-features li::before{font-size:12px}
+
+    /* Form */
+    .field{margin-bottom:12px}
+    .field-label{font-size:11.5px;margin-bottom:5px}
+    .input{padding:12px 12px;font-size:14px;border-radius:10px}   /* 14 px so iOS won't zoom on focus */
+    #card-container{min-height:48px}
+    .btn{padding:14px;font-size:14px}
+    .trust{font-size:10.5px;line-height:1.55}
+
+    /* Carousel */
+    .carousel-card{padding:18px 12px}
+    .slide{padding:4px 2px}
+    .slide-title{font-size:19px}
+    .slide-body{font-size:13px;line-height:1.55}
+    .slide-features li{font-size:12px;line-height:1.4}
+    .slide-kicker{font-size:10px;letter-spacing:.12em;margin-bottom:6px}
+    .connects-label{font-size:10.5px}
+    .slide-connects .tag{font-size:10px;padding:2px 7px}
+    .mock-screen{min-height:300px}
+    .mock-topbar{padding:7px 10px}
+    .mock-body{padding:12px 12px}
+    .mock-section-h{font-size:10px;margin:4px 0 6px;padding-bottom:5px}
+    .mock-row,.mock-row2,.mock-row3,.mock-row5,.mock-row6,.mock-row7,.mock-row8,.mock-row-v{font-size:11px;padding:6px 0}
+    .mock-row .mock-target{font-size:10px;padding:2px 6px}
+    .mock-row .mock-price{font-size:11px}
+    /* 4-col row (name + qty + par + short) overflows ≤ 320 px — drop par */
+    .mock-row4{grid-template-columns:1fr auto auto;gap:8px;font-size:11px}
+    .mock-row4 .mock-par{display:none}
+    .mock-row4 .mock-qty,.mock-row4 .mock-short,.mock-row4 .mock-ok{font-size:10.5px}
+    .mock-scan-cta{font-size:10.5px;padding:8px 10px}
+    .mock-prep-card{padding:7px 9px;margin-bottom:7px}
+    .mock-prep-name{font-size:11.5px}
+    .mock-prep-sub{font-size:10px}
+    .mock-prep-row{gap:8px;font-size:11px}
+    .mock-prep-btn{font-size:10px;padding:3px 9px}
+    .mock-prep-diff,.mock-prep-diff-ok{font-size:11px}
+    .mock-foot{font-size:9.5px;margin-top:8px}
+    .mock-email-cta{font-size:10px;padding:7px 9px}
+    /* Vendor row — stack contact below name on narrow screens */
+    .mock-row-v{grid-template-columns:1fr auto;gap:4px 10px}
+    .mock-row-v .mock-vcontact{grid-column:1/-1;font-size:10px}
+    /* Dual-device slide */
+    .mock-phone{min-height:280px;max-width:210px}
+    .mock-phone-notch{width:50px;height:12px;top:7px}
+    .mock-phone-head{font-size:11.5px;padding:24px 10px 8px}
+    .mock-phone-row{font-size:10.5px;padding:4px 0}
+    .mock-phone-scan{font-size:10px}
+    .mock-sync-label{font-size:9.5px}
+    /* Nav buttons — smaller, tucked inside the card */
+    .carousel-btn{width:32px;height:32px;font-size:20px}
+    .carousel-prev{left:2px}
+    .carousel-next{right:2px}
+    .carousel-dots{margin-top:18px;gap:6px}
+    .carousel-dot{width:8px;height:8px}
+
+    /* Success overlay */
+    .done-title{font-size:22px}
+    .done-sub{font-size:13px;padding:0 6px}
+    .done-icon{width:60px;height:60px;font-size:30px;margin-bottom:14px}
+    .done-btn{padding:13px 24px;font-size:14px}
+  }
+
+  /* ── Minimum Android width (≤ 360 px) — last-ditch tightening ──────── */
+  @media (max-width:360px){
+    body{padding:12px 8px}
+    .card{padding:16px 12px}
+    .oracle-card{padding:18px 12px 16px}
+    .carousel-card{padding:16px 10px}
+    .hero-logo{width:112px;height:112px}
+    .hero-title{font-size:20px}
+    .oracle-head{font-size:19px}
+    .slide-title{font-size:18px}
+    .mock-screen{min-height:280px}
+    .mock-body{padding:10px 10px}
+    /* Kill one more mock column on the ingredients / shopping slides */
+    .mock-row5{grid-template-columns:auto 1fr auto;gap:8px}
+    .mock-row5 .mock-why{display:none}
+    .mock-row6{grid-template-columns:1fr auto;gap:8px}
+    .mock-row6 :nth-child(3){display:none}
+    .carousel-btn{width:28px;height:28px;font-size:18px}
+  }
+</style>
+</head>
+<body>
+  <div class="signup-wrap">
+    <div class="hero">
+      <h1 class="hero-title">Restaurant Oracle</h1>
+      <p class="hero-sub">30 days free · Menu → Recipes → Prep → Inventory → Shopping · one loop.</p>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────────────────
+         THE ORACLE LOOP — detailed marketing infographic
+         Five interconnected nodes tell the story of how the app actually
+         works: Menu defines the target, Recipes define the ingredients,
+         Inventory measures what's on hand, Shopping List fills the gap,
+         Prep turns it back into plated dishes. It's one closed loop.
+         ─────────────────────────────────────────────────────────────────── -->
+    <div class="card oracle-card">
+      <div class="section-label" style="text-align:center">The Restaurant Oracle Loop</div>
+      <h2 class="oracle-head">Your whole back-of-house, in one closed loop</h2>
+      <p class="oracle-intro">
+        Restaurant Oracle connects the six things every kitchen juggles —
+        <b>menu</b>, <b>recipes</b>, <b>prep</b>, <b>inventory</b>, <b>shopping</b>, and
+        <b>vendors</b> — into a single living loop. Change one, and the others
+        update themselves. No more spreadsheets that drift apart by Friday.
+      </p>
+
+      <div class="oracle-circle">
+        <!-- Central hub -->
+        <div class="oracle-hub">
+          <img src="icon.png" alt="Restaurant Oracle" class="oracle-hub-img">
+        </div>
+
+        <!-- Node 1 — Menu (12 o'clock) -->
+        <div class="oracle-node n-menu">
+          <div class="oracle-bubble">
+            <div class="bubble-num">1</div>
+            <div class="bubble-emoji">📋</div>
+            <div class="bubble-title">Menu</div>
+            <div class="bubble-body">Define every dish you serve and the <b>standing prep targets</b> — how many ramekins of hollandaise Saturday brunch needs, how many empanadas to roll for Friday service.</div>
+          </div>
+        </div>
+
+        <!-- Node 2 — Recipes (2 o'clock) -->
+        <div class="oracle-node n-recipes">
+          <div class="oracle-bubble">
+            <div class="bubble-num">2</div>
+            <div class="bubble-emoji">📖</div>
+            <div class="bubble-title">Recipes</div>
+            <div class="bubble-body">Each menu item links to a <b>recipe with an ingredients list and yield</b>. Scale it, sub an ingredient, update a garnish — the whole loop reflows automatically.</div>
+          </div>
+        </div>
+
+        <!-- Node 3 — Prep (4 o'clock) -->
+        <div class="oracle-node n-prep">
+          <div class="oracle-bubble">
+            <div class="bubble-num">3</div>
+            <div class="bubble-emoji">🔪</div>
+            <div class="bubble-title">Prep</div>
+            <div class="bubble-body">Targets + recipes become a <b>daily prep list</b> — how many batches of each sub-recipe to fire, sorted by what's furthest below target. Your line cook starts their shift with a checklist, not a guessing game.</div>
+          </div>
+        </div>
+
+        <!-- Node 4 — Inventory (6 o'clock) -->
+        <div class="oracle-node n-inventory">
+          <div class="oracle-bubble">
+            <div class="bubble-num">4</div>
+            <div class="bubble-emoji">📦</div>
+            <div class="bubble-title">Inventory</div>
+            <div class="bubble-body">Print a <b>count sheet by area</b> — walk-in, dry storage, bar, prep table — and jot quantities as you walk. Snap a photo of the filled-in sheet and <b>AI photo-scan</b> reads your handwriting and <b>auto-imports</b> every count.</div>
+          </div>
+        </div>
+
+        <!-- Node 5 — Shopping list (8 o'clock) -->
+        <div class="oracle-node n-shopping">
+          <div class="oracle-bubble">
+            <div class="bubble-num">5</div>
+            <div class="bubble-emoji">🛒</div>
+            <div class="bubble-title">Shopping List</div>
+            <div class="bubble-body">Oracle compares <b>what your menu will need</b> against <b>what you already have</b> and <b>auto-populates a shopping list</b> with exactly what to buy — quantity, unit, and which menu item drove each line.</div>
+          </div>
+        </div>
+
+        <!-- Node 6 — Vendors (10 o'clock) -->
+        <div class="oracle-node n-vendors">
+          <div class="oracle-bubble">
+            <div class="bubble-num">6</div>
+            <div class="bubble-emoji">🏢</div>
+            <div class="bubble-title">Vendors</div>
+            <div class="bubble-body">Each ingredient is tagged to the vendor you buy it from. The shopping list <b>auto-groups by vendor</b>, and one click <b>emails them the order</b> — line items, quantities, units — straight to your contact.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-step workflow narrative -->
+      <div class="oracle-steps">
+        <div class="oracle-step">
+          <div class="oracle-step-num">1</div>
+          <div class="oracle-step-title">Define your menu &amp; prep targets</div>
+          <div class="oracle-step-body">Build your menu inside Oracle, then define <em>how much</em> of each dish you need standing at the start of service. Brunch needs 40 empanadas; dinner needs 12 quarts of chimichurri.</div>
+        </div>
+        <div class="oracle-step">
+          <div class="oracle-step-num">2</div>
+          <div class="oracle-step-title">Add a recipe for each menu item</div>
+          <div class="oracle-step-body">Every dish gets an ingredient list with quantities and units. Change the recipe once and every menu, every prep sheet, every shopping list picks it up.</div>
+        </div>
+        <div class="oracle-step">
+          <div class="oracle-step-num">3</div>
+          <div class="oracle-step-title">Inventory → Shopping List.</div>
+          <div class="oracle-step-body">Count what's on the shelves — by area, by sub-area, even by photo-scanned sheet. Oracle does the math between <em>need</em> and <em>have</em> and hands you a clean shopping list.</div>
+        </div>
+      </div>
+
+      <div class="oracle-benefits">
+        <div class="benefit">
+          <div class="benefit-icon">⚡</div>
+          <div class="benefit-title">Less spreadsheet, more service</div>
+          <div class="benefit-body">The loop updates itself. Your Tuesday count changes Wednesday's shopping list — automatically.</div>
+        </div>
+        <div class="benefit">
+          <div class="benefit-icon">🎯</div>
+          <div class="benefit-title">Never 86'd mid-service again</div>
+          <div class="benefit-body">Minimum-quantity thresholds and daily prep targets catch shortages before tickets start firing.</div>
+        </div>
+        <div class="benefit">
+          <div class="benefit-icon">🧮</div>
+          <div class="benefit-title">The math is already done</div>
+          <div class="benefit-body">Menu targets → recipes → sub-recipes → ingredients → storage units. Oracle walks the chain so you don't have to.</div>
+        </div>
+        <div class="benefit">
+          <div class="benefit-icon">📸</div>
+          <div class="benefit-title">Snap the sheet, skip the typing</div>
+          <div class="benefit-body">Count on paper the way your team already does. AI photo-scan reads the filled-in sheet and imports every line automatically.</div>
+        </div>
+      </div>
+    </div>
+    <!-- end oracle infographic card -->
+
+    <!-- ───────────────────────────────────────────────────────────────────
+         FEATURE CAROUSEL — a tour of every tab in the app.
+         Each slide is a CSS-drawn mockup of one tab + copy explaining what
+         it does and which other tabs it connects to. Horizontal scroll-snap
+         + prev/next buttons + indicator dots.
+         ─────────────────────────────────────────────────────────────────── -->
+    <div class="card carousel-card">
+      <div class="section-label" style="text-align:center">A tour of the app</div>
+      <h2 class="oracle-head">All Tabs. Interconnected. In Harmony.</h2>
+      <p class="oracle-intro">Ten tabs, one living loop — the same app on the laptop in your office and the phone in your apron pocket. Change a prep target in Menu, a recipe yield in Recipes, or a vendor contact in Vendors — every other tab and every other device know about it before you hit save.</p>
+
+      <div class="carousel">
+        <button type="button" class="carousel-btn carousel-prev" aria-label="Previous slide">‹</button>
+        <div class="carousel-track" id="carouselTrack">
+
+          <!-- Slide 1 — Inventory (app tab #1) -->
+          <div class="slide" data-slide="inventory">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab active">📦 Inventory</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab">📖 Recipes</span><span class="mock-tab">🔪 Prep</span><span class="mock-tab">📋 Menu</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🏢 Vendors</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Walk-in · last counted Tue 2:47p</div>
+                  <div class="mock-row4"><span>Butter</span><span class="mock-qty">12 lb</span><span class="mock-par">par 40</span><span class="mock-short">−28</span></div>
+                  <div class="mock-row4"><span>Whole Eggs</span><span class="mock-qty">18 doz</span><span class="mock-par">par 25</span><span class="mock-short">−7</span></div>
+                  <div class="mock-row4"><span>Heavy Cream</span><span class="mock-qty">15 qt</span><span class="mock-par">par 15</span><span class="mock-ok">ok</span></div>
+                  <div class="mock-row4"><span>Red Onion</span><span class="mock-qty">48 ea</span><span class="mock-par">par 60</span><span class="mock-short">−12</span></div>
+                  <div class="mock-row4"><span>Ground Beef</span><span class="mock-qty">22 lb</span><span class="mock-par">par 35</span><span class="mock-short">−13</span></div>
+                  <div class="mock-scan-cta">📸 Scan count sheet → AI auto-imports</div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 1 of 10</div>
+              <h3 class="slide-title">📦 Inventory</h3>
+              <p class="slide-body">Print a <b>count sheet by area</b> — walk-in, dry storage, bar, prep — and walk it with a pen. Snap the filled sheet with your phone and <b>AI photo-scan reads your handwriting</b> and imports every count.</p>
+              <ul class="slide-features">
+                <li>✓ Counts organized by storage area</li>
+                <li>✓ Printable tally sheets for the clipboard</li>
+                <li>✓ AI photo-scan of handwritten counts</li>
+                <li>✓ Par vs. on-hand shortfall in one glance</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Ingredients</span><span class="tag">Shopping</span><span class="tag">Activity Log</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 2 — Ingredients (app tab #2) -->
+          <div class="slide" data-slide="ingredients">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab active">🥕 Ingredients</span><span class="mock-tab">📖 Recipes</span><span class="mock-tab">🔪 Prep</span><span class="mock-tab">📋 Menu</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🏢 Vendors</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Master catalog · 247 active</div>
+                  <div class="mock-row6"><span>Butter</span><span>40 lb</span><span>Walk-in</span></div>
+                  <div class="mock-row6"><span>AP Flour</span><span>200 lb</span><span>Dry storage</span></div>
+                  <div class="mock-row6"><span>Kosher Salt</span><span>20 lb</span><span>Dry storage</span></div>
+                  <div class="mock-row6"><span>Heavy Cream</span><span>15 qt</span><span>Walk-in</span></div>
+                  <div class="mock-row6"><span>Ground Beef</span><span>35 lb</span><span>Walk-in</span></div>
+                  <div class="mock-row6"><span>Olive Oil</span><span>12 gal</span><span>Dry storage</span></div>
+                  <div class="mock-foot">Unit-conversion built in · 1 lb = 453.6 g = 16 oz</div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 2 of 10</div>
+              <h3 class="slide-title">🥕 Ingredients</h3>
+              <p class="slide-body">The single source of truth for <b>every ingredient your kitchen uses</b>. Set minimum-quantity thresholds, pick units, assign storage areas. Every recipe, every count, every shopping line points back here.</p>
+              <ul class="slide-features">
+                <li>✓ Min-qty threshold per ingredient (auto-shop trigger)</li>
+                <li>✓ Default unit (lb, g, qt, ea, case…)</li>
+                <li>✓ Storage area (walk-in, dry, bar…)</li>
+                <li>✓ Unit conversion across the loop</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Recipes</span><span class="tag">Inventory</span><span class="tag">Shopping</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 3 — Recipes (app tab #3) -->
+          <div class="slide" data-slide="recipes">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab active">📖 Recipes</span><span class="mock-tab">🔪 Prep</span><span class="mock-tab">📋 Menu</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🏢 Vendors</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Chef's Empanada · yield 24</div>
+                  <div class="mock-row2"><span>AP Flour</span><span class="mock-qty">500 g</span></div>
+                  <div class="mock-row2"><span>Butter</span><span class="mock-qty">100 g</span></div>
+                  <div class="mock-row2"><span>Whole Egg</span><span class="mock-qty">1 ea</span></div>
+                  <div class="mock-row2 mock-sub"><span>↳ Empanada Filling</span><span class="mock-qty">2 batches</span></div>
+                  <div class="mock-row2 mock-indent"><span>Ground Beef</span><span class="mock-qty">800 g</span></div>
+                  <div class="mock-row2 mock-indent"><span>Yellow Onion</span><span class="mock-qty">2 ea</span></div>
+                  <div class="mock-row2 mock-indent"><span>Cumin</span><span class="mock-qty">20 g</span></div>
+                  <div class="mock-foot">Prep time: 45 min · Sub-recipe: Empanada Filling (linked)</div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 3 of 10</div>
+              <h3 class="slide-title">📖 Recipes</h3>
+              <p class="slide-body">Each menu item links to a recipe with an <b>ingredient list and yield</b>. Recipes can nest other recipes — chimichurri is used by three dishes, so it's its own recipe with its own yield.</p>
+              <ul class="slide-features">
+                <li>✓ Ingredients + quantities + units</li>
+                <li>✓ Sub-recipes (recipes that use recipes)</li>
+                <li>✓ Yield drives how much you actually make</li>
+                <li>✓ Edit once → every downstream list updates</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Menu</span><span class="tag">Ingredients</span><span class="tag">Prep</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 4 — Prep (app tab #4) -->
+          <div class="slide" data-slide="prep">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab">📖 Recipes</span><span class="mock-tab active">🔪 Prep</span><span class="mock-tab">📋 Menu</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🏢 Vendors</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">🍳 Recipe Prep · sorted by shortfall</div>
+                  <div class="mock-prep-card mock-prep-short">
+                    <div class="mock-prep-h"><span class="mock-prep-name">Empanada Filling</span><span class="mock-prep-badge">SHORT</span></div>
+                    <div class="mock-prep-sub">Target: 5 batch · Used in: 4 menu items</div>
+                    <div class="mock-prep-row"><span>On hand: <b>2 batch</b></span><span class="mock-prep-btn">+1 ✓</span><span class="mock-prep-diff">−3</span></div>
+                  </div>
+                  <div class="mock-prep-card mock-prep-short">
+                    <div class="mock-prep-h"><span class="mock-prep-name">Chimichurri</span><span class="mock-prep-badge">SHORT</span></div>
+                    <div class="mock-prep-sub">Target: 3 batch · Used in: 6 menu items</div>
+                    <div class="mock-prep-row"><span>On hand: <b>1 batch</b></span><span class="mock-prep-btn">+1 ✓</span><span class="mock-prep-diff">−2</span></div>
+                  </div>
+                  <div class="mock-prep-card mock-prep-ok">
+                    <div class="mock-prep-h"><span class="mock-prep-name">House Dressing</span><span class="mock-prep-badge-ok">OK</span></div>
+                    <div class="mock-prep-sub">Target: 2 batch · Used in: 3 menu items</div>
+                    <div class="mock-prep-row"><span>On hand: <b>2 batch</b></span><span class="mock-prep-btn">+1 ✓</span><span class="mock-prep-diff-ok">+0</span></div>
+                  </div>
+                  <div class="mock-foot">Tap +1 ✓ to mark a batch complete — logged to inventory &amp; activity log</div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 4 of 10</div>
+              <h3 class="slide-title">🔪 Prep</h3>
+              <p class="slide-body">Menu targets + recipes become a <b>recipe prep list</b> — one card per sub-recipe, <b>sorted by biggest shortfall first</b>. Tap <b>+1 ✓</b> when a batch comes off the station and it flows straight into inventory.</p>
+              <ul class="slide-features">
+                <li>✓ Recipe-level prep targets, computed from menu needs</li>
+                <li>✓ Sorted by biggest shortfall first — cook the most critical thing next</li>
+                <li>✓ One-tap batch completion — adds to inventory automatically</li>
+                <li>✓ Every batch logged with user + timestamp in Activity Log</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Menu</span><span class="tag">Recipes</span><span class="tag">Inventory</span><span class="tag">Activity Log</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 5 — Menu (app tab #5) -->
+          <div class="slide" data-slide="menu">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab">📖 Recipes</span><span class="mock-tab">🔪 Prep</span><span class="mock-tab active">📋 Menu</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🏢 Vendors</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Brunch service · Sat &amp; Sun</div>
+                  <div class="mock-row"><span>Huevos Rancheros</span><span class="mock-price">$14</span><span class="mock-target">40/day</span></div>
+                  <div class="mock-row"><span>Dulce de Leche Waffle</span><span class="mock-price">$13</span><span class="mock-target">30/day</span></div>
+                  <div class="mock-row"><span>Chef's Empanada</span><span class="mock-price">$12</span><span class="mock-target">60/day</span></div>
+                  <div class="mock-section-h">Dinner service · Tue–Sun</div>
+                  <div class="mock-row"><span>Seared Salmon</span><span class="mock-price">$28</span><span class="mock-target">30/day</span></div>
+                  <div class="mock-row"><span>Grilled Chicken</span><span class="mock-price">$24</span><span class="mock-target">40/day</span></div>
+                  <div class="mock-row"><span>Garden Salad</span><span class="mock-price">$12</span><span class="mock-target">35/day</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 5 of 10</div>
+              <h3 class="slide-title">📋 Menu</h3>
+              <p class="slide-body">Define every dish you serve and tell Oracle <b>how many you need standing</b> at the start of service.</p>
+              <ul class="slide-features">
+                <li>✓ Dish-level prep targets</li>
+                <li>✓ Links directly to the recipe</li>
+                <li>✓ Change one target → whole loop recomputes</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Recipes</span><span class="tag">Prep</span><span class="tag">Shopping</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 6 — Shopping (app tab #6) -->
+          <div class="slide" data-slide="shopping">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab">📖 Recipes</span><span class="mock-tab">🔪 Prep</span><span class="mock-tab">📋 Menu</span><span class="mock-tab active">🛒 Shopping</span><span class="mock-tab">🏢 Vendors</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Auto-generated · Tue–Sun service</div>
+                  <div class="mock-row5"><input type="checkbox" disabled><span>Ground Beef</span><span class="mock-qty">14 lb</span><span class="mock-why">→ Empanada, Burger</span></div>
+                  <div class="mock-row5"><input type="checkbox" disabled><span>Butter</span><span class="mock-qty">28 lb</span><span class="mock-why">→ Hollandaise, Waffle</span></div>
+                  <div class="mock-row5"><input type="checkbox" disabled><span>Heavy Cream</span><span class="mock-qty">8 qt</span><span class="mock-why">→ Crème Brûlée, Soup</span></div>
+                  <div class="mock-row5"><input type="checkbox" disabled><span>Red Onion</span><span class="mock-qty">12 ea</span><span class="mock-why">→ Salsa, Pickled Onion</span></div>
+                  <div class="mock-foot">23 lines · every quantity traced to the menu item that drove it</div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 6 of 10</div>
+              <h3 class="slide-title">🛒 Shopping List</h3>
+              <p class="slide-body">Oracle compares <b>what your menu will need</b> against <b>what your count shows on hand</b> and auto-populates a shopping list — quantity, unit, and <b>which menu item drove each line</b>.</p>
+              <ul class="slide-features">
+                <li>✓ Math: par + prep targets − inventory = buy</li>
+                <li>✓ Every line traced to the dish that caused it</li>
+                <li>✓ Consolidated — one row per ingredient</li>
+                <li>✓ Check lines off as you receive</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Menu</span><span class="tag">Recipes</span><span class="tag">Inventory</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 7 — Vendors (app tab #7) -->
+          <div class="slide" data-slide="vendors">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab">📖 Recipes</span><span class="mock-tab">🔪 Prep</span><span class="mock-tab">📋 Menu</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab active">🏢 Vendors</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Vendors · 12 active</div>
+                  <div class="mock-row-v"><span class="mock-vname">Sysco Portland</span><span class="mock-vcontact">👤 Mike Torres &nbsp;·&nbsp; ✉️ mike@sysco-pdx.com</span><span class="mock-vassigned">🥬 87 ings</span></div>
+                  <div class="mock-row-v"><span class="mock-vname">Pacific Seafood</span><span class="mock-vcontact">👤 Sarah Lin &nbsp;·&nbsp; ✉️ orders@pacseafood.com</span><span class="mock-vassigned">🥬 14 ings</span></div>
+                  <div class="mock-row-v"><span class="mock-vname">La Tienda Latina</span><span class="mock-vcontact">👤 Roberto &nbsp;·&nbsp; ✉️ roberto@latienda.com</span><span class="mock-vassigned">🥬 42 ings</span></div>
+                  <div class="mock-row-v"><span class="mock-vname">Portland Produce Co.</span><span class="mock-vcontact">👤 Maria &nbsp;·&nbsp; ✉️ maria@pdxproduce.com</span><span class="mock-vassigned">🥬 68 ings</span></div>
+                  <div class="mock-email-cta">✉️ Email Order → Sysco Portland (14 lines staged from shopping list)</div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 7 of 10</div>
+              <h3 class="slide-title">🏢 Vendors</h3>
+              <p class="slide-body">Your <b>vendor directory</b> — contact, email, phone, website, notes. Each ingredient is tagged to the vendor you buy it from, so the shopping list <b>auto-groups by vendor</b> and one click emails the order.</p>
+              <ul class="slide-features">
+                <li>✓ Contact, email, phone, website, notes per vendor</li>
+                <li>✓ Every ingredient linked to its vendor</li>
+                <li>✓ Shopping list auto-groups by vendor</li>
+                <li>✓ "Email Order" composes a mailto with every line item</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Ingredients</span><span class="tag">Shopping</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 8 — Activity Log (app tab #8) -->
+          <div class="slide" data-slide="activity">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab active">📜 Activity</span><span class="mock-tab">⚙️ Admin</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Today · every change, every user</div>
+                  <div class="mock-row7"><span class="mock-time">2:47p</span><span class="mock-user">maria@</span><span class="mock-action">edited</span><span>Empanada Filling yield 12 → 15</span></div>
+                  <div class="mock-row7"><span class="mock-time">2:31p</span><span class="mock-user">carlos@</span><span class="mock-action">updated par</span><span>Butter 35 → 40 lb</span></div>
+                  <div class="mock-row7"><span class="mock-time">1:12p</span><span class="mock-user">chef@</span><span class="mock-action">approved</span><span>Empanada Filling v4</span></div>
+                  <div class="mock-row7"><span class="mock-time">12:02p</span><span class="mock-user">maria@</span><span class="mock-action">scanned</span><span>Walk-in count (48 items)</span></div>
+                  <div class="mock-row7"><span class="mock-time">11:40a</span><span class="mock-user">chef@</span><span class="mock-action">created</span><span>Chimichurri (yield 1.5 L)</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 8 of 10</div>
+              <h3 class="slide-title">📜 Activity Log</h3>
+              <p class="slide-body">Every edit, every count, every approval — logged forever. When the Monday inventory doesn't match Friday's, the log tells you <b>who changed what</b>, when, and why.</p>
+              <ul class="slide-features">
+                <li>✓ Every create / edit / delete tracked</li>
+                <li>✓ User + timestamp + before/after</li>
+                <li>✓ Filter by user, tab, or date</li>
+                <li>✓ Export for audits and reviews</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Logs actions from →</span><span class="tag">all tabs</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 9 — Admin (app tab #9) -->
+          <div class="slide" data-slide="admin">
+            <div class="slide-visual">
+              <div class="mock-screen">
+                <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle</span></div>
+                <div class="mock-tabs"><span class="mock-tab">📦 Inventory</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab">📜 Activity</span><span class="mock-tab active">⚙️ Admin</span></div>
+                <div class="mock-body">
+                  <div class="mock-section-h">Team · 4 users</div>
+                  <div class="mock-row8"><span>chef@lachona.com</span><span class="mock-role">Owner</span><span class="mock-ok">active</span></div>
+                  <div class="mock-row8"><span>maria@lachona.com</span><span class="mock-role">Sous Chef</span><span class="mock-ok">active</span></div>
+                  <div class="mock-row8"><span>carlos@lachona.com</span><span class="mock-role">Line</span><span class="mock-ok">active</span></div>
+                  <div class="mock-row8"><span>nacho@lachona.com</span><span class="mock-role">Prep</span><span class="mock-pending">pending</span></div>
+                  <div class="mock-section-h">Permissions · per role</div>
+                  <div class="mock-perm"><span>Edit recipes</span><span class="mock-check">Owner · Sous Chef</span></div>
+                  <div class="mock-perm"><span>Count inventory</span><span class="mock-check">all roles</span></div>
+                  <div class="mock-perm"><span>Approve users</span><span class="mock-check">Owner only</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 9 of 10</div>
+              <h3 class="slide-title">⚙️ Admin</h3>
+              <p class="slide-body">Invite your team, assign roles, and control <b>who can change what</b>. Every action they take is linked back to their account in the Activity Log.</p>
+              <ul class="slide-features">
+                <li>✓ Invite by email, approve on arrival</li>
+                <li>✓ Role-based permissions (all tiers)</li>
+                <li>✓ Custom roles (Scale plan)</li>
+                <li>✓ Billing + plan changes in one place</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">Activity Log</span><span class="tag">all tabs</span></div>
+            </div>
+          </div>
+
+          <!-- Slide 10 — Website + App (desktop + phone, synchronized) -->
+          <div class="slide" data-slide="everywhere">
+            <div class="slide-visual">
+              <div class="mock-dual">
+                <!-- Desktop mockup on the left -->
+                <div class="mock-screen">
+                  <div class="mock-topbar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Restaurant Oracle · restaurantoracle.app</span></div>
+                  <div class="mock-tabs"><span class="mock-tab active">📦 Inventory</span><span class="mock-tab">🥕 Ingredients</span><span class="mock-tab">📖 Recipes</span><span class="mock-tab">🔪 Prep</span><span class="mock-tab">📋 Menu</span><span class="mock-tab">🛒 Shopping</span><span class="mock-tab">🏢 Vendors</span></div>
+                  <div class="mock-body">
+                    <div class="mock-section-h">Walk-in · <span class="mock-sync-dot"></span><span class="mock-sync-label">LIVE SYNC</span></div>
+                    <div class="mock-row4"><span>Butter</span><span class="mock-qty">12 lb</span><span class="mock-par">par 40</span><span class="mock-short">−28</span></div>
+                    <div class="mock-row4"><span>Whole Eggs</span><span class="mock-qty">18 doz</span><span class="mock-par">par 25</span><span class="mock-short">−7</span></div>
+                    <div class="mock-row4"><span>Heavy Cream</span><span class="mock-qty">15 qt</span><span class="mock-par">par 15</span><span class="mock-ok">ok</span></div>
+                    <div class="mock-row4"><span>Red Onion</span><span class="mock-qty">48 ea</span><span class="mock-par">par 60</span><span class="mock-short">−12</span></div>
+                    <div class="mock-row4"><span>Ground Beef</span><span class="mock-qty">22 lb</span><span class="mock-par">par 35</span><span class="mock-short">−13</span></div>
+                    <div class="mock-foot">Office laptop · Chrome · chef@lachona.com</div>
+                  </div>
+                </div>
+                <!-- Phone mockup on the right -->
+                <div class="mock-phone">
+                  <div class="mock-phone-notch"></div>
+                  <div class="mock-phone-head">📦 Inventory</div>
+                  <div class="mock-phone-body">
+                    <div class="mock-phone-section"><span class="mock-sync-dot"></span>Walk-in · synced</div>
+                    <div class="mock-phone-row"><span>Butter</span><span class="mock-qty">12 lb</span></div>
+                    <div class="mock-phone-row"><span>Whole Eggs</span><span class="mock-qty">18 doz</span></div>
+                    <div class="mock-phone-row"><span>Heavy Cream</span><span class="mock-qty">15 qt</span></div>
+                    <div class="mock-phone-row"><span>Red Onion</span><span class="mock-qty">48 ea</span></div>
+                    <div class="mock-phone-row"><span>Ground Beef</span><span class="mock-qty">22 lb</span></div>
+                    <div class="mock-phone-scan">📸 Scan Count Sheet</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-copy">
+              <div class="slide-kicker">Tab 10 of 10 · Website + App</div>
+              <h3 class="slide-title">🌐 Everywhere You Work</h3>
+              <p class="slide-body">Restaurant Oracle is <b>browser-based</b> — open it on the back-office laptop, open it on the line cook's iPhone. Same data, same login, <b>synchronized in real time</b> across every device. Install it as a Progressive Web App and it lives on your phone's home screen like a native app.</p>
+              <ul class="slide-features">
+                <li>✓ Works in any modern browser — Chrome, Safari, Edge, Firefox</li>
+                <li>✓ Installable as a PWA on iOS &amp; Android home screens</li>
+                <li>✓ Real-time sync — count on the walk-in iPad, see it on the office laptop instantly</li>
+                <li>✓ One login, every device — your team stays in sync automatically</li>
+              </ul>
+              <div class="slide-connects"><span class="connects-label">Connects to →</span><span class="tag">all tabs</span></div>
+            </div>
+          </div>
+
+        </div><!-- /carousel-track -->
+        <button type="button" class="carousel-btn carousel-next" aria-label="Next slide">›</button>
+        <div class="carousel-dots" id="carouselDots"></div>
+      </div>
+    </div>
+    <!-- end carousel card -->
+
+    <form id="signup-form" class="card" novalidate>
+      <div id="alert" class="alert" role="alert"></div>
+
+      <div class="section-label">1. Choose your plan</div>
+      <div class="plans" id="plans">
+        <div class="plan" data-plan="starter">
+          <div class="plan-head">
+            <div class="plan-name">Starter</div>
+            <div class="plan-price">$29<span class="unit">/mo</span></div>
+            <div class="plan-blurb">Solo chef · 1 location</div>
+          </div>
+          <ul class="plan-features">
+            <li>1 user</li>
+            <li>1 location</li>
+            <li>100 ingredients</li>
+            <li>20 recipes</li>
+            <li>Menu builder + prep targets</li>
+            <li>Recipe library + sub-recipes</li>
+            <li>Inventory counts by area</li>
+            <li>Printable count sheets</li>
+            <li>Auto-generated shopping lists</li>
+            <li>Vendor directory + email orders</li>
+            <li>Daily prep list</li>
+            <li>Min-qty thresholds</li>
+            <li>Unit conversion</li>
+            <li>Role-based permissions</li>
+            <li>Full audit log</li>
+            <li>Email support</li>
+            <li class="muted">AI photo-scan counting</li>
+            <li class="muted">Multi-location rollup</li>
+            <li class="muted">Custom roles</li>
+            <li class="muted">Dedicated onboarding</li>
+          </ul>
+        </div>
+        <div class="plan active" data-plan="pro">
+          <div class="plan-badge">Popular</div>
+          <div class="plan-head">
+            <div class="plan-name">Pro</div>
+            <div class="plan-price">$49<span class="unit">/mo</span></div>
+            <div class="plan-blurb">Growing team · full kitchen loop</div>
+          </div>
+          <ul class="plan-features">
+            <li>Up to 10 users</li>
+            <li>1 location</li>
+            <li>Unlimited ingredients</li>
+            <li>Unlimited recipes</li>
+            <li>Menu builder + prep targets</li>
+            <li>Recipe library + sub-recipes</li>
+            <li>Inventory counts by area</li>
+            <li>Printable count sheets</li>
+            <li>Auto-generated shopping lists</li>
+            <li>Vendor directory + email orders</li>
+            <li>Daily prep list</li>
+            <li>Min-qty thresholds</li>
+            <li>Unit conversion</li>
+            <li>Role-based permissions</li>
+            <li>Full audit log</li>
+            <li>Priority email support</li>
+            <li>AI photo-scan counting</li>
+            <li class="muted">Multi-location rollup</li>
+            <li class="muted">Custom roles</li>
+            <li class="muted">Dedicated onboarding</li>
+          </ul>
+        </div>
+        <div class="plan" data-plan="scale">
+          <div class="plan-head">
+            <div class="plan-name">Scale</div>
+            <div class="plan-price">$99<span class="unit">/mo</span></div>
+            <div class="plan-blurb">Multi-location · priority</div>
+          </div>
+          <ul class="plan-features">
+            <li>Unlimited users</li>
+            <li>Up to 5 locations</li>
+            <li>Unlimited ingredients</li>
+            <li>Unlimited recipes</li>
+            <li>Menu builder + prep targets</li>
+            <li>Recipe library + sub-recipes</li>
+            <li>Inventory counts by area</li>
+            <li>Printable count sheets</li>
+            <li>Auto-generated shopping lists</li>
+            <li>Vendor directory + email orders</li>
+            <li>Daily prep list</li>
+            <li>Min-qty thresholds</li>
+            <li>Unit conversion</li>
+            <li>Role-based permissions</li>
+            <li>Full audit log</li>
+            <li>Priority phone + email</li>
+            <li>AI photo-scan counting</li>
+            <li>Multi-location rollup</li>
+            <li>Custom roles</li>
+            <li>Dedicated onboarding</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="section-label">2. Your restaurant</div>
+      <div class="field">
+        <label class="field-label" for="restaurantName">Restaurant name</label>
+        <input id="restaurantName" class="input" type="text" placeholder="e.g. Lachona Bistro" autocomplete="organization" required>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="field-label" for="email">Owner email</label>
+          <input id="email" class="input" type="email" placeholder="you@restaurant.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label class="field-label" for="password">Password</label>
+          <input id="password" class="input" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required>
+        </div>
+      </div>
+
+      <div class="section-label">3. Payment</div>
+      <div class="field">
+        <label class="field-label" for="cardholderName">Cardholder name</label>
+        <input id="cardholderName" class="input" type="text" placeholder="Name on card" autocomplete="cc-name" required>
+      </div>
+      <div class="field">
+        <label class="field-label">Card details</label>
+        <div id="card-container"></div>
+      </div>
+
+      <button type="submit" id="submit-btn" class="btn" disabled>
+        <span id="submit-label">Loading card form…</span>
+      </button>
+
+      <div class="field consent-field">
+        <label class="consent-label">
+          <input id="agree-terms" type="checkbox" class="consent-check" required>
+          <span>I have read and agree to the <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
+      </div>
+
+      <p class="trust">
+        🎁 <b>Free for 30 days.</b> Your card is verified today and the first charge hits on day 31 — cancel anytime before then for zero charge.<br>
+        🔒 Secured by Square. Your card details never touch our servers.
+      </p>
+    </form>
+
+    <div class="footer">
+      Already have an account? <a href="/app">Sign in</a>
+    </div>
+  </div>
+
+  <!-- Success overlay shown after signup completes -->
+  <div id="done" class="done-overlay">
+    <div class="done-icon">✓</div>
+    <div class="done-title">Welcome to Restaurant Oracle</div>
+    <div class="done-sub" id="done-sub">Your tenant is being provisioned. You'll be redirected to your dashboard in a moment.</div>
+    <a id="done-btn" class="done-btn" href="#">Go to my dashboard →</a>
+  </div>
+
+<script>
+/*
+ * Restaurant Oracle — Public Signup
+ *
+ * Flow:
+ *   1. Boot Square Web Payments SDK (sandbox)
+ *   2. User fills form + card fields
+ *   3. On submit: card.tokenize() → nonce
+ *   4. POST {email, password, restaurantName, plan, cardNonce, cardholderName, verificationToken}
+ *      to /signupTenant Cloud Function
+ *   5. On success: redirect to returned appUrl
+ */
+'use strict';
+
+// PUBLIC Square identifiers — safe to embed in client JS.
+// Production values (live billing). For sandbox, use
+//   SQUARE_APP_ID = 'sandbox-sq0idb-7gCz_0UGAcos4DbW89SSwQ'
+//   SQUARE_LOC_ID = 'LA45K6CZ9392T'
+const SQUARE_APP_ID   = 'sq0idp-XZgCld04PWso1O6fr9oyag';
+const SQUARE_LOC_ID   = 'L8ST6YJXWEA3X';
+const SIGNUP_ENDPOINT = 'https://us-central1-restaurant-oracle.cloudfunctions.net/signupTenant';
+
+let card = null;
+let selectedPlan = 'pro';
+let submitting = false;
+
+// ── PostHog: signup funnel ─────────────────────────────────────────────────
+function track(event, props){ try { if(window.posthog) posthog.capture(event, props || {}); } catch(_) {} }
+try {
+  track('signup_page_viewed', {
+    path: location.pathname,
+    referrer: document.referrer || null,
+    utm_source:   new URLSearchParams(location.search).get('utm_source')   || null,
+    utm_medium:   new URLSearchParams(location.search).get('utm_medium')   || null,
+    utm_campaign: new URLSearchParams(location.search).get('utm_campaign') || null,
+    default_plan: selectedPlan,
+  });
+} catch(_) {}
+
+// ── Plan selection ─────────────────────────────────────────────────────────
+document.querySelectorAll('.plan').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.plan').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    const prev = selectedPlan;
+    selectedPlan = el.dataset.plan;
+    track('signup_plan_selected', { plan: selectedPlan, previous_plan: prev });
+  });
+});
+
+// ── Consent + cardholder-name proxy events ────────────────────────────────
+(function(){
+  const consent = document.getElementById('agree-terms');
+  if(consent) consent.addEventListener('change', () => {
+    if(consent.checked) track('signup_consent_checked', { plan: selectedPlan });
+  });
+  const cardholder = document.getElementById('cardholderName');
+  if(cardholder){
+    let fired = false;
+    cardholder.addEventListener('blur', () => {
+      if(fired || !cardholder.value.trim()) return;
+      fired = true;
+      track('signup_card_entered', { plan: selectedPlan });
+    });
+  }
+})();
+
+// ── Alert helpers ──────────────────────────────────────────────────────────
+function showAlert(message, kind) {
+  const el = document.getElementById('alert');
+  el.className = 'alert show ' + (kind || 'error');
+  el.textContent = message;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function clearAlert() {
+  const el = document.getElementById('alert');
+  el.className = 'alert';
+  el.textContent = '';
+}
+
+// ── Boot Square Web Payments SDK ───────────────────────────────────────────
+async function bootSquare() {
+  if (!window.Square) {
+    showAlert('Payment form failed to load. Check your connection and refresh.');
+    return;
+  }
+  try {
+    const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOC_ID);
+    card = await payments.card({
+      style: {
+        input: { color: '#e0e6ed', fontSize: '14px' },
+        '.input-container': { borderRadius: '8px', borderColor: 'transparent' },
+        '.input-container.is-focus': { borderColor: '#74acdf' },
+        '.input-container.is-error': { borderColor: '#ff6b6b' },
+        '.message-text': { color: '#ff9a9a' },
+        '.message-icon': { color: '#ff9a9a' },
+      },
+    });
+    await card.attach('#card-container');
+
+    // Enable submit button once card is ready
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = false;
+    document.getElementById('submit-label').textContent = 'Start 30-day free trial';
+  } catch (err) {
+    console.error('Square boot failed:', err);
+    showAlert('Could not load secure payment form. Please refresh and try again.');
+  }
+}
+
+// ── Form submission ────────────────────────────────────────────────────────
+document.getElementById('signup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (submitting) return;
+  clearAlert();
+
+  const email          = document.getElementById('email').value.trim().toLowerCase();
+  const password       = document.getElementById('password').value;
+  const restaurantName = document.getElementById('restaurantName').value.trim();
+  const cardholderName = document.getElementById('cardholderName').value.trim();
+
+  // Client-side validation — server will re-validate authoritatively
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAlert('Please enter a valid email.');
+  if (password.length < 8) return showAlert('Password must be at least 8 characters.');
+  if (!restaurantName || restaurantName.length < 2) return showAlert('Please enter your restaurant name.');
+  if (!cardholderName) return showAlert('Please enter the name on your card.');
+  if (!document.getElementById('agree-terms').checked) return showAlert('Please review and agree to the Terms of Service and Privacy Policy.');
+  if (!card) return showAlert('Payment form not ready. Please wait a moment and try again.');
+
+  submitting = true;
+  setButtonLoading(true, 'Securing your card…');
+  track('signup_submitted', { plan: selectedPlan });
+
+  // ── Step 1: tokenize card ───────────────────────────────────────────────
+  let tokenResult;
+  try {
+    tokenResult = await card.tokenize();
+  } catch (err) {
+    submitting = false;
+    setButtonLoading(false);
+    track('signup_failed', { plan: selectedPlan, stage: 'tokenize', reason: 'tokenize_exception' });
+    return showAlert('We couldn\'t process that card. Please check the details and try again.');
+  }
+
+  if (tokenResult.status !== 'OK') {
+    submitting = false;
+    setButtonLoading(false);
+    const detail = (tokenResult.errors && tokenResult.errors[0] && tokenResult.errors[0].message)
+      ? tokenResult.errors[0].message
+      : 'Please check your card details.';
+    track('signup_failed', { plan: selectedPlan, stage: 'tokenize', reason: tokenResult.status || 'tokenize_not_ok' });
+    return showAlert(detail);
+  }
+
+  // ── Step 2: POST to signupTenant ────────────────────────────────────────
+  setButtonLoading(true, 'Creating your account…');
+
+  let response;
+  try {
+    response = await fetch(SIGNUP_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password,
+        restaurantName,
+        plan: selectedPlan,
+        cardNonce: tokenResult.token,
+        cardholderName,
+        verificationToken: tokenResult.verificationToken || undefined,
+        agreedToTerms: true,
+        termsVersion: '2026-04-24',
+      }),
+    });
+  } catch (err) {
+    submitting = false;
+    setButtonLoading(false);
+    track('signup_failed', { plan: selectedPlan, stage: 'network', reason: 'fetch_exception' });
+    return showAlert('Network error. Please check your connection and try again.');
+  }
+
+  let payload = null;
+  try { payload = await response.json(); } catch (_) { /* empty body */ }
+
+  if (!response.ok) {
+    submitting = false;
+    setButtonLoading(false);
+    const msg = (payload && payload.error) ? payload.error : 'Signup failed (HTTP ' + response.status + '). Please try again.';
+    const code = (payload && payload.code) ? String(payload.code).toUpperCase() : '';
+    track('signup_failed', { plan: selectedPlan, stage: 'server', http_status: response.status, reason: code || ('http_' + response.status) });
+    // Card-related errors: clear the Square card input so the user can re-enter details.
+    const cardErrorCodes = [
+      'CARD_DECLINED','VERIFY_CVV_FAILURE','VERIFY_AVS_FAILURE','INVALID_EXPIRATION',
+      'INVALID_CARD','INVALID_CARD_DATA','INSUFFICIENT_FUNDS','TRANSACTION_LIMIT',
+      'CARD_TOKEN_EXPIRED','CARD_TOKEN_USED','GENERIC_DECLINE','PAN_FAILURE',
+      'ADDRESS_VERIFICATION_FAILURE','CVV_FAILURE','CARD_NOT_SUPPORTED',
+      'PAYMENT_LIMIT_EXCEEDED','ALLOWABLE_PIN_TRIES_EXCEEDED','VOICE_FAILURE',
+      'CARDHOLDER_INSUFFICIENT_PERMISSIONS','VERIFICATION_TOKEN_EXPIRED',
+      'VERIFICATION_REQUIRED','CARD_INVALID'
+    ];
+    if (cardErrorCodes.indexOf(code) !== -1 || response.status === 402) {
+      try { if (card && typeof card.clear === 'function') await card.clear(); } catch (_) {}
+      // Nudge focus to card area so the user sees the cleared field
+      const cc = document.getElementById('card-container');
+      if (cc) cc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return showAlert(msg);
+  }
+
+  const data = payload && payload.data;
+  if (!data || !data.appUrl) {
+    submitting = false;
+    setButtonLoading(false);
+    track('signup_failed', { plan: selectedPlan, stage: 'response', reason: 'missing_app_url' });
+    return showAlert('Signup completed but we couldn\'t route you. Please refresh and sign in.');
+  }
+
+  // ── Step 3: show success + redirect ─────────────────────────────────────
+  track('signup_succeeded', {
+    plan: selectedPlan,
+    tenant_slug: data.tenantSlug || null,
+    // Never include email, password, or cardNonce here.
+  });
+  showDone(data.appUrl, restaurantName);
+});
+
+function setButtonLoading(on, label) {
+  const btn = document.getElementById('submit-btn');
+  const lbl = document.getElementById('submit-label');
+  btn.disabled = !!on;
+  if (on) {
+    lbl.innerHTML = '<span class="spinner"></span>' + (label || 'Working…');
+  } else {
+    lbl.textContent = 'Start 30-day free trial';
+  }
+}
+
+function showDone(appUrl, restaurantName) {
+  document.getElementById('done-sub').textContent =
+    'Your Restaurant Oracle workspace for ' + restaurantName + ' is ready.';
+  const btn = document.getElementById('done-btn');
+  btn.href = appUrl;
+  document.getElementById('done').classList.add('show');
+  // Auto-redirect after 2.5s
+  setTimeout(() => { window.location.href = appUrl; }, 2500);
+}
+
+// ── Feature carousel (prev/next + dots + scroll-snap) ─────────────────────
+(function initCarousel() {
+  const track = document.getElementById('carouselTrack');
+  const dotsEl = document.getElementById('carouselDots');
+  const prev = document.querySelector('.carousel-prev');
+  const next = document.querySelector('.carousel-next');
+  if (!track || !dotsEl || !prev || !next) return;
+
+  const slides = Array.from(track.querySelectorAll('.slide'));
+  let currentIdx = 0;
+
+  // Build dot indicators
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+    d.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(idx) {
+    currentIdx = Math.max(0, Math.min(slides.length - 1, idx));
+    slides[currentIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    updateActive();
+  }
+
+  function updateActive() {
+    dotsEl.querySelectorAll('.carousel-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === currentIdx);
+    });
+    prev.disabled = currentIdx === 0;
+    next.disabled = currentIdx === slides.length - 1;
+  }
+
+  prev.addEventListener('click', () => goTo(currentIdx - 1));
+  next.addEventListener('click', () => goTo(currentIdx + 1));
+
+  // Keep state synced when user scroll-swipes manually
+  let scrollTimer = null;
+  track.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      const trackRect = track.getBoundingClientRect();
+      const trackCenter = trackRect.left + trackRect.width / 2;
+      let closest = 0;
+      let closestDist = Infinity;
+      slides.forEach((s, i) => {
+        const r = s.getBoundingClientRect();
+        const c = r.left + r.width / 2;
+        const d = Math.abs(c - trackCenter);
+        if (d < closestDist) { closestDist = d; closest = i; }
+      });
+      currentIdx = closest;
+      updateActive();
+    }, 90);
+  });
+
+  updateActive();
+})();
+
+// Kick things off
+bootSquare();
+</script>
+</body>
+</html>

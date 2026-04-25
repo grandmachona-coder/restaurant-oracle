@@ -1,0 +1,18 @@
+{
+  "name": "Restaurant Oracle",
+  "short_name": "Oracle",
+  "description": "Smart Kitchen Management",
+  "start_url": "/restaurant-oracle/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

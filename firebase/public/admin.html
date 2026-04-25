@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Console — Restaurant Oracle</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<meta name="theme-color" content="#1a1a2e">
+
+<!-- Firebase Auth SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- Square Web Payments SDK (for card-update modal) — PRODUCTION build -->
+<script src="https://web.squarecdn.com/v1/square.js"></script>
+
+<!-- Sentry error monitoring (DSN baked into sentry-init.js) -->
+<script src="https://browser.sentry-cdn.com/10.50.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
+<script src="sentry-init.js"></script>
+
+<!-- PostHog product analytics (loads async; swap phc_YOUR_KEY in posthog-init.js) -->
+<script src="posthog-init.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    font-family:'Inter',sans-serif;
+    background:radial-gradient(ellipse at 100% 100%,#cce4f7 0%,#74acdf 30%,#2e6090 60%,#162d45 100%);
+    color:#e0e6ed;
+    min-height:100vh;
+    padding:32px 20px 64px;
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .wrap{width:100%;max-width:880px}
+
+  /* Top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand img{width:44px;height:44px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+  .brand-title{font-size:17px;font-weight:800;color:#0d1e33;text-shadow:0 2px 4px rgba(255,255,255,.4)}
+  .brand-sub{font-size:11px;color:#1e3d5c;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .top-actions{display:flex;align-items:center;gap:10px}
+  .pill{padding:6px 12px;background:rgba(10,20,46,.55);border:1px solid rgba(116,172,223,.3);color:#e0e6ed;font-size:12px;font-weight:600;border-radius:20px}
+  .pill.ok{color:#6bd68a;border-color:rgba(107,214,138,.4);background:rgba(0,184,148,.12)}
+  .pill.warn{color:#fdcb6e;border-color:rgba(253,203,110,.4);background:rgba(253,203,110,.12)}
+  .pill.err{color:#ff9a9a;border-color:rgba(255,107,107,.4);background:rgba(214,48,49,.12)}
+  .link-btn{background:none;border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+  .link-btn:hover{background:rgba(255,255,255,.08)}
+
+  /* Gate screens */
+  .gate{width:100%;max-width:440px;background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.35);border-radius:22px;padding:36px;box-shadow:0 14px 50px rgba(0,0,0,.35);text-align:center;margin:40px auto}
+  .gate h1{font-size:22px;font-weight:800;margin-bottom:10px;color:#fff}
+  .gate p{font-size:14px;color:#a0b4c8;margin-bottom:20px;line-height:1.5}
+  .gate-btn{padding:13px 24px;background:linear-gradient(135deg,#74acdf,#2e78b8);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+
+  /* Cards */
+  .card{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.3);border-radius:18px;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.3);margin-bottom:16px}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+  .card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#74acdf}
+  .card-sub{font-size:12px;color:#7a8a9b;margin-top:2px}
+
+  /* Key/val grid */
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:13.5px;margin-bottom:4px}
+  .kv dt{color:#8a9bad;font-weight:600}
+  .kv dd{color:#e0e6ed}
+  .kv dd strong{color:#fff}
+
+  /* Buttons */
+  .btn{padding:10px 16px;background:linear-gradient(135deg,#74acdf,#2e78b8);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+  .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(46,120,184,.5)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:#e0e6ed}
+  .btn.ghost:hover:not(:disabled){background:rgba(255,255,255,.12)}
+  .btn.danger{background:linear-gradient(135deg,#ff7675,#d63031)}
+  .btn.danger:hover:not(:disabled){box-shadow:0 6px 20px rgba(214,48,49,.5)}
+  .btn.sm{padding:7px 12px;font-size:12px;border-radius:8px}
+
+  /* Plan grid (reused from signup) */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  .plan{background:rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;position:relative;transition:all .15s}
+  .plan:hover{border-color:rgba(116,172,223,.5)}
+  .plan.current{border-color:#6bd68a;background:linear-gradient(135deg,rgba(0,184,148,.18),rgba(0,206,201,.14))}
+  .plan.current::after{content:'CURRENT';position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#00b894,#00cec9);color:#fff;font-size:9px;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:10px}
+  .plan.picked{border-color:#74acdf;box-shadow:0 0 0 3px rgba(116,172,223,.25)}
+  .plan-name{font-size:12px;font-weight:700;color:#fff;margin-bottom:4px}
+  .plan-price{font-size:17px;font-weight:800}
+  .plan-price .unit{font-size:10px;color:#a0b4c8;font-weight:500}
+
+  /* Team table */
+  .team-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13.5px}
+  .team-row:last-child{border-bottom:none}
+  .team-email{color:#e0e6ed;word-break:break-all}
+  .team-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:10px;background:rgba(116,172,223,.18);color:#9ec6ea}
+  .team-role.owner{background:rgba(0,184,148,.18);color:#6bd68a}
+  .team-role.admin{background:rgba(253,203,110,.18);color:#fdcb6e}
+  .team-actions{display:flex;gap:6px}
+  select.role-select{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);color:#e0e6ed;padding:5px 8px;border-radius:6px;font-size:12px;font-family:inherit}
+
+  /* Invite row */
+  .invite-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:12px}
+  .invite-row input,.invite-row select{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);color:#e0e6ed;padding:10px 12px;border-radius:8px;font-size:13px;font-family:inherit}
+  .invite-row input:focus,.invite-row select:focus{outline:none;border-color:#74acdf}
+
+  /* Alerts */
+  .alert{padding:12px 14px;border-radius:10px;font-size:13px;font-weight:500;margin-bottom:14px;display:none;line-height:1.45}
+  .alert.show{display:block}
+  .alert.error{background:rgba(214,48,49,.18);border:1px solid rgba(214,48,49,.4);color:#ff9a9a}
+  .alert.success{background:rgba(0,184,148,.18);border:1px solid rgba(0,184,148,.4);color:#6bd68a}
+  .alert.info{background:rgba(116,172,223,.15);border:1px solid rgba(116,172,223,.3);color:#9ec6ea}
+
+  /* Loading spinner */
+  .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal{background:#1a2842;border:1px solid rgba(116,172,223,.35);border-radius:18px;padding:26px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .modal h3{font-size:17px;font-weight:700;color:#fff;margin-bottom:6px}
+  .modal p{font-size:13px;color:#a0b4c8;margin-bottom:16px;line-height:1.5}
+  .modal .input{width:100%;padding:11px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e6ed;font-size:13px;margin-bottom:10px}
+  .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  #card-update-container{min-height:52px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:2px 4px;margin-bottom:10px}
+
+  /* Footer */
+  .footer{font-size:11px;color:rgba(255,255,255,.6);text-align:center;margin-top:32px}
+  .hidden{display:none!important}
+
+  @media (max-width:600px){
+    .plans{grid-template-columns:1fr}
+    .team-row{grid-template-columns:1fr;gap:6px;padding:12px 0}
+    .invite-row{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <img src="icon.png" alt="">
+      <div>
+        <div class="brand-title" id="brand-name">Restaurant Oracle</div>
+        <div class="brand-sub">Owner console</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="pill" id="tenant-status">Loading…</span>
+      <a class="link-btn" id="app-link" href="/app">Back to app</a>
+      <button class="link-btn" id="signout-btn">Sign out</button>
+    </div>
+  </div>
+
+  <div id="alert" class="alert" role="alert"></div>
+
+  <!-- LOADING GATE -->
+  <div id="gate-loading" class="gate">
+    <h1><span class="spinner"></span>Loading…</h1>
+    <p>Checking your owner credentials.</p>
+  </div>
+
+  <!-- SIGN-IN GATE -->
+  <div id="gate-signin" class="gate hidden">
+    <h1>Sign in required</h1>
+    <p>The owner console is only accessible to the restaurant owner.</p>
+    <a href="/app" class="gate-btn">Go to sign in →</a>
+  </div>
+
+  <!-- NOT-OWNER GATE -->
+  <div id="gate-not-owner" class="gate hidden">
+    <h1>Owner access only</h1>
+    <p>This page is only available to the restaurant owner. If you need something changed, please reach out to the owner directly.</p>
+    <a href="/app" class="gate-btn">Back to app</a>
+  </div>
+
+  <!-- MAIN CONSOLE -->
+  <div id="console" class="hidden">
+
+    <!-- Plan -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Plan &amp; Billing</div>
+          <div class="card-sub" id="billing-sub">—</div>
+        </div>
+        <div id="billing-status-pill"></div>
+      </div>
+      <dl class="kv" id="billing-kv"></dl>
+      <div style="margin-top:6px">
+        <div class="card-title" style="margin-top:18px;margin-bottom:8px">Switch plan</div>
+        <div class="plans" id="plans-grid"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn" id="change-plan-btn" disabled>Apply plan change</button>
+          <button class="btn ghost" id="update-card-btn">Update payment method</button>
+          <button class="btn danger" id="cancel-btn">Cancel subscription</button>
+          <button class="btn ghost hidden" id="resume-btn">Resume subscription</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card on file -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Payment method</div>
+          <div class="card-sub">Your card on file for this subscription</div>
+        </div>
+      </div>
+      <dl class="kv" id="card-kv"></dl>
+    </div>
+
+    <!-- Team -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Team</div>
+          <div class="card-sub">Invite or remove users with access to this tenant</div>
+        </div>
+      </div>
+      <div id="team-list"></div>
+      <div class="invite-row" style="margin-top:16px">
+        <input id="invite-email" type="email" placeholder="teammate@example.com" autocomplete="off">
+        <select id="invite-role">
+          <option value="employee">Employee</option>
+          <option value="admin">Admin</option>
+          <option value="owner">Owner</option>
+        </select>
+        <button class="btn" id="invite-btn">Invite</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">Restaurant Oracle · Owner Console · Built for restaurant owners</div>
+</div>
+
+<!-- Card-update modal -->
+<div id="card-modal" class="modal-overlay">
+  <div class="modal">
+    <h3>Update payment method</h3>
+    <p>Enter your new card. The old card is deactivated automatically and your subscription will charge the new card on the next billing cycle.</p>
+    <input id="card-update-name" class="input" type="text" placeholder="Name on card" autocomplete="cc-name">
+    <div id="card-update-container"></div>
+    <div class="actions">
+      <button class="btn ghost" id="card-modal-cancel">Cancel</button>
+      <button class="btn" id="card-modal-save">Save new card</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── Config ──────────────────────────────────────────────────────────────────
+const ADMIN_ENDPOINT = 'https://us-central1-restaurant-oracle.cloudfunctions.net/adminBilling';
+const SQUARE_APP_ID  = 'sq0idp-XZgCld04PWso1O6fr9oyag';  // public (production)
+const SQUARE_LOC_ID  = 'L8ST6YJXWEA3X';                  // public (production)
+
+firebase.initializeApp(window.FIREBASE_CONFIG);
+const fbAuth = firebase.auth();
+
+// ── State ───────────────────────────────────────────────────────────────────
+let state = { info: null, pickedPlan: null, currentUser: null, idToken: null };
+let updateCardInstance = null;
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function show(id) { $(id).classList.remove('hidden'); }
+function hide(id) { $(id).classList.add('hidden'); }
+function showAlert(msg, kind) {
+  const el = $('alert');
+  el.className = 'alert show ' + (kind || 'error');
+  el.textContent = msg;
+  clearTimeout(showAlert._t);
+  showAlert._t = setTimeout(() => clearAlert(), kind === 'success' ? 4000 : 8000);
+}
+function clearAlert() { const el = $('alert'); el.className = 'alert'; el.textContent = ''; }
+
+async function adminCall(op, params) {
+  const token = await state.currentUser.getIdToken();
+  const res = await fetch(ADMIN_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify(Object.assign({ op }, params || {})),
+  });
+  let payload = null;
+  try { payload = await res.json(); } catch (_) {}
+  if (!res.ok) {
+    const err = new Error((payload && payload.error) || 'HTTP ' + res.status);
+    err.status = res.status;
+    throw err;
+  }
+  return payload.data;
+}
+
+// ── Auth gating ─────────────────────────────────────────────────────────────
+fbAuth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    hide('gate-loading'); show('gate-signin');
+    return;
+  }
+  state.currentUser = user;
+  let tokenResult;
+  try { tokenResult = await user.getIdTokenResult(true); }
+  catch (e) { hide('gate-loading'); show('gate-signin'); return; }
+
+  const role = tokenResult.claims.role;
+  if (role !== 'owner' && role !== 'admin') {
+    hide('gate-loading'); show('gate-not-owner');
+    return;
+  }
+  if (window.roIdentify)       window.roIdentify(user, tokenResult.claims || {}, { surface: 'admin' });
+  if (window.roSentryIdentify) window.roSentryIdentify(user, tokenResult.claims || {}, { surface: 'admin' });
+  bootConsole();
+});
+
+$('signout-btn').addEventListener('click', () => {
+  if (window.roPosthogReset) window.roPosthogReset();
+  if (window.roSentryReset)  window.roSentryReset();
+  fbAuth.signOut().then(() => window.location.href = '/app');
+});
+
+// ── Boot console ────────────────────────────────────────────────────────────
+async function bootConsole() {
+  try {
+    const data = await adminCall('getInfo');
+    state.info = data;
+    state.pickedPlan = data.tenant.plan;
+    if (window.roTrack) window.roTrack('billing_page_viewed', {
+      plan: data.tenant.plan,
+      status: data.tenant.status,
+      subscription_status: (data.subscription && data.subscription.status) || null
+    });
+    renderConsole();
+    hide('gate-loading');
+    show('console');
+  } catch (e) {
+    hide('gate-loading');
+    showAlert('Could not load billing info: ' + e.message);
+  }
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function renderConsole() {
+  const d = state.info;
+  $('brand-name').textContent = d.tenant.restaurantName || 'Restaurant Oracle';
+
+  const tenantPill = $('tenant-status');
+  if (d.tenant.status === 'active') { tenantPill.className = 'pill ok'; tenantPill.textContent = 'Active'; }
+  else if (d.tenant.status === 'suspended') { tenantPill.className = 'pill warn'; tenantPill.textContent = 'Suspended'; }
+  else { tenantPill.className = 'pill err'; tenantPill.textContent = d.tenant.status || 'Unknown'; }
+
+  $('app-link').href = '/user/' + d.tenant.slug;
+
+  // Billing
+  $('billing-sub').textContent = d.tenant.ownerEmail + ' · ' + d.tenant.slug;
+  const sub = d.subscription;
+  const pill = $('billing-status-pill');
+  if (sub) {
+    const s = (sub.status || '').toUpperCase();
+    let cls = 'pill'; let txt = sub.status;
+    if (s === 'ACTIVE') { cls = 'pill ok'; }
+    else if (s === 'CANCELED' || s === 'DEACTIVATED') { cls = 'pill err'; }
+    else { cls = 'pill warn'; }
+    pill.className = cls;
+    pill.textContent = 'Subscription: ' + txt;
+  } else {
+    pill.className = 'pill warn';
+    pill.textContent = 'No subscription';
+  }
+
+  const kv = $('billing-kv');
+  kv.innerHTML = '';
+  const plan = (d.plans || []).find(p => p.current);
+  addKV(kv, 'Plan', plan ? (plan.name + ' — $' + (plan.priceCents/100).toFixed(2) + '/mo') : d.tenant.plan);
+  if (sub) {
+    addKV(kv, 'Started', sub.startDate || '—');
+    addKV(kv, 'Charged through', sub.chargedThroughDate || '—');
+    if (sub.canceledDate) addKV(kv, 'Canceled on', sub.canceledDate);
+  }
+
+  // Cancel / Resume visibility
+  const canceled = sub && (sub.status === 'CANCELED' || sub.canceledDate);
+  $('cancel-btn').classList.toggle('hidden', !!canceled);
+  $('resume-btn').classList.toggle('hidden', !canceled);
+
+  // Plans grid
+  const grid = $('plans-grid');
+  grid.innerHTML = '';
+  (d.plans || []).forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'plan' + (p.current ? ' current' : '');
+    el.dataset.plan = p.slug;
+    el.innerHTML = '<div class="plan-name">' + escapeHtml(p.name) + '</div>' +
+      '<div class="plan-price">$' + (p.priceCents/100).toFixed(0) + '<span class="unit">/mo</span></div>';
+    el.addEventListener('click', () => pickPlan(p.slug));
+    grid.appendChild(el);
+  });
+  refreshPlanPicker();
+
+  // Card
+  const ck = $('card-kv');
+  ck.innerHTML = '';
+  if (d.card) {
+    addKV(ck, 'Brand', d.card.cardBrand || '—');
+    addKV(ck, 'Last 4', '•••• ' + (d.card.last4 || '????'));
+    addKV(ck, 'Expires', (d.card.expMonth || '??') + '/' + (d.card.expYear || '??'));
+    if (d.card.cardholderName) addKV(ck, 'Name', d.card.cardholderName);
+    addKV(ck, 'Status', d.card.enabled ? 'Active' : 'Disabled');
+  } else {
+    addKV(ck, 'Card', 'No card on file');
+  }
+
+  // Team
+  const tl = $('team-list');
+  tl.innerHTML = '';
+  (d.team || []).forEach(m => tl.appendChild(teamRow(m)));
+}
+
+function addKV(dl, label, value) {
+  const dt = document.createElement('dt'); dt.textContent = label;
+  const dd = document.createElement('dd'); dd.innerHTML = '<strong>' + escapeHtml(String(value)) + '</strong>';
+  dl.appendChild(dt); dl.appendChild(dd);
+}
+
+function teamRow(m) {
+  const row = document.createElement('div');
+  row.className = 'team-row';
+  const me = m.email === state.currentUser.email;
+  row.innerHTML =
+    '<div class="team-email">' + escapeHtml(m.email) + (me ? ' <span style="color:#6bd68a;font-size:11px;margin-left:6px">(you)</span>' : '') + '</div>' +
+    '<select class="role-select" data-id="' + m.id + '">' +
+      ['owner','admin','employee'].map(r =>
+        '<option value="' + r + '"' + (r === m.role ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>'
+      ).join('') +
+    '</select>' +
+    '<button class="btn sm ghost" data-act="save-role" data-id="' + m.id + '">Save</button>' +
+    (me ? '' : '<button class="btn sm danger" data-act="remove" data-id="' + m.id + '">Remove</button>');
+  row.addEventListener('click', onTeamRowClick);
+  return row;
+}
+
+async function onTeamRowClick(ev) {
+  const b = ev.target.closest('button');
+  if (!b) return;
+  const id = b.dataset.id;
+  const act = b.dataset.act;
+  if (act === 'save-role') {
+    const sel = b.parentElement.querySelector('.role-select[data-id="' + id + '"]');
+    await saveRole(id, sel.value);
+  } else if (act === 'remove') {
+    if (!confirm('Remove this team member? They will lose access immediately.')) return;
+    await removeMember(id);
+  }
+}
+
+function pickPlan(slug) {
+  state.pickedPlan = slug;
+  refreshPlanPicker();
+}
+
+function refreshPlanPicker() {
+  const current = (state.info.tenant && state.info.tenant.plan) || null;
+  document.querySelectorAll('#plans-grid .plan').forEach(el => {
+    el.classList.toggle('picked', el.dataset.plan === state.pickedPlan && el.dataset.plan !== current);
+  });
+  $('change-plan-btn').disabled = !state.pickedPlan || state.pickedPlan === current;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ── Actions ─────────────────────────────────────────────────────────────────
+$('change-plan-btn').addEventListener('click', async () => {
+  const btn = $('change-plan-btn');
+  const newPlan = state.pickedPlan;
+  const previousPlan = (state.info && state.info.tenant && state.info.tenant.plan) || null;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Changing…';
+  try {
+    await adminCall('changePlan', { plan: newPlan });
+    if (window.roTrack) window.roTrack('billing_plan_changed', { plan: newPlan, previous_plan: previousPlan });
+    showAlert('Plan changed to ' + newPlan + '. Next bill will reflect the new price.', 'success');
+    await refresh();
+  } catch (e) {
+    showAlert(e.message);
+  } finally {
+    btn.innerHTML = 'Apply plan change';
+    refreshPlanPicker();
+  }
+});
+
+$('cancel-btn').addEventListener('click', async () => {
+  if (!confirm('Cancel your subscription?\n\nYou will keep access until the end of the current billing period, then your account will be suspended.')) return;
+  try {
+    const d = await adminCall('cancelSubscription');
+    if (window.roTrack) window.roTrack('billing_subscription_cancelled', { plan: (state.info && state.info.tenant && state.info.tenant.plan) || null });
+    showAlert('Subscription canceled. Access remains until ' + (d.chargedThroughDate || 'the end of the current period') + '.', 'success');
+    await refresh();
+  } catch (e) { showAlert(e.message); }
+});
+
+$('resume-btn').addEventListener('click', async () => {
+  try {
+    await adminCall('resumeSubscription');
+    if (window.roTrack) window.roTrack('billing_subscription_resumed', { plan: (state.info && state.info.tenant && state.info.tenant.plan) || null });
+    showAlert('Subscription resumed. Your plan will continue to renew normally.', 'success');
+    await refresh();
+  } catch (e) { showAlert(e.message); }
+});
+
+$('update-card-btn').addEventListener('click', openCardModal);
+$('card-modal-cancel').addEventListener('click', closeCardModal);
+$('card-modal-save').addEventListener('click', saveNewCard);
+
+async function openCardModal() {
+  $('card-modal').classList.add('show');
+  if (!updateCardInstance && window.Square) {
+    try {
+      const payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOC_ID);
+      updateCardInstance = await payments.card({
+        style: {
+          input: { color: '#e0e6ed', fontSize: '14px' },
+          '.input-container': { borderRadius: '8px', borderColor: 'transparent' },
+          '.input-container.is-focus': { borderColor: '#74acdf' },
+          '.input-container.is-error': { borderColor: '#ff6b6b' },
+        },
+      });
+      await updateCardInstance.attach('#card-update-container');
+    } catch (e) {
+      console.error(e);
+      showAlert('Could not load payment form.');
+    }
+  }
+}
+function closeCardModal() { $('card-modal').classList.remove('show'); }
+
+async function saveNewCard() {
+  const btn = $('card-modal-save');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving…';
+  try {
+    if (!updateCardInstance) throw new Error('Card form not ready');
+    const tk = await updateCardInstance.tokenize();
+    if (tk.status !== 'OK') throw new Error((tk.errors && tk.errors[0] && tk.errors[0].message) || 'Card tokenization failed');
+
+    const cardholderName = $('card-update-name').value.trim();
+    await adminCall('updatePaymentMethod', {
+      cardNonce: tk.token,
+      cardholderName,
+      verificationToken: tk.verificationToken || undefined,
+    });
+    if (window.roTrack) window.roTrack('billing_card_updated', {});
+    closeCardModal();
+    showAlert('Payment method updated.', 'success');
+    await refresh();
+  } catch (e) {
+    showAlert(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Save new card';
+  }
+}
+
+$('invite-btn').addEventListener('click', async () => {
+  const email = $('invite-email').value.trim().toLowerCase();
+  const role = $('invite-role').value;
+  if (!email) { showAlert('Enter a teammate email to invite.'); return; }
+  const btn = $('invite-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Inviting…';
+  try {
+    const d = await adminCall('inviteTeamMember', { email, role });
+    $('invite-email').value = '';
+    let msg = 'Invited ' + email + ' as ' + role + '.';
+    if (d.setupLink) msg += ' Send them this link to set a password: ' + d.setupLink;
+    showAlert(msg, 'success');
+    await refresh();
+  } catch (e) { showAlert(e.message); }
+  finally { btn.disabled = false; btn.innerHTML = 'Invite'; }
+});
+
+async function saveRole(memberId, role) {
+  try {
+    await adminCall('updateMemberRole', { memberId, role });
+    showAlert('Role updated.', 'success');
+    await refresh();
+  } catch (e) { showAlert(e.message); }
+}
+
+async function removeMember(memberId) {
+  try {
+    const d = await adminCall('removeTeamMember', { memberId });
+    showAlert('Removed ' + d.email + ' from team.', 'success');
+    await refresh();
+  } catch (e) { showAlert(e.message); }
+}
+
+async function refresh() {
+  try {
+    state.info = await adminCall('getInfo');
+    state.pickedPlan = state.info.tenant.plan;
+    renderConsole();
+  } catch (e) { showAlert('Refresh failed: ' + e.message); }
+}
+</script>
+</body>
+</html>
