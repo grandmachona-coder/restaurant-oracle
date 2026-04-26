@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Restaurant Oracle — Design Partner Pitch</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root {
+  --bg: #0f1117;
+  --bg2: #161922;
+  --border: #262a36;
+  --fg: #e6e8ee;
+  --muted: #8a92a6;
+  --accent: #f4a261;
+  --accent2: #5fb3a1;
+  --danger: #e76f51;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--fg); margin: 0; padding: 0; font-family: 'Inter', -apple-system, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.deck { max-width: 1100px; margin: 0 auto; padding: 48px 32px; }
+.slide { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 64px 56px; margin-bottom: 24px; min-height: 560px; display: flex; flex-direction: column; justify-content: center; position: relative; break-after: page; }
+.slide-num { position: absolute; top: 24px; right: 32px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.05em; }
+h1 { font-size: 48px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 16px; line-height: 1.1; }
+h2 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 24px; }
+h3 { font-size: 20px; font-weight: 600; margin: 0 0 8px; color: var(--accent); }
+.tagline { color: var(--muted); font-size: 18px; margin-bottom: 40px; }
+p { font-size: 17px; margin: 0 0 12px; }
+.big { font-size: 24px; line-height: 1.4; }
+ul { margin: 0 0 16px; padding-left: 22px; }
+li { margin-bottom: 8px; font-size: 17px; }
+.row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 32px; }
+.card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px; }
+.card .icon { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 12px; }
+.card h4 { font-size: 16px; margin: 0 0 8px; font-weight: 600; }
+.card p { font-size: 14px; color: var(--muted); margin: 0; }
+.screenshot { background: #1d2030; border: 1px solid var(--border); border-radius: 8px; padding: 40px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 12px; min-height: 220px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.pill { display: inline-block; background: var(--accent); color: #1a1208; font-weight: 600; font-size: 13px; padding: 4px 12px; border-radius: 999px; letter-spacing: 0.02em; }
+.pill.teal { background: var(--accent2); color: #0a1f1a; }
+.pill.red { background: var(--danger); color: #1a0a07; }
+.kv { display: grid; grid-template-columns: 180px 1fr; gap: 8px 24px; margin: 32px 0; }
+.kv dt { color: var(--muted); font-size: 14px; }
+.kv dd { margin: 0; font-size: 17px; font-weight: 500; }
+.callout { background: rgba(244, 162, 97, 0.1); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 6px 6px 0; margin: 24px 0; }
+.callout p { margin: 0; font-size: 17px; }
+.footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; }
+strong { color: var(--fg); font-weight: 600; }
+.accent { color: var(--accent); }
+.teal { color: var(--accent2); }
+code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: var(--accent2); }
+
+@media print {
+  html, body { background: #fff; color: #111; }
+  .deck { padding: 0; max-width: none; }
+  .slide { background: #fff; border: 1px solid #ddd; break-after: page; min-height: 90vh; }
+  .card { background: #fafafa; border-color: #e5e5e5; }
+  .screenshot { background: #f5f5f5; border-color: #ddd; color: #666; }
+  .card p { color: #666; }
+  .tagline, .slide-num, .kv dt, .footer { color: #888; }
+  h3 { color: #c07030; }
+  .accent { color: #c07030; }
+  .teal { color: #2e7d6d; }
+  .callout { background: #fff5eb; }
+  code { background: #f3f3f3; color: #2e7d6d; }
+}
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- SLIDE 1: PROBLEM -->
+<section class="slide">
+  <div class="slide-num">01 / 05 — PROBLEM</div>
+  <h1>Your food cost lives in <span class="accent">three places.</span></h1>
+  <p class="tagline">And none of them talk to each other.</p>
+  <div class="row">
+    <div class="card">
+      <div class="icon">▸ INVOICES</div>
+      <h4>Paper in a folder</h4>
+      <p>Nicky, SP, Cascade — stacks on the office shelf. Prices change, you don't notice until margin slips.</p>
+    </div>
+    <div class="card">
+      <div class="icon">▸ RECIPES</div>
+      <h4>Google Sheets</h4>
+      <p>One tab per dish. Yields approximate. Last updated "sometime in 2024."</p>
+    </div>
+    <div class="card">
+      <div class="icon">▸ PREP LISTS</div>
+      <h4>Back of a check</h4>
+      <p>Chef's scribble, photographed to line cooks. No one knows last week's yields.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <p><strong>Net effect:</strong> you're guessing plate cost. A 3-point margin swing on your top seller = real money you can't see.</p>
+  </div>
+</section>
+
+<!-- SLIDE 2: PRODUCT -->
+<section class="slide">
+  <div class="slide-num">02 / 05 — PRODUCT</div>
+  <h1>Restaurant Oracle</h1>
+  <p class="tagline">One app. Scan invoice → cost every recipe → print prep sheet → order what's low.</p>
+  <div class="row">
+    <div>
+      <h3>1. SCAN</h3>
+      <div class="screenshot">[Invoice photo → AI extraction<br>line items → $ per unit → auto-linked to ingredient]</div>
+      <p style="margin-top:12px; color:var(--muted); font-size:14px;">Phone camera. 8 seconds per invoice.</p>
+    </div>
+    <div>
+      <h3>2. COST</h3>
+      <div class="screenshot">[Recipe card:<br>Duck confit — $8.42 / plate<br>Food cost 22.4% • Margin $29.58]</div>
+      <p style="margin-top:12px; color:var(--muted); font-size:14px;">Real-time. Price goes up, you see it.</p>
+    </div>
+    <div>
+      <h3>3. PREP + ORDER</h3>
+      <div class="screenshot">[Prep sheet: 3 qt demi, 14 portions confit,<br>restock: 2 cases onions by Thu]</div>
+      <p style="margin-top:12px; color:var(--muted); font-size:14px;">Printed. On the line. Par-based.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <p>Built for my own restaurant first. <strong>LaChona Bistro</strong> runs on it today — 400+ ingredients, 180 recipes, 7 months live.</p>
+  </div>
+</section>
+
+<!-- SLIDE 3: THE OFFER -->
+<section class="slide">
+  <div class="slide-num">03 / 05 — THE OFFER</div>
+  <h1>Six months free. <span class="teal">No contract. No catch.</span></h1>
+  <p class="tagline">You are one of <strong>three</strong> Portland restaurants I'm picking.</p>
+  <dl class="kv">
+    <dt>Starts</dt>
+    <dd>The day I walk into your kitchen with a laptop.</dd>
+    <dt>Access</dt>
+    <dd>Full product. All three tiers. Unlimited users.</dd>
+    <dt>Onboarding</dt>
+    <dd>I import your menu. I pair with your chef on first 5 recipes. In person.</dd>
+    <dt>Support</dt>
+    <dd>My cell. Text me. I ship fixes same-week.</dd>
+    <dt>After 6 months</dt>
+    <dd>50% lifetime discount if you stay. Or walk. Your call.</dd>
+  </dl>
+  <div class="callout">
+    <p><strong>What I want in exchange:</strong> 30 minutes on the phone every week. Honest feedback. Permission to put your logo on my landing page if you like it — opt-in only.</p>
+  </div>
+</section>
+
+<!-- SLIDE 4: WHAT I NEED -->
+<section class="slide">
+  <div class="slide-num">04 / 05 — WHAT I NEED</div>
+  <h1>Specifically:</h1>
+  <div class="row" style="grid-template-columns: 1fr 1fr;">
+    <div>
+      <h3>Your time</h3>
+      <ul>
+        <li><strong>Week 0 (once):</strong> 2-hour kitchen visit. I bring the laptop.</li>
+        <li><strong>Week 1-4:</strong> 30-min call each Monday.</li>
+        <li><strong>Week 6:</strong> Mid-point review (45 min).</li>
+        <li><strong>Week 12:</strong> One-sentence testimonial if you're happy. Skip if not.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Your honesty</h3>
+      <ul>
+        <li>Tell me what's broken. I ship the fix.</li>
+        <li>Tell me what you'd pay. $49? $99? $199? I need real numbers.</li>
+        <li>Tell me who else would want this. Warm intros only.</li>
+        <li>Tell me to stop calling if it's not working.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout" style="border-color: var(--accent2); background: rgba(95,179,161,0.1);">
+    <p>Total commitment <span class="pill teal">~6 hours over 6 months</span>. In exchange for software that would otherwise cost <span class="pill">$594–$1,194</span> at full price.</p>
+  </div>
+</section>
+
+<!-- SLIDE 5: NEXT STEP -->
+<section class="slide">
+  <div class="slide-num">05 / 05 — NEXT STEP</div>
+  <h1>Yes, no, or "pitch me again in three weeks."</h1>
+  <p class="tagline">I'm not chasing. One follow-up, then I let it go.</p>
+  <div class="row" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 40px;">
+    <div class="card" style="border-color: var(--accent2);">
+      <div class="icon teal">▸ YES</div>
+      <h4 style="color: var(--accent2);">Text me a Tuesday</h4>
+      <p>I bring a laptop and a coffee. We do Week 0 that day. Live by Friday.</p>
+    </div>
+    <div class="card" style="border-color: var(--accent);">
+      <div class="icon">▸ NOT NOW</div>
+      <h4 style="color: var(--accent);">Tell me when</h4>
+      <p>I'll circle back once. If still not the right moment, I stop.</p>
+    </div>
+    <div class="card" style="border-color: var(--danger);">
+      <div class="icon" style="color: var(--danger);">▸ NO</div>
+      <h4 style="color: var(--danger);">Just say so</h4>
+      <p>No hard feelings. Tell me why if you're willing — it makes the product better.</p>
+    </div>
+  </div>
+  <div class="footer">
+    <div>
+      <strong>Anthony Mule</strong> · LaChona Bistro · <span class="accent">restaurantoracle.app</span>
+    </div>
+    <div>
+      (503) 704-5496 · anthony@restaurantoracle.app
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

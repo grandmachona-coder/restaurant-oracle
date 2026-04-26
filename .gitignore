@@ -1,0 +1,33 @@
+# secrets
+.env
+.env.*
+*-service-account*.json
+*-credentials.json
+*-key.json
+gcp-key*.json
+
+# build artifacts / deps
+node_modules/
+*.log
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# OS / editor
+.DS_Store
+.cursor_rules
+.vscode/
+.idea/
+*.swp
+
+# user-local Claude settings (keep launch.json shared, exclude permissions)
+.claude/settings.local.json
+firebase/.claude/settings.local.json
+
+# one-time audit outputs
+audit_*.json
+audit-report.html
+
+# legacy / large binaries
+Backup/
+Restaurant_Oracle_Template.xlsx
