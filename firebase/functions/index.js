@@ -2390,12 +2390,22 @@ async function adminOpGetInfo(ctx) {
   // Team members (approved_emails)
   const teamSnap = await db.collection('tenants').doc(ctx.tenantId)
     .collection('approved_emails').get();
+  // created_at may be a Firestore Timestamp, JS Date, ISO string, or epoch ms
+  // depending on which migration path stamped it. Normalize to ISO string.
+  const toIso = (v) => {
+    if (!v) return null;
+    if (typeof v.toDate === 'function') return v.toDate().toISOString();
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'number') return new Date(v).toISOString();
+    if (typeof v === 'string') return v;
+    return null;
+  };
   const team = teamSnap.docs.map(d => ({
     id: d.id,
     email: d.data().email,
     role: d.data().role,
     added_by: d.data().added_by || null,
-    created_at: d.data().created_at ? d.data().created_at.toDate().toISOString() : null,
+    created_at: toIso(d.data().created_at),
   }));
 
   return {
@@ -2408,7 +2418,7 @@ async function adminOpGetInfo(ctx) {
         plan: t.plan,
         status: t.status,
         onboardingComplete: !!t.onboardingComplete,
-        createdAt: t.createdAt ? t.createdAt.toDate().toISOString() : null,
+        createdAt: toIso(t.createdAt),
       },
       subscription: subscription ? {
         id: subscription.id,
