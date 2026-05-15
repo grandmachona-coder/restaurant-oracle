@@ -1,5 +1,5 @@
 /**
- * square.js — Square API client for Restaurant Oracle
+ * square.js — Square API client for Bistro Steward
  *
  * Fetch-based, zero new dependencies. Exposes the minimum surface we need:
  *   - customers.create

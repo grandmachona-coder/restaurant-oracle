@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Operator Console — Restaurant Oracle</title>
+<title>Operator Console — Bistro Steward</title>
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <meta name="theme-color" content="#0d1e33">
@@ -213,7 +213,7 @@
   <div class="shell">
     <aside class="sidebar">
       <div class="brand">
-        <img src="icon.png" alt="Restaurant Oracle">
+        <img src="icon.png" alt="Bistro Steward">
         <div>
           <div class="brand-title">Oracle</div>
           <div class="brand-sub">Operator</div>
@@ -407,7 +407,7 @@
             <div style="margin-top:14px">
               <label class="lbl">Grant by email</label>
               <div style="display:flex;gap:8px">
-                <input id="grant-email" class="fld" placeholder="email@restaurantoracle.com">
+                <input id="grant-email" class="fld" placeholder="email@bistrosteward.com">
                 <button class="btn" id="btn-grant">Grant</button>
               </div>
             </div>
@@ -557,12 +557,41 @@
   </div>
 </div>
 
+<!-- ── Ticket composer modal ─────────────────────────────── -->
+<div class="modal-back" id="ticket-modal-back">
+  <div class="modal" style="max-width:560px">
+    <h3 id="ticket-modal-title">New ticket</h3>
+    <p id="ticket-modal-tenant" style="font-size:12px;color:#74acdf;margin-bottom:14px">—</p>
+
+    <label class="lbl" style="display:block;margin-bottom:6px;color:#a0b4c8;font-size:11px">Subject</label>
+    <input id="ticket-modal-subject" class="fld" autocomplete="off" placeholder="Short summary" style="width:100%;margin-bottom:12px">
+
+    <label class="lbl" style="display:block;margin-bottom:6px;color:#a0b4c8;font-size:11px">First message to tenant</label>
+    <textarea id="ticket-modal-body" class="fld" rows="6" placeholder="Body — what does the tenant need to know?" style="width:100%;margin-bottom:12px;font-family:inherit;resize:vertical"></textarea>
+
+    <label class="lbl" style="display:block;margin-bottom:6px;color:#a0b4c8;font-size:11px">Priority</label>
+    <select id="ticket-modal-priority" class="fld" style="width:100%;margin-bottom:6px">
+      <option value="low">low</option>
+      <option value="normal" selected>normal</option>
+      <option value="high">high</option>
+      <option value="critical">critical</option>
+    </select>
+
+    <div id="ticket-modal-err" style="display:none;color:#ff9a9a;font-size:12px;margin-top:8px">—</div>
+
+    <div class="modal-actions">
+      <button class="btn ghost sm" id="ticket-modal-cancel">Cancel</button>
+      <button class="btn sm" id="ticket-modal-ok" style="background:#3478f6;color:#fff">Create ticket</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Toast stack ─────────────────────────────────────── -->
 <div id="toast-stack"></div>
 
 <script>
 /* ════════════════════════════════════════════════════════════════════════
- *  Operator Console — Restaurant Oracle
+ *  Operator Console — Bistro Steward
  * ════════════════════════════════════════════════════════════════════════
  *  Thin tabbed UI over the superAdmin Cloud Function (54 ops).
  *  Hash routes:  #/overview  #/tenants  #/tenants/{slug}  #/tickets
@@ -592,6 +621,8 @@ const STATE = {
   drawer: { type: null, id: null, tab: null, data: null },
   // Confirm modal promise-resolver
   confirmResolve: null,
+  // Ticket composer modal promise-resolver
+  ticketResolve: null,
 };
 
 /* ── Firebase init ─────────────────────────────────────── */
@@ -646,7 +677,18 @@ document.getElementById('gate-signin').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-signout').addEventListener('click', async () => {
+  // Clear all in-memory STATE so a different operator signing in next won't
+  // briefly see the previous operator's tenant list, audit feed, or drawer.
+  STATE.user = null; STATE.idToken = null;
+  STATE.overview = null; STATE.tenants = []; STATE.tenantsIndex.clear();
+  STATE.tickets = []; STATE.feedbackAgg = null; STATE.feedbackList = [];
+  STATE.announcements = []; STATE.flags = []; STATE.operators = [];
+  STATE.superAdmins = []; STATE.topRisk = []; STATE.mrrSeries = [];
+  STATE.recentAudit = [];
+  STATE.drawer = { type: null, id: null, tab: null, data: null };
   await auth.signOut();
+  // Hard reload prevents stale DOM from rendering before next gate check.
+  location.reload();
 });
 
 function enterApp() {
@@ -655,6 +697,7 @@ function enterApp() {
   bindTabs();
   bindDrawer();
   bindModal();
+  bindTicketModal();
   bindTabsBehavior();
   applyHash();
   loadOverview().catch(e => toast(e.message, 'err'));
@@ -722,6 +765,46 @@ function confirmAction({ title, message, requireText, okLabel }) {
     }
     document.getElementById('modal-ok').textContent = okLabel || 'Proceed';
     document.getElementById('modal-back').classList.add('open');
+  });
+}
+
+/* ── Ticket composer modal ────────────────────────────── */
+// Resolves with { subject, body, priority } on submit, null on cancel.
+// Replaces 3 prompt() calls in createTicketFlow.
+function bindTicketModal() {
+  const back = document.getElementById('ticket-modal-back');
+  const closeWith = (val) => {
+    back.classList.remove('open');
+    if (STATE.ticketResolve) { STATE.ticketResolve(val); STATE.ticketResolve = null; }
+  };
+  document.getElementById('ticket-modal-cancel').addEventListener('click', () => closeWith(null));
+  document.getElementById('ticket-modal-ok').addEventListener('click', () => {
+    const subject  = document.getElementById('ticket-modal-subject').value.trim();
+    const body     = document.getElementById('ticket-modal-body').value.trim();
+    const priority = document.getElementById('ticket-modal-priority').value || 'normal';
+    const err = document.getElementById('ticket-modal-err');
+    if (!subject) { err.textContent = 'Subject is required.'; err.style.display = 'block'; return; }
+    if (!body)    { err.textContent = 'Body is required.';    err.style.display = 'block'; return; }
+    err.style.display = 'none';
+    closeWith({ subject, body, priority });
+  });
+  // ESC cancels, Cmd/Ctrl+Enter submits
+  back.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeWith(null);
+    else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') document.getElementById('ticket-modal-ok').click();
+  });
+}
+function openTicketModal({ tenantId, tenantSlug }) {
+  return new Promise(resolve => {
+    STATE.ticketResolve = resolve;
+    document.getElementById('ticket-modal-tenant').textContent =
+      'Tenant: ' + (tenantSlug || tenantId || '—');
+    document.getElementById('ticket-modal-subject').value = '';
+    document.getElementById('ticket-modal-body').value = '';
+    document.getElementById('ticket-modal-priority').value = 'normal';
+    document.getElementById('ticket-modal-err').style.display = 'none';
+    document.getElementById('ticket-modal-back').classList.add('open');
+    setTimeout(() => document.getElementById('ticket-modal-subject').focus(), 50);
   });
 }
 
@@ -1729,13 +1812,12 @@ async function assignTicket(t) {
 }
 
 async function createTicketFlow(tenantId) {
-  const subject = prompt('Ticket subject:');
-  if (!subject) return;
-  const body = prompt('First message to tenant:');
-  if (!body) return;
-  const priority = prompt('Priority (low/normal/high/critical):', 'normal') || 'normal';
+  const resolved = STATE.tenantsIndex.get(tenantId);
+  const tenantSlug = resolved ? (resolved.slug || resolved.tenantId) : tenantId;
+  const result = await openTicketModal({ tenantId, tenantSlug });
+  if (!result) return; // cancelled
   try {
-    const r = await callSuper('createTicket', { tenantId, subject, body, priority });
+    const r = await callSuper('createTicket', { tenantId, ...result });
     toast('Ticket created: ' + r.ticketId, 'ok');
     if (STATE.drawer.type === 'tenant') reloadDrawer();
   } catch (e) { toast(e.message, 'err'); }

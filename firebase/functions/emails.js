@@ -1,5 +1,5 @@
 /**
- * Restaurant Oracle — Transactional Email
+ * Bistro Steward — Transactional Email
  *
  * Provider: Resend (REST API, fetch-based — no SDK dep needed).
  * All senders are transactional; respect CAN-SPAM; never marketing here.
@@ -17,10 +17,10 @@
 const admin = require('firebase-admin');
 
 const FROM_FALLBACK = 'onboarding@resend.dev';
-const FROM_BRANDED  = 'Restaurant Oracle <noreply@restaurantoracle.com>';
-const REPLY_TO      = 'support@restaurantoracle.com';
-const APP_BASE_URL  = 'https://restaurantoracle.app';
-const SUPPORT_EMAIL = 'support@restaurantoracle.com';
+const FROM_BRANDED  = 'Bistro Steward <noreply@bistrosteward.com>';
+const REPLY_TO      = 'support@bistrosteward.com';
+const APP_BASE_URL  = 'https://bistrosteward.com';
+const SUPPORT_EMAIL = 'support@bistrosteward.com';
 const BRAND_CITY    = 'Portland, OR';
 
 // ── Template registry ──────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ function layout({ preheader, heading, bodyHtml, ctaLabel, ctaUrl, noteHtml }) {
   <tr><td align="center">
     <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
       <tr><td style="background:linear-gradient(135deg,#1e293b 0%,#0f1117 100%);padding:28px 32px;border-radius:12px 12px 0 0;border:1px solid #1f2937;border-bottom:none;">
-        <div style="color:#f6b43b;font-size:14px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-family:Inter,Arial,sans-serif;">Restaurant Oracle</div>
+        <div style="color:#f6b43b;font-size:14px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-family:Inter,Arial,sans-serif;">Bistro Steward</div>
         <div style="color:#e2e8f0;font-size:22px;font-weight:600;margin-top:6px;font-family:Inter,Arial,sans-serif;line-height:1.3;">${escapeHtml(heading)}</div>
       </td></tr>
       <tr><td style="background:#ffffff;padding:28px 32px 20px 32px;border:1px solid #1f2937;border-top:none;border-radius:0;">
@@ -146,7 +146,7 @@ function layout({ preheader, heading, bodyHtml, ctaLabel, ctaUrl, noteHtml }) {
         </table>
       </td></tr>
       <tr><td style="background:#0b0d14;color:#64748b;font-size:12px;line-height:1.55;padding:18px 32px;border:1px solid #1f2937;border-top:none;border-radius:0 0 12px 12px;font-family:Inter,Arial,sans-serif;">
-        Restaurant Oracle · ${BRAND_CITY} · <a href="mailto:${SUPPORT_EMAIL}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT_EMAIL}</a><br>
+        Bistro Steward · ${BRAND_CITY} · <a href="mailto:${SUPPORT_EMAIL}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT_EMAIL}</a><br>
         This is a transactional message about your account.
       </td></tr>
     </table>
@@ -180,12 +180,12 @@ function fmtDate(iso) {
 const BUILTIN_TEMPLATES = {
 
   owner_welcome: {
-    subject: () => 'Welcome to Restaurant Oracle',
+    subject: () => 'Welcome to Bistro Steward',
     html: (d) => layout({
       preheader: 'Your restaurant is provisioned. Here are the first 3 steps.',
       heading: `Welcome, ${escapeHtml(d.restaurantName || 'there')}.`,
       bodyHtml: `
-        <p>Your Restaurant Oracle account is live. Your 30-day free trial has started — no charge until <strong>${escapeHtml(fmtDate(d.trialEndsAt) || 'day 30')}</strong>.</p>
+        <p>Your Bistro Steward account is live. Your 30-day free trial has started — no charge until <strong>${escapeHtml(fmtDate(d.trialEndsAt) || 'day 30')}</strong>.</p>
         <p style="margin-top:16px;"><strong>Three things to do first:</strong></p>
         <ol style="padding-left:20px;margin:8px 0 0 0;color:#0f1117;">
           <li style="margin:6px 0;">Add a few ingredients and set their current costs.</li>
@@ -193,11 +193,11 @@ const BUILTIN_TEMPLATES = {
           <li style="margin:6px 0;">Run a count in <em>Inventory Scan</em> — snap a photo of your walk-in.</li>
         </ol>
         <p style="margin-top:16px;">Questions? Reply to this email — it goes straight to ${escapeHtml(SUPPORT_EMAIL)}.</p>`,
-      ctaLabel: 'Open Restaurant Oracle',
+      ctaLabel: 'Open Bistro Steward',
       ctaUrl: APP_BASE_URL + '/app/',
     }),
     text: (d) => [
-      `Welcome to Restaurant Oracle, ${d.restaurantName || 'there'}.`,
+      `Welcome to Bistro Steward, ${d.restaurantName || 'there'}.`,
       ``,
       `Your 30-day free trial is active. No charge until ${fmtDate(d.trialEndsAt) || 'day 30'}.`,
       ``,
@@ -214,17 +214,17 @@ const BUILTIN_TEMPLATES = {
   trial_ending_7d: {
     subject: () => 'Your trial ends in 7 days',
     html: (d) => layout({
-      preheader: 'Your Restaurant Oracle trial converts to a paid plan in 7 days.',
+      preheader: 'Your Bistro Steward trial converts to a paid plan in 7 days.',
       heading: '7 days left in your free trial',
       bodyHtml: `
-        <p>Your Restaurant Oracle trial ends on <strong>${escapeHtml(fmtDate(d.trialEndsAt) || 'day 30')}</strong>.</p>
+        <p>Your Bistro Steward trial ends on <strong>${escapeHtml(fmtDate(d.trialEndsAt) || 'day 30')}</strong>.</p>
         <p>On that date, the card on file ending in <strong>${escapeHtml(d.last4 || '••••')}</strong> will be charged <strong>${escapeHtml(money(d.priceCents))}</strong> for the <strong>${escapeHtml(d.plan || 'current')}</strong> plan.</p>
         <p>No action needed if you want to keep going — billing is automatic. If you need to change plans, update your card, or cancel, use the Billing menu.</p>`,
       ctaLabel: 'Manage Billing',
       ctaUrl: APP_BASE_URL + '/app/#menu-billing',
     }),
     text: (d) => [
-      `Your Restaurant Oracle trial ends in 7 days (${fmtDate(d.trialEndsAt) || 'day 30'}).`,
+      `Your Bistro Steward trial ends in 7 days (${fmtDate(d.trialEndsAt) || 'day 30'}).`,
       ``,
       `Card ending ${d.last4 || '••••'} will be charged ${money(d.priceCents)} for the ${d.plan || 'current'} plan.`,
       ``,
@@ -236,7 +236,7 @@ const BUILTIN_TEMPLATES = {
   trial_ending_2d: {
     subject: () => 'Your trial ends in 2 days',
     html: (d) => layout({
-      preheader: 'Your Restaurant Oracle trial ends in 2 days.',
+      preheader: 'Your Bistro Steward trial ends in 2 days.',
       heading: '2 days left in your free trial',
       bodyHtml: `
         <p>Your trial ends on <strong>${escapeHtml(fmtDate(d.trialEndsAt) || 'day 30')}</strong> — just 2 days away.</p>
@@ -257,7 +257,7 @@ const BUILTIN_TEMPLATES = {
   trial_ending_today: {
     subject: () => 'Your free trial ends today',
     html: (d) => layout({
-      preheader: 'Your Restaurant Oracle trial ends today.',
+      preheader: 'Your Bistro Steward trial ends today.',
       heading: 'Your free trial ends today',
       bodyHtml: `
         <p>Today is day 30 — your free trial wraps up and billing kicks in.</p>
@@ -276,12 +276,12 @@ const BUILTIN_TEMPLATES = {
   },
 
   first_charge_receipt: {
-    subject: (d) => `Receipt from Restaurant Oracle — ${money(d.amountCents || d.priceCents)}`,
+    subject: (d) => `Receipt from Bistro Steward — ${money(d.amountCents || d.priceCents)}`,
     html: (d) => layout({
       preheader: `Payment of ${money(d.amountCents || d.priceCents)} received.`,
       heading: `Receipt — ${money(d.amountCents || d.priceCents)}`,
       bodyHtml: `
-        <p>Thanks for subscribing to Restaurant Oracle. Here is your receipt.</p>
+        <p>Thanks for subscribing to Bistro Steward. Here is your receipt.</p>
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:16px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
           <tr><td style="padding:10px 14px;background:#f8fafc;font-size:13px;color:#475569;">Restaurant</td>
               <td style="padding:10px 14px;background:#f8fafc;font-size:13px;color:#0f1117;text-align:right;">${escapeHtml(d.restaurantName || '')}</td></tr>
@@ -301,7 +301,7 @@ const BUILTIN_TEMPLATES = {
       ctaUrl: APP_BASE_URL + '/app/#menu-billing',
     }),
     text: (d) => [
-      `Receipt from Restaurant Oracle`,
+      `Receipt from Bistro Steward`,
       ``,
       `Restaurant: ${d.restaurantName || ''}`,
       `Plan: ${d.plan || ''}`,
@@ -343,16 +343,16 @@ const BUILTIN_TEMPLATES = {
   subscription_cancelled: {
     subject: () => 'Subscription cancelled',
     html: (d) => layout({
-      preheader: `Your Restaurant Oracle subscription is cancelled. Access remains through ${fmtDate(d.endsAt) || 'end of billing period'}.`,
+      preheader: `Your Bistro Steward subscription is cancelled. Access remains through ${fmtDate(d.endsAt) || 'end of billing period'}.`,
       heading: 'Your subscription is cancelled',
       bodyHtml: `
-        <p>We have cancelled your Restaurant Oracle subscription. You will keep full access through <strong>${escapeHtml(fmtDate(d.endsAt) || 'the end of your current billing period')}</strong>, after which the account switches to read-only.</p>
+        <p>We have cancelled your Bistro Steward subscription. You will keep full access through <strong>${escapeHtml(fmtDate(d.endsAt) || 'the end of your current billing period')}</strong>, after which the account switches to read-only.</p>
         <p>Your data stays in place for <strong>90 days</strong> in case you change your mind. Reactivate anytime with a click — no re-onboarding.</p>`,
       ctaLabel: 'Reactivate',
       ctaUrl: APP_BASE_URL + '/app/#menu-billing',
     }),
     text: (d) => [
-      `Your Restaurant Oracle subscription is cancelled.`,
+      `Your Bistro Steward subscription is cancelled.`,
       ``,
       `Access remains through ${fmtDate(d.endsAt) || 'end of billing period'}.`,
       `Your data is retained for 90 days.`,
@@ -367,13 +367,13 @@ const BUILTIN_TEMPLATES = {
       preheader: 'Your subscription is active again.',
       heading: 'Welcome back',
       bodyHtml: `
-        <p>Your Restaurant Oracle subscription has been reactivated. Your <strong>${escapeHtml(d.plan || 'current')}</strong> plan is active, card ending <strong>${escapeHtml(d.last4 || '••••')}</strong> will be billed on <strong>${escapeHtml(fmtDate(d.nextBillingDate) || 'next cycle')}</strong>.</p>
+        <p>Your Bistro Steward subscription has been reactivated. Your <strong>${escapeHtml(d.plan || 'current')}</strong> plan is active, card ending <strong>${escapeHtml(d.last4 || '••••')}</strong> will be billed on <strong>${escapeHtml(fmtDate(d.nextBillingDate) || 'next cycle')}</strong>.</p>
         <p>All your data, recipes, and settings are right where you left them.</p>`,
-      ctaLabel: 'Open Restaurant Oracle',
+      ctaLabel: 'Open Bistro Steward',
       ctaUrl: APP_BASE_URL + '/app/',
     }),
     text: (d) => [
-      `Welcome back to Restaurant Oracle.`,
+      `Welcome back to Bistro Steward.`,
       ``,
       `${d.plan || 'Your plan'} is active. Next charge: ${fmtDate(d.nextBillingDate) || 'next cycle'} on card •••• ${d.last4 || '••••'}.`,
       ``,
@@ -382,19 +382,19 @@ const BUILTIN_TEMPLATES = {
   },
 
   team_invite: {
-    subject: (d) => `${d.inviterName || 'Your team'} invited you to ${d.restaurantName || 'Restaurant Oracle'}`,
+    subject: (d) => `${d.inviterName || 'Your team'} invited you to ${d.restaurantName || 'Bistro Steward'}`,
     html: (d) => layout({
-      preheader: `${d.inviterName || 'Your team'} added you to ${d.restaurantName || 'their'} Restaurant Oracle account.`,
-      heading: `You were added to ${escapeHtml(d.restaurantName || 'Restaurant Oracle')}`,
+      preheader: `${d.inviterName || 'Your team'} added you to ${d.restaurantName || 'their'} Bistro Steward account.`,
+      heading: `You were added to ${escapeHtml(d.restaurantName || 'Bistro Steward')}`,
       bodyHtml: `
-        <p><strong>${escapeHtml(d.inviterName || 'Your team')}</strong> added you to the <strong>${escapeHtml(d.restaurantName || '')}</strong> account on Restaurant Oracle as a <strong>${escapeHtml(d.inviteeRole || 'team member')}</strong>.</p>
+        <p><strong>${escapeHtml(d.inviterName || 'Your team')}</strong> added you to the <strong>${escapeHtml(d.restaurantName || '')}</strong> account on Bistro Steward as a <strong>${escapeHtml(d.inviteeRole || 'team member')}</strong>.</p>
         <p>Click below to set a password and sign in. The link is valid for one hour.</p>`,
       ctaLabel: 'Set Password & Sign In',
       ctaUrl: d.setupLink || (APP_BASE_URL + '/app/'),
       noteHtml: `If you were not expecting this, just ignore the email. Questions: <a href="mailto:${SUPPORT_EMAIL}" style="color:#475569;">${SUPPORT_EMAIL}</a>.`,
     }),
     text: (d) => [
-      `${d.inviterName || 'Your team'} invited you to ${d.restaurantName || 'Restaurant Oracle'}.`,
+      `${d.inviterName || 'Your team'} invited you to ${d.restaurantName || 'Bistro Steward'}.`,
       ``,
       `Role: ${d.inviteeRole || 'team member'}`,
       ``,

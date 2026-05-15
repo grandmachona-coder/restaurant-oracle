@@ -1,5 +1,5 @@
 /**
- * agents.js — Phase 2 automation agents for Restaurant Oracle SaaS.
+ * agents.js — Phase 2 automation agents for Bistro Steward SaaS.
  *
  * Exports Cloud Function handlers and helpers:
  *   - runProvisioning({ tenantId, email, plan }) — called from signupTenant
@@ -11,7 +11,7 @@
  * `/platform_stats/` (rollups), `/platform_alerts/` (high-sev events), or
  * the tenant's own `onboarding/nudges` subcollection.
  *
- * Spec docs: /Users/mulefamily/Claude/Restaurant-Oracle/agents/
+ * Spec docs: /Users/mulefamily/Claude/Bistro-Steward/agents/
  */
 'use strict';
 
@@ -26,8 +26,11 @@ const Sentry = require('@sentry/node');
 function db() { return admin.firestore(); }
 function authSdk() { return admin.auth(); }
 
-// ── Plan pricing (keep in sync with index.js PLAN_PRICES_CENTS) ─────────────
-const PLAN_PRICES_CENTS = { starter: 2900, pro: 4900, scale: 9900 };
+// ── Plan pricing (single source of truth: billing-state.js PLAN_CATALOG) ────
+const { PLAN_CATALOG } = require('./billing-state');
+const PLAN_PRICES_CENTS = Object.fromEntries(
+  Object.entries(PLAN_CATALOG).map(([k, v]) => [k, v.priceCents])
+);
 
 // ════════════════════════════════════════════════════════════════════════════
 //  AGENT 1 — PROVISIONING
@@ -51,9 +54,9 @@ async function runProvisioning({ tenantId, ownerEmail, plan }) {
     { merge: true }
   );
 
-  // Ensure counters/ids exists
-  await tRef.collection('counters').doc('ids').set(
-    { next: 1 },
+  // Ensure counters/next_id exists (matches what invoices.js + index.js consume).
+  await tRef.collection('counters').doc('next_id').set(
+    { value: 1000 },
     { merge: true }
   );
 

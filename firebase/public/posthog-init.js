@@ -15,7 +15,7 @@
     api_host: 'https://us.i.posthog.com',
     person_profiles: 'identified_only', // anon /landing visitors don't create profiles
     capture_pageview: false,             // SPA — we emit page_viewed manually in go()
-    capture_pageleave: true,
+    capture_pageleave: false,            // no auto-events before identify (consent surrogate)
     respect_dnt: true,
     ip: false,                           // GDPR-friendly: drop client IP at server
     disable_session_recording: true,     // PII-risky for restaurant ops

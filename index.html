@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Oracle</title>
+    <title>Bistro Steward</title>
     
     <!-- Firebase Configuration -->
     <script src="firebase-config.js"></script>
@@ -21,9 +21,9 @@
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Restaurant Oracle">
+    <meta name="apple-mobile-web-app-title" content="Bistro Steward">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Restaurant Oracle">
+    <meta name="application-name" content="Bistro Steward">
     <meta name="theme-color" content="#1a1a2e">
     <meta name="description" content="Smart Kitchen Management">
     <link rel="manifest" href="manifest.json">
@@ -329,8 +329,8 @@
 
 <!-- Login Screen -->
 <div class="login-screen" id="login-screen">
-    <img src="icon.png" alt="Restaurant Oracle" class="login-logo">
-    <div class="login-title">Restaurant Oracle</div>
+    <img src="icon.png" alt="Bistro Steward" class="login-logo">
+    <div class="login-title">Bistro Steward</div>
     <div class="login-subtitle">Smart Kitchen Management for LaChona</div>
     <div class="login-box">
         <div class="login-error" id="login-error"></div>
@@ -401,7 +401,7 @@
 
 <!-- Main App -->
 <div class="phone hidden" id="app-container">
-    <div class="status"><span>Restaurant Oracle</span><span id="connection-status"></span></div>
+    <div class="status"><span>Bistro Steward</span><span id="connection-status"></span></div>
     <div class="header">
         <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
@@ -531,6 +531,12 @@ var renderDebounceTimer = null;
 // ==================== TOAST NOTIFICATIONS ====================
 function showToast(message, type, duration){
     type = type || 'error';
+    // Normalize legacy short names so older call sites still pick up the
+    // correct CSS class (only error/success/warning are defined in stylesheet).
+    if(type === 'err') type = 'error';
+    else if(type === 'ok') type = 'success';
+    else if(type === 'warn') type = 'warning';
+    else if(type === 'info') type = 'success';
     duration = duration || 4000;
     var container = document.getElementById('toast-container');
     if(!container) return;
@@ -606,11 +612,11 @@ function getCurrentUserRole(){
         if(user) return user.role;
     }
 
-    // 3. First-user bootstrap (D.users empty)
-    if(!D.users || D.users.length === 0){
-        return 'owner';
-    }
-
+    // 3. Default to most-restrictive role. The legacy "first-user bootstrap"
+    //    that returned 'owner' is unsafe under multi-tenant: every approved
+    //    user gets a role claim via provisionTenant/inviteUser before reaching
+    //    the app, so missing claim + empty D.users means race or unprovisioned
+    //    state — neither warrants owner privileges.
     return 'employee';
 }
 
@@ -874,7 +880,7 @@ function renderOnboardingStep(){
     if(_onboardingStep === 0){
         html = dots +
             '<div class="ob-icon">👋</div>' +
-            '<div class="ob-title">Welcome to Restaurant Oracle</div>' +
+            '<div class="ob-title">Welcome to Bistro Steward</div>' +
             '<div class="ob-sub">Your whole back-of-house loop, in one place. Let\'s get you set up in three quick steps.</div>' +
             '<ul class="ob-checklist">' +
                 '<li>Track ingredients, inventory, and shopping lists</li>' +
@@ -2452,7 +2458,7 @@ function takeSyncSnapshot(){
 function updateNextId(){
     // Find the maximum ID across all data arrays to avoid collisions
     var maxId = nid;
-    [D.ings, D.recs, D.menus, D.inv, D.shopping, D.preps, D.areas, D.cats, D.menuCats, D.recCats, D.units, D.vendors].forEach(function(arr){
+    [D.ings, D.recs, D.menus, D.inv, D.shopping, D.preps, D.areas, D.cats, D.menuCats, D.recCats, D.units, D.vendors, D.conversions, D.log, D.users].forEach(function(arr){
         if(arr && arr.length){
             arr.forEach(function(item){
                 if(item && item.id && item.id >= maxId) maxId = item.id + 1;
@@ -3319,13 +3325,15 @@ function addToArea(areaId){
                 // Storage = Recipe Units (1:1 conversion)
                 if(!D.conversions)D.conversions=[];
                 var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+                var newConvId=maxConvId+1;
                 D.conversions.push({
-                    id:maxConvId+1,
+                    id:newConvId,
                     ingId:itemId,
                     storageUnit:unit,
                     factor:1,
                     recipeUnit:unit
                 });
+                markChanged('conversions', newConvId);
             }else if(convVal==='new'){
                 // Create new conversion from form fields
                 var storQty=document.getElementById('stor-qty-'+areaId);
@@ -3336,15 +3344,17 @@ function addToArea(areaId){
                 if(storUnit&&storUnit.value&&recQty&&recQty.value){
                     if(!D.conversions)D.conversions=[];
                     var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+                    var newConvId=maxConvId+1;
                     var storQtyVal=storQty?+storQty.value||1:1;
                     var factor=(+recQty.value)/storQtyVal;
                     D.conversions.push({
-                        id:maxConvId+1,
+                        id:newConvId,
                         ingId:itemId,
                         storageUnit:storUnit.value,
                         factor:factor,
                         recipeUnit:recUnit.value
                     });
+                    markChanged('conversions', newConvId);
                     // Use storage unit for inventory
                     invItem.unit=storUnit.value;
                 }
@@ -3353,13 +3363,15 @@ function addToArea(areaId){
                 var templateConv=D.conversions.find(function(c){return c.id===+convVal;});
                 if(templateConv){
                     var maxConvId=D.conversions.length?Math.max.apply(null,D.conversions.map(function(c){return c.id;})):0;
+                    var newConvId=maxConvId+1;
                     D.conversions.push({
-                        id:maxConvId+1,
+                        id:newConvId,
                         ingId:itemId,
                         storageUnit:templateConv.storageUnit,
                         factor:templateConv.factor,
                         recipeUnit:templateConv.recipeUnit
                     });
+                    markChanged('conversions', newConvId);
                     invItem.unit=templateConv.storageUnit;
                 }
             }
@@ -7076,7 +7088,7 @@ function renderAdmin(c,s){
         html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72;margin-top:4px">or click to browse (.xlsx)</div>';
         html+='<input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelImport(this.files[0])">';
         html+='</div>';
-        html+='<a href="Restaurant_Oracle_Template.xlsx" download style="display:block;margin-top:8px;text-align:center;font-size:calc(10px * var(--font-scale));color:#74b9ff;text-decoration:none">⬇️ Download blank template</a>';
+        html+='<a href="Bistro_Steward_Template.xlsx" download style="display:block;margin-top:8px;text-align:center;font-size:calc(10px * var(--font-scale));color:#74b9ff;text-decoration:none">⬇️ Download blank template</a>';
         html+='</div>';
     }
     
@@ -7886,7 +7898,7 @@ function exportData(){
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url;
-    a.download='restaurant-oracle-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    a.download='bistro-steward-backup-'+new Date().toISOString().slice(0,10)+'.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -9221,7 +9233,7 @@ function buildPrintSheetHtml(area,mainItems,subGroups){
         rowNum++;
     }
     h+='</tbody></table>';
-    h+='<div class="footer">Restaurant Oracle - Inventory Count Sheet - '+date+'</div>';
+    h+='<div class="footer">Bistro Steward - Inventory Count Sheet - '+date+'</div>';
     h+='</body></html>';
     return h;
 }

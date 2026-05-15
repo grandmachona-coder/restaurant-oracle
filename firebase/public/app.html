@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Oracle</title>
+    <title>Bistro Steward</title>
     <!-- Resolve all relative paths from root so /user/{slug} routes load assets correctly -->
     <base href="/">
 
@@ -30,12 +30,21 @@
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Restaurant Oracle">
+    <meta name="apple-mobile-web-app-title" content="Bistro Steward">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Restaurant Oracle">
+    <meta name="application-name" content="Bistro Steward">
     <meta name="theme-color" content="#1a1a2e">
     <meta name="description" content="Smart Kitchen Management">
     <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function (e) {
+                    console.warn('SW register failed:', e && e.message);
+                });
+            });
+        }
+    </script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -403,8 +412,8 @@
 
 <!-- Login Screen -->
 <div class="login-screen" id="login-screen">
-    <img src="icon.png" alt="Restaurant Oracle" class="login-logo">
-    <div class="login-title">Restaurant Oracle</div>
+    <img src="icon.png" alt="Bistro Steward" class="login-logo">
+    <div class="login-title">Bistro Steward</div>
     <div class="login-subtitle">Smart Kitchen Management for LaChona</div>
     <div class="login-box">
         <div class="login-error" id="login-error"></div>
@@ -477,7 +486,7 @@
 
 <!-- Main App -->
 <div class="phone hidden" id="app-container">
-    <div class="status"><span>Restaurant Oracle</span><span id="connection-status"></span></div>
+    <div class="status"><span>Bistro Steward</span><span id="connection-status"></span></div>
     <div class="header">
         <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
@@ -602,7 +611,6 @@ var firebaseAuth = null;
 var currentAuthUser=null;
 var currentUserRole='employee'; // Default to employee (most restrictive)
 var isOnline=navigator.onLine;
-var syncQueue=[];
 var realtimeChannel=null;
 var isSyncing=false; // Sync mutex to prevent concurrent syncNow() calls
 var isDataLoaded=false; // Tracks whether initial data load is complete
@@ -1163,7 +1171,7 @@ function renderOnboardingStep(){
     if(_onboardingStep === 0){
         html = dots +
             '<div class="ob-icon">👋</div>' +
-            '<div class="ob-title">Welcome to Restaurant Oracle</div>' +
+            '<div class="ob-title">Welcome to Bistro Steward</div>' +
             '<div class="ob-sub">Your whole back-of-house loop, in one place. Let\'s get you set up in three quick steps.</div>' +
             '<ul class="ob-checklist">' +
                 '<li>Track ingredients, inventory, and shopping lists</li>' +
@@ -1457,12 +1465,31 @@ async function onAuthStateChange(user){
     if(user){
         currentAuthUser = user;
 
-        // Get custom claims from ID token
+        // Force token refresh BEFORE reading claims so newly-granted claims
+        // (provisionTenant approval, role grant) are visible immediately
+        // instead of after the cache window (~1 hour) expires.
         try {
-            var tokenResult = await user.getIdTokenResult();
+            var tokenResult = await user.getIdTokenResult(true);
             currentAuthUser.customClaims = tokenResult.claims;
         } catch(e) {
             currentAuthUser.customClaims = {};
+        }
+
+        // Approval gate: block UI render until server has set approved=true.
+        // Server-side enforcement still happens via secureApi (defense in depth)
+        // but pre-checking the claim avoids flashing the app shell to unapproved
+        // users. Super-admin bypasses approval (they manage tenants).
+        var _claims = currentAuthUser.customClaims || {};
+        var _isSuper = _claims.superAdmin === true || _claims.role === 'super_admin';
+        if(!_isSuper && _claims.approved !== true){
+            dbg('approved!=true, denying app entry');
+            stopListeners();
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('access-denied').classList.add('show');
+            try { await window.firebaseAuthFunctions.signOut(firebaseAuth); } catch(e){}
+            currentAuthUser = null;
+            return;
         }
 
         // Impersonation banner (super-admin opened tenant via operator console)
@@ -1595,6 +1622,20 @@ async function onAuthStateChange(user){
         stopListeners();
         currentAuthUser = null;
         clearInactivityTimer();
+        // External signout (token revoked, session expired). Clear in-memory
+        // tenant data so a different account signing in next won't briefly see
+        // stale data before fresh listeners arrive. Our explicit signOut()
+        // already calls location.reload() — this branch handles the case where
+        // Firebase invalidates the session without our trigger.
+        try {
+            D.ings = []; D.inv = []; D.areas = []; D.cats = [];
+            D.menuCats = []; D.recCats = []; D.units = []; D.recs = [];
+            D.menus = []; D.preps = []; D.shopping = []; D.log = [];
+            D.conversions = []; D.users = []; D.approvedEmails = [];
+            if(typeof IDX === 'object'){
+                Object.keys(IDX).forEach(function(k){ if(IDX[k] && typeof IDX[k].clear === 'function') IDX[k].clear(); });
+            }
+        } catch(e) { /* defensive */ }
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
     }
@@ -1640,7 +1681,13 @@ async function updatePassword(){
 // ==================== FIREBASE DATA FUNCTIONS ====================
 // All data operations now go through secureApi() which calls Cloud Functions
 
-async function loadFromFirebase(){
+async function loadFromFirebase(_depth){
+    var depth = _depth || 0;
+    if(depth > 1){
+        console.error('loadFromFirebase recursion exceeded — migration appears stuck');
+        showToast('Initial data load failed. Reload the page.', 'error');
+        return;
+    }
     showSyncStatus('syncing');
     dbg('loadFromFirebase starting via secure API...');
     try{
@@ -1717,7 +1764,7 @@ async function loadFromFirebase(){
         if(!areas.data||areas.data.length===0){
             dbg('Database empty, migrating initial data...');
             await migrateToFirebase();
-            return loadFromFirebase(); // Reload after migration
+            return loadFromFirebase(depth + 1);
         }
 
         dbg('Mapping data to local format...');
@@ -2033,6 +2080,7 @@ function subscribeCollection(collectionName, tableName, mapFn, queryConstraints)
 
 function onAllListenersReady(){
     dbg('All listeners ready — initial data loaded');
+    loadShoppingPlan();
     if(!D.recCats || !D.recCats.length){
         D.recCats = [{id:1,name:'Fillings'},{id:2,name:'Doughs'},{id:3,name:'Sauces'},{id:4,name:'Cocktails'},{id:5,name:'Desserts'},{id:6,name:'Brunch'}];
     }
@@ -2434,6 +2482,8 @@ setInterval(function(){
 var D={
     fontScale:1,
     autoAddToInv:0,
+    // Multi-shift bulk shopping plan (per-tab, sessionStorage-persisted)
+    shoppingPlan:{numShifts:1,consumptionRate:1.0},
     currentUser:{id:1,name:'Owner',role:'owner'},
     approvedEmails:[],
     users:[],
@@ -4260,9 +4310,19 @@ function renderShop(c,s){
 
     var html='';
 
-    // Calculate Shopping button - owner only
+    // Calculate Shopping button + Multi-shift bulk-purchase plan - owner only
     if(isOwner()){
-        html+='<div style="margin-bottom:12px"><button class="btn btn-p" onclick="calculateShoppingList()" style="width:100%">🧮 Calculate Shopping List from Prep Needs</button></div>';
+        var planNs = (D.shoppingPlan && D.shoppingPlan.numShifts) || 1;
+        var planCr = (D.shoppingPlan && D.shoppingPlan.consumptionRate) || 1.0;
+        html+='<div class="card" style="margin-bottom:12px;padding:12px;background:rgba(116,185,255,.05);border:1px solid rgba(116,185,255,.2);border-radius:8px">';
+        html+='<div style="font-weight:600;margin-bottom:8px;font-size:calc(13px * var(--font-scale));color:#74b9ff">📅 Bulk Purchase Plan</div>';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+        html+='<label style="font-size:calc(11px * var(--font-scale));color:#a0aec0;display:block">Shifts to cover<input type="number" id="shop-num-shifts" min="1" step="1" value="'+planNs+'" oninput="onShoppingPlanInput()" style="width:100%;padding:6px;border-radius:4px;border:1px solid #2d3748;background:#1a202c;color:#fff;font-size:calc(14px * var(--font-scale));margin-top:4px"></label>';
+        html+='<label style="font-size:calc(11px * var(--font-scale));color:#a0aec0;display:block">Consumption rate (×)<input type="number" id="shop-consumption-rate" min="0.01" step="0.05" value="'+planCr+'" oninput="onShoppingPlanInput()" style="width:100%;padding:6px;border-radius:4px;border:1px solid #2d3748;background:#1a202c;color:#fff;font-size:calc(14px * var(--font-scale));margin-top:4px"></label>';
+        html+='</div>';
+        html+='<div id="shop-plan-summary" style="font-size:calc(11px * var(--font-scale));color:#74b9ff;margin-bottom:8px;min-height:14px"></div>';
+        html+='<button class="btn btn-p" onclick="calculateShoppingList()" style="width:100%">🧮 Calculate Shopping List from Prep Needs</button>';
+        html+='</div>';
 
         // Auto-add toggle
         html+='<div class="card" style="padding:10px;margin-bottom:12px;background:'+(D.autoAddToInv?'rgba(0,184,148,.15)':'rgba(255,255,255,.05)')+'">';
@@ -4396,6 +4456,7 @@ function renderShop(c,s){
     }
     
     c.innerHTML=html;
+    updateShoppingPlanSummary();
 }
 
 function togShop(id){
@@ -4584,8 +4645,9 @@ function roundQty(qty){
 }
 function formatQty(qty){
     var rounded = roundQty(qty);
-    // Remove unnecessary trailing zeros
-    return rounded.toString().replace(/\.?0+$/, '');
+    var s = rounded.toString();
+    // Only strip trailing zeros after decimal — bare 0 stays "0"
+    return s.indexOf('.') >= 0 ? s.replace(/\.?0+$/, '') : s;
 }
 
 // Helper: Convert quantity between units using conversions
@@ -4613,16 +4675,66 @@ function convertToStorageUnits(ingId, qty, fromUnit){
     return {qty: qty, unit: fromUnit};
 }
 
+// ---------- Multi-shift shopping plan (sessionStorage-persisted) ----------
+function loadShoppingPlan(){
+    try {
+        var raw = sessionStorage.getItem('ro_shoppingPlan');
+        if(raw){
+            var p = JSON.parse(raw);
+            D.shoppingPlan.numShifts = Math.max(1, parseInt(p.numShifts, 10) || 1);
+            D.shoppingPlan.consumptionRate = Math.max(0.01, parseFloat(p.consumptionRate) || 1.0);
+        }
+    } catch(_) {}
+}
+function saveShoppingPlan(){
+    try { sessionStorage.setItem('ro_shoppingPlan', JSON.stringify(D.shoppingPlan)); } catch(_) {}
+}
+function shoppingMultiplier(){
+    var ns = (D.shoppingPlan && D.shoppingPlan.numShifts) || 1;
+    var cr = (D.shoppingPlan && D.shoppingPlan.consumptionRate) || 1.0;
+    if(ns < 1) ns = 1;
+    if(cr <= 0) cr = 1.0;
+    return ns * cr;
+}
+var _shoppingPlanDebounce = null;
+function onShoppingPlanInput(){
+    var nsEl = document.getElementById('shop-num-shifts');
+    var crEl = document.getElementById('shop-consumption-rate');
+    if(!nsEl || !crEl) return;
+    var ns = parseInt(nsEl.value, 10);
+    var cr = parseFloat(crEl.value);
+    D.shoppingPlan.numShifts = (ns >= 1) ? ns : 1;
+    D.shoppingPlan.consumptionRate = (cr > 0) ? cr : 1.0;
+    saveShoppingPlan();
+    updateShoppingPlanSummary();
+    if(_shoppingPlanDebounce) clearTimeout(_shoppingPlanDebounce);
+    _shoppingPlanDebounce = setTimeout(function(){
+        calculateShoppingList(true);   // silent
+    }, 400);
+}
+function updateShoppingPlanSummary(){
+    var el = document.getElementById('shop-plan-summary');
+    if(!el) return;
+    var mult = shoppingMultiplier();
+    if(D.shoppingPlan.numShifts === 1 && D.shoppingPlan.consumptionRate === 1.0){
+        el.textContent = '';
+    } else {
+        el.textContent = '× ' + mult.toFixed(2) + ' multiplier (default = 1 shift × 100%)';
+    }
+}
+
 function calculateShoppingList(silent){
     saveState('Calculate shopping list');
+    var multiplier = shoppingMultiplier();   // numShifts × consumptionRate
 
     // ========== STEP 1: Calculate Menu needs (subtract finished menu items) ==========
     var menuNeeds = {}; // menuId -> {needed, unit, name}
 
     D.menus.filter(function(m){return !m.archived && m.includeInShop;}).forEach(function(menu){
-        var target = menu.tgt || 0;
+        // Menu target is per-shift; scale by user's bulk-shopping multiplier
+        var target = (menu.tgt || 0) * multiplier;
 
-        // Subtract finished menu items from inventory (menuId)
+        // Subtract finished menu items from inventory (menuId) — fixed pool, not per-shift
         var onHandMenu = 0;
         D.inv.forEach(function(inv){
             if(inv.menuId === menu.id) onHandMenu += inv.qty;
@@ -4751,8 +4863,8 @@ function calculateShoppingList(silent){
         var ing = D.ings.find(function(i){return i.id === ingId;});
         if(!ing || !ing.autoShop) return;
 
-        // Use the standalone ingredient's minQty as the target (not multiplied)
-        var needed = standaloneInfo.minQty;
+        // Standalone minQty is per-shift; scale by bulk multiplier
+        var needed = standaloneInfo.minQty * multiplier;
         if(needed <= 0) return;
 
         if(!ingredientNeeds[ingId]){
@@ -4770,10 +4882,11 @@ function calculateShoppingList(silent){
         // Skip if already added via menu link
         if(ingredientNeeds[ing.id]) return;
 
+        var scaledMin = ing.minQty * multiplier;
         ingredientNeeds[ing.id] = {
-            qty: ing.minQty,
+            qty: scaledMin,
             unit: ing.defUnit,
-            sources: [{type:'standalone', name: ing.name + ' (Standalone Min)', qty: ing.minQty}]
+            sources: [{type:'standalone', name: ing.name + ' (Standalone Min)', qty: scaledMin}]
         };
     });
 
@@ -4887,6 +5000,21 @@ function calculateShoppingList(silent){
 }
 
 // ==================== PREP STATUS ====================
+// Shifts-on-hand badge: how many shifts of demand the current on-hand covers.
+// Menu target / recipe per-shift need is interpreted as PER-SHIFT (matches the
+// multi-shift bulk-shopping model in calculateShoppingList).
+function _shiftsBadgeHtml(onHand, perShiftTarget){
+    if(!perShiftTarget || perShiftTarget <= 0){
+        return '<span title="No per-shift target set" style="color:#74b9ff;font-size:calc(10px * var(--font-scale));margin-left:8px;font-weight:600">∞ shifts</span>';
+    }
+    var shifts = onHand / perShiftTarget;
+    var label = (Math.floor(shifts * 10) / 10) + ' shifts';
+    var col = shifts >= 1 ? '#00b894' : shifts >= 0.5 ? '#fdcb6e' : '#d63031';
+    return '<span title="On-hand covers '+label+' at current per-shift target" '
+         + 'style="color:'+col+';font-size:calc(10px * var(--font-scale));margin-left:8px;font-weight:600">'
+         + label + '</span>';
+}
+
 function renderPrep(c,s){
     // ========== SECTION 1: Menu Item Prep Status ==========
     var menuPrepList = [];
@@ -4903,8 +5031,9 @@ function renderPrep(c,s){
         menuPrepList.push({
             menuId: menu.id,
             name: menu.name,
-            target: target,
+            target: target,                     // per-shift target
             onHand: onHand,
+            shiftsOnHand: target > 0 ? onHand / target : Infinity,
             unit: (IDX.units.get(menu.unitId)||{abbr:'ea'}).abbr
         });
     });
@@ -4955,9 +5084,10 @@ function renderPrep(c,s){
         prepList.push({
             recId: recId,
             name: need.name,
-            target: need.totalNeeded,
+            target: need.totalNeeded,           // per-shift recipe need (sum across menus at 1× tgt)
             unit: need.unit,
             onHand: onHand,
+            shiftsOnHand: need.totalNeeded > 0 ? onHand / need.totalNeeded : Infinity,
             usedIn: need.usedIn
         });
     });
@@ -5000,6 +5130,7 @@ function renderPrep(c,s){
                 html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Finished:</span>';
                 html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + item.onHand + ' ' + item.unit + '</span>';
                 html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+                html += _shiftsBadgeHtml(item.onHand, item.target);
                 html += '</div>';
                 html += '</div>';
             });
@@ -5024,6 +5155,7 @@ function renderPrep(c,s){
                 html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Finished:</span>';
                 html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + item.onHand + ' ' + item.unit + '</span>';
                 html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+                html += _shiftsBadgeHtml(item.onHand, item.target);
                 html += '</div>';
                 html += '</div>';
             });
@@ -5045,6 +5177,7 @@ function renderPrep(c,s){
             html += '<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand:</span>';
             html += '<span style="padding:6px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(14px * var(--font-scale))">' + prep.onHand + ' ' + prep.unit + '</span>';
             html += '<span style="margin-left:auto;font-weight:600;color:' + (color === 'green' ? '#00b894' : color === 'yellow' ? '#fdcb6e' : '#d63031') + '">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+            html += _shiftsBadgeHtml(prep.onHand, prep.target);
             html += '</div>';
             html += '<div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#636e72">' + prep.usedIn.join(', ') + '</div>';
             html += '</div>';
@@ -7396,7 +7529,7 @@ function renderAdmin(c,s){
         html+='<div style="font-size:calc(10px * var(--font-scale));color:#636e72;margin-top:4px">or click to browse (.xlsx)</div>';
         html+='<input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelImport(this.files[0])">';
         html+='</div>';
-        html+='<a href="Restaurant_Oracle_Template.xlsx" download style="display:block;margin-top:8px;text-align:center;font-size:calc(10px * var(--font-scale));color:#74b9ff;text-decoration:none">⬇️ Download blank template</a>';
+        html+='<a href="Bistro_Steward_Template.xlsx" download style="display:block;margin-top:8px;text-align:center;font-size:calc(10px * var(--font-scale));color:#74b9ff;text-decoration:none">⬇️ Download blank template</a>';
         html+='</div>';
     }
     
@@ -8125,7 +8258,7 @@ function exportData(){
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url;
-    a.download='restaurant-oracle-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    a.download='bistro-steward-backup-'+new Date().toISOString().slice(0,10)+'.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -9464,7 +9597,7 @@ function buildPrintSheetHtml(area,mainItems,subGroups){
         rowNum++;
     }
     h+='</tbody></table>';
-    h+='<div class="footer">Restaurant Oracle - Inventory Count Sheet - '+date+'</div>';
+    h+='<div class="footer">Bistro Steward - Inventory Count Sheet - '+date+'</div>';
     h+='</body></html>';
     return h;
 }

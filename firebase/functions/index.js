@@ -1,6 +1,6 @@
 /**
  * SECURE API CLOUD FUNCTION (1st Gen)
- * Restaurant Oracle - Firebase Backend
+ * Bistro Steward - Firebase Backend
  * v2.0 - Security Overhaul
  *
  * Security features:
@@ -97,14 +97,14 @@ const ALLOWED_ORIGINS = [
   'https://lachona-dashboard.vercel.app',
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://restaurantoracle.app',
-  'https://admin.restaurantoracle.app',
+  'https://bistrosteward.com',
+  'https://admin.bistrosteward.com',
 ];
 
-// Allow any tenant subdomain of restaurantoracle.app
+// Allow any tenant subdomain of bistrosteward.com
 function isAllowedOrigin(origin) {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
-  if (/^https:\/\/[a-z0-9-]+\.restaurantoracle\.app$/.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.bistrosteward\.com$/.test(origin)) return true;
   return false;
 }
 
@@ -126,115 +126,24 @@ const auth = admin.auth();
 // Require agents after admin is initialized (agents.js defers admin usage)
 const agents = require('./agents');
 
-// Rate limiting (in-memory per instance)
+// Rate limiting — distributed via Firestore w/ in-memory fast-path cache.
+// Per-instance cache short-circuits for users hitting the same instance repeatedly.
+// Firestore transaction enforces global cap across all CF instances.
 const rateLimitMap = new Map();
 const RATE_LIMIT = { maxRequests: 100, windowMs: 60000 };
+// In-memory entries cleared after this many ms past resetTime (memory hygiene).
+const RATE_LIMIT_GC_MS = 5 * 60 * 1000;
 
-// Allowed collections (whitelist) - all now accessed via tenant namespace
-const ALLOWED_COLLECTIONS = [
-  'team_members', 'areas', 'cats', 'menu_cats', 'rec_cats',
-  'units', 'ings', 'inv', 'shopping', 'preps', 'recs',
-  'menus', 'log', 'conversions', 'vendors', 'settings',
-  'approved_emails', 'audit_log', 'counters', 'invoices', 'feedback_events',
-  'ai_insight_cache'
-];
+// Permission matrix + collection/operation whitelists extracted to permissions.js
+// so unit tests can require them without booting firebase-admin.
+const {
+  ALLOWED_COLLECTIONS,
+  ALLOWED_OPERATIONS,
+  PERMISSION_MATRIX,
+  checkPermission,
+} = require('./permissions');
 
-// Allowed operations
-const ALLOWED_OPERATIONS = [
-  'select', 'insert', 'update', 'upsert', 'delete',
-  'invite_user', 'voice', 'scan', 'reserve_ids',
-  'provisionTenant', 'deprovisionTenant', 'getTenantConfig', 'checkSlugAvailable',
-  'submitFeedback',
-  'get_tenant_settings', 'rotate_invoice_token', 'list_invoices',
-  'ai_insight',
-];
-
-// ==================== ROLE-BASED PERMISSION MATRIX (1.2) ====================
-// Defines which roles can perform which operations on which collections
-const PERMISSION_MATRIX = {
-  // Super-admin: platform operator only (you), can provision/deprovision tenants
-  super_admin: {
-    select: '*',
-    insert: '*',
-    update: '*',
-    upsert: '*',
-    delete: '*',
-    invite_user: true,
-    voice: true,
-    scan: true,
-    reserve_ids: true,
-    provisionTenant: true,
-    deprovisionTenant: true,
-    getTenantConfig: true,
-    checkSlugAvailable: true,
-    submitFeedback: true,
-    get_tenant_settings: true,
-    rotate_invoice_token: true,
-    list_invoices: true,
-    ai_insight: true,
-  },
-  // Owner can do everything within their tenant
-  owner: {
-    select: '*',
-    insert: '*',
-    update: '*',
-    upsert: '*',
-    delete: '*',
-    invite_user: true,
-    voice: true,
-    scan: true,
-    reserve_ids: true,
-    getTenantConfig: true,
-    checkSlugAvailable: true,
-    provisionTenant: false,
-    deprovisionTenant: false,
-    submitFeedback: true,
-    get_tenant_settings: true,
-    rotate_invoice_token: true,
-    list_invoices: true,
-    ai_insight: true,
-  },
-  // Employee has restricted access
-  employee: {
-    select: '*',
-    insert: ['inv', 'log', 'shopping'],
-    update: ['inv', 'log', 'shopping'],
-    upsert: ['inv', 'log', 'shopping', 'ings', 'areas', 'cats', 'menu_cats', 'rec_cats', 'units', 'recs', 'menus', 'preps', 'conversions'],
-    delete: [],
-    invite_user: false,
-    voice: true,
-    scan: true,
-    reserve_ids: true,
-    getTenantConfig: false,
-    checkSlugAvailable: false,
-    provisionTenant: false,
-    deprovisionTenant: false,
-    submitFeedback: true,
-    get_tenant_settings: false,
-    rotate_invoice_token: false,
-    list_invoices: true,
-    ai_insight: true,
-  }
-};
-
-function checkPermission(role, operation, collection) {
-  const rolePerms = PERMISSION_MATRIX[role];
-  if (!rolePerms) return false;
-
-  // Boolean special operations
-  const boolOps = ['invite_user', 'voice', 'scan', 'reserve_ids',
-                   'provisionTenant', 'deprovisionTenant', 'getTenantConfig', 'checkSlugAvailable',
-                   'submitFeedback',
-                   'get_tenant_settings', 'rotate_invoice_token', 'list_invoices',
-                   'ai_insight'];
-  if (boolOps.includes(operation)) return rolePerms[operation] === true;
-
-  const allowed = rolePerms[operation];
-  if (!allowed) return false;
-  if (allowed === '*') return true;
-  if (Array.isArray(allowed)) return allowed.includes(collection);
-  return false;
-}
+// ROLE-BASED PERMISSION MATRIX moved to ./permissions.js (required above).
 
 // ── Tenant-namespaced collection reference ──────────────────────────────────
 // All kitchen data lives at /tenants/{tenantId}/{collectionName}
@@ -251,14 +160,14 @@ function toSlug(name) {
     .substring(0, 40);
 }
 
-// ── Plan catalog ─────────────────────────────────────────────────────────────
-// Canonical plan definitions. Square plan variation IDs are injected at runtime
-// via Secret Manager (SQUARE_PLAN_VAR_{STARTER,PRO,SCALE}).
-const PLAN_CATALOG = {
-  starter: { priceCents: 2900, name: 'Starter', envKey: 'SQUARE_PLAN_VAR_STARTER' },
-  pro:     { priceCents: 4900, name: 'Pro',     envKey: 'SQUARE_PLAN_VAR_PRO' },
-  scale:   { priceCents: 9900, name: 'Scale',   envKey: 'SQUARE_PLAN_VAR_SCALE' },
-};
+// ── Plan catalog + signup validation moved to ./billing-state.js ────────────
+const {
+  PLAN_CATALOG,
+  CURRENT_TERMS_VERSION,
+  validateSignupInput,
+  mapSquareStatusToTenantStatus,
+  checkTenantAccessByStatus,
+} = require('./billing-state');
 
 function getPlanVariationId(planSlug) {
   const entry = PLAN_CATALOG[planSlug];
@@ -353,6 +262,8 @@ function sanitizeRecord(record) {
 }
 
 // ==================== RATE LIMITING ====================
+// Synchronous in-memory check — used as fast-path. Distributed enforcement
+// happens via checkRateLimitDistributed (async, transactional).
 function checkRateLimit(userId) {
   const now = Date.now();
   const userLimit = rateLimitMap.get(userId);
@@ -366,6 +277,41 @@ function checkRateLimit(userId) {
   userLimit.count++;
   return { allowed: true, remaining: RATE_LIMIT.maxRequests - userLimit.count };
 }
+
+// Distributed rate limit — Firestore transaction enforces 100/min/user across
+// ALL Cloud Function instances. Document at /rate_limits/{userId} with
+// { count, resetTimeMs }. Cleared lazily on next call after window expires.
+async function checkRateLimitDistributed(userId) {
+  const now = Date.now();
+  const ref = db.collection('rate_limits').doc(userId);
+  try {
+    return await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? snap.data() : null;
+      if (!data || now > Number(data.resetTimeMs || 0)) {
+        tx.set(ref, { count: 1, resetTimeMs: now + RATE_LIMIT.windowMs, userId });
+        return { allowed: true, remaining: RATE_LIMIT.maxRequests - 1 };
+      }
+      const count = Number(data.count || 0);
+      if (count >= RATE_LIMIT.maxRequests) {
+        return { allowed: false, remaining: 0, retryAfterMs: Number(data.resetTimeMs) - now };
+      }
+      tx.update(ref, { count: count + 1 });
+      return { allowed: true, remaining: RATE_LIMIT.maxRequests - (count + 1) };
+    });
+  } catch (e) {
+    console.warn('[rateLimit] Firestore tx failed, falling back to in-memory:', e.message);
+    return checkRateLimit(userId);
+  }
+}
+
+// Periodic GC of stale in-memory entries (runs on cold start + every 5 min).
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of rateLimitMap) {
+    if (now > (v.resetTime + RATE_LIMIT_GC_MS)) rateLimitMap.delete(k);
+  }
+}, RATE_LIMIT_GC_MS).unref?.();
 
 // ==================== AUDIT LOGGING (1.7) ====================
 // Writes to /tenants/{tenantId}/audit_log when tenant is known (normal case).
@@ -434,6 +380,20 @@ async function checkEmailWhitelist(email, tenantId) {
 
 // ============================================================================
 // GEMINI TOKEN USAGE LOGGING
+// Race a promise against a wall-clock timeout. Used to bound Gemini calls so
+// hung upstreams cannot tie up function invocations until cold-start cap.
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error((label || 'operation') + ' timed out after ' + ms + 'ms');
+      err.code = 'TIMEOUT';
+      reject(err);
+    }, ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 // ============================================================================
 // Writes one doc per Gemini call so dailyTenantCostAggregation can roll it up.
 // Per-tenant subcollection so reads stay scoped to the tenant.
@@ -479,36 +439,58 @@ function setSecurityHeaders(res) {
 }
 
 // ==================== USER ROLE LOOKUP ====================
+// In-memory cache, 30 s TTL — eliminates redundant auth.getUser + team_members
+// reads when same user fires multiple requests within window. Cleared on role
+// change via clearUserRoleCache(userId).
+const roleCache = new Map(); // userId|tenantId -> { role, expiresAt }
+const ROLE_CACHE_TTL_MS = 30 * 1000;
+
+function clearUserRoleCache(userId, tenantId) {
+  if (tenantId) roleCache.delete(userId + '|' + tenantId);
+  else {
+    for (const k of roleCache.keys()) {
+      if (k.startsWith(userId + '|')) roleCache.delete(k);
+    }
+  }
+}
+
 async function getUserRole(userId, userEmail, tenantId) {
+  const cacheKey = userId + '|' + (tenantId || '');
+  const cached = roleCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) return cached.role;
+
+  let role = null;
   // super_admin claim bypasses tenant role lookup entirely
   try {
     const userRecord = await auth.getUser(userId);
     if (userRecord.customClaims && userRecord.customClaims.superAdmin === true) {
-      return 'super_admin';
-    }
-    // Trust role from custom claim if already set (avoids extra Firestore read)
-    if (userRecord.customClaims && userRecord.customClaims.role) {
-      return userRecord.customClaims.role;
+      role = 'super_admin';
+    } else if (userRecord.customClaims && userRecord.customClaims.role) {
+      // Trust role from custom claim if already set (avoids extra Firestore read)
+      role = userRecord.customClaims.role;
     }
   } catch (e) { /* ignore */ }
 
-  // Check tenant's team_members subcollection
-  const teamSnap = await db.collection('tenants').doc(tenantId)
-    .collection('team_members')
-    .where('email', '==', userEmail)
-    .limit(1)
-    .get();
+  if (!role) {
+    // Check tenant's team_members subcollection
+    const teamSnap = await db.collection('tenants').doc(tenantId)
+      .collection('team_members')
+      .where('email', '==', userEmail)
+      .limit(1)
+      .get();
 
-  if (!teamSnap.empty) {
-    return teamSnap.docs[0].data().role || 'employee';
+    if (!teamSnap.empty) {
+      role = teamSnap.docs[0].data().role || 'employee';
+    } else {
+      // Bootstrap: first user to authenticate against an empty team_members = owner
+      const allMembers = await db.collection('tenants').doc(tenantId)
+        .collection('team_members').limit(1).get();
+      role = allMembers.empty ? 'owner' : 'employee';
+    }
   }
 
-  // Bootstrap: first user to authenticate against an empty team_members = owner
-  const allMembers = await db.collection('tenants').doc(tenantId)
-    .collection('team_members').limit(1).get();
-  if (allMembers.empty) return 'owner';
-
-  return 'employee';
+  roleCache.set(cacheKey, { role, expiresAt: Date.now() + ROLE_CACHE_TTL_MS });
+  return role;
 }
 
 // ==================== MAIN HANDLER ====================
@@ -587,8 +569,14 @@ async function handleRequest(req, res) {
       return;
     }
 
-    // Rate limit check
-    const rateCheck = checkRateLimit(userId);
+    // Rate limit check — fast-path in-memory + distributed Firestore enforcement.
+    // In-memory short-circuits multi-call hits on the same instance. Firestore
+    // transaction enforces global 100/min/user across all CF instances.
+    const fastCheck = checkRateLimit(userId);
+    let rateCheck = fastCheck;
+    if (fastCheck.allowed) {
+      rateCheck = await checkRateLimitDistributed(userId);
+    }
     if (!rateCheck.allowed) {
       await writeAuditLog(userId, userEmail, 'rate_limit_exceeded', null, 0, tenantId);
       res.status(429).json({ error: 'Rate limit exceeded. Try again later.' });
@@ -693,7 +681,7 @@ async function handleRequest(req, res) {
         await writeAuditLog(userId, userEmail, 'tenant_status_blocked', table, 0, tenantId);
         res.status(402).json({
           error: tenantStatus === 'suspended'
-            ? 'Account is suspended. Contact support@restaurantoracle.com.'
+            ? 'Account is suspended. Contact support@bistrosteward.com.'
             : 'Subscription is cancelled. Reactivate from Billing & Team to continue.',
         });
         return;
@@ -849,7 +837,7 @@ async function handleRequest(req, res) {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-        const systemPrompt = `You are a voice assistant for a restaurant kitchen management app called Restaurant Oracle.
+        const systemPrompt = `You are a voice assistant for a restaurant kitchen management app called Bistro Steward.
 The user speaks commands and you return a JSON action for the app to execute.
 
 Available actions:
@@ -880,7 +868,7 @@ RULES:
 
 JSON format: { "action": "action_name", "params": { ... }, "toast": "Short human-readable confirmation" }`;
 
-        const result = await model.generateContent({
+        const result = await withTimeout(model.generateContent({
           contents: [{ role: 'user', parts: [{ text: transcript }] }],
           systemInstruction: { parts: [{ text: systemPrompt }] },
           generationConfig: {
@@ -888,7 +876,7 @@ JSON format: { "action": "action_name", "params": { ... }, "toast": "Short human
             maxOutputTokens: 256,
             responseMimeType: 'application/json',
           },
-        });
+        }), 20000, 'gemini-voice');
 
         const __voiceUsage = (result && result.response && result.response.usageMetadata) || {};
         await logGeminiUsage({
@@ -944,9 +932,12 @@ JSON format: { "action": "action_name", "params": { ... }, "toast": "Short human
           inputTokens: 0, outputTokens: 0, totalTokens: 0,
           latencyMs: Date.now() - __voiceT0,
           success: false,
-          errorCode: (geminiError.message || '').includes('429') ? 'rate_limit' : 'gemini_error',
+          errorCode: geminiError.code === 'TIMEOUT' ? 'timeout'
+            : (geminiError.message || '').includes('429') ? 'rate_limit' : 'gemini_error',
         });
-        if (geminiError.message && geminiError.message.includes('429')) {
+        if (geminiError.code === 'TIMEOUT') {
+          res.status(504).json({ error: 'Voice assistant timed out. Please retry.' });
+        } else if (geminiError.message && geminiError.message.includes('429')) {
           res.status(429).json({ error: 'Voice assistant rate limit reached. Try again in a minute.' });
         } else {
           res.status(500).json({ error: 'Voice assistant temporarily unavailable' });
@@ -1050,7 +1041,7 @@ RULES:
 
 JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit": "unit string", "confidence": "high"|"medium"|"low" }] }`;
 
-        const result = await model.generateContent({
+        const result = await withTimeout(model.generateContent({
           contents: [{ role: 'user', parts: [
             { text: 'Read the handwritten quantities from this inventory count sheet for area: ' + areaName },
             { inlineData: { mimeType: mimeType, data: imageData } }
@@ -1061,7 +1052,7 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
             maxOutputTokens: 2048,
             responseMimeType: 'application/json',
           },
-        });
+        }), 45000, 'gemini-scan');
 
         const __scanUsage = (result && result.response && result.response.usageMetadata) || {};
         await logGeminiUsage({
@@ -1122,9 +1113,12 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
           inputTokens: 0, outputTokens: 0, totalTokens: 0,
           latencyMs: Date.now() - __scanT0,
           success: false,
-          errorCode: (geminiError.message || '').includes('429') ? 'rate_limit' : 'gemini_error',
+          errorCode: geminiError.code === 'TIMEOUT' ? 'timeout'
+            : (geminiError.message || '').includes('429') ? 'rate_limit' : 'gemini_error',
         });
-        if (geminiError.message && geminiError.message.includes('429')) {
+        if (geminiError.code === 'TIMEOUT') {
+          res.status(504).json({ error: 'Scan timed out. Try a smaller image.' });
+        } else if (geminiError.message && geminiError.message.includes('429')) {
           res.status(429).json({ error: 'Scan rate limit reached. Try again in a minute.' });
         } else {
           res.status(500).json({ error: 'Scan service temporarily unavailable' });
@@ -1265,7 +1259,7 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
         data: {
           tenantId: newTenantId,
           slug,
-          appUrl: `https://${slug}.restaurantoracle.app`,
+          appUrl: `https://${slug}.bistrosteward.com`,
           ownerUid,
         },
         error: null,
@@ -1278,7 +1272,18 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
         res.status(403).json({ error: 'Only super_admin can deprovision tenants' });
         return;
       }
-      const targetTenantId = (data && data.tenantId) || tenantId;
+      // Require explicit body.tenantId — never fall back to caller's token tenantId
+      // (would let a super-admin's home tenant be suspended by an empty body).
+      const targetTenantId = (data && typeof data.tenantId === 'string' && data.tenantId.trim()) || '';
+      if (!targetTenantId) {
+        res.status(400).json({ error: 'tenantId required in request body' });
+        return;
+      }
+      const tenantSnap = await db.collection('tenants').doc(targetTenantId).get();
+      if (!tenantSnap.exists) {
+        res.status(404).json({ error: 'Tenant not found' });
+        return;
+      }
       await db.collection('tenants').doc(targetTenantId).update({ status: 'suspended' });
 
       // Revoke approved claims for all users in this tenant
@@ -1349,7 +1354,7 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
       }
       res.status(200).json({
         data: {
-          invoiceEmail: token + '@invoices.restaurantoracle.app',
+          invoiceEmail: token + '@invoices.bistrosteward.com',
           invoiceToken: token,
           restaurantName: t.restaurantName,
           slug: t.slug,
@@ -1377,7 +1382,7 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
       await writeAuditLog(userId, userEmail, 'rotate_invoice_token', tenantId, 1, tenantId);
       res.status(200).json({
         data: {
-          invoiceEmail: newToken + '@invoices.restaurantoracle.app',
+          invoiceEmail: newToken + '@invoices.bistrosteward.com',
           invoiceToken: newToken
         },
         error: null
@@ -1470,11 +1475,13 @@ In 2 short sentences, explain:
 Return ONLY JSON: { "summary": "...", "hypothesis": "...", "severity": "low|medium|high" }`;
       }
 
+      const __aiT0 = Date.now();
       try {
-        const result = await model.generateContent({
+        const result = await withTimeout(model.generateContent({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig
-        });
+        }), 25000, 'gemini-ai_insight');
+        const __aiUsage = (result && result.response && result.response.usageMetadata) || {};
         const txt = result.response.text().trim();
         let parsed;
         try { parsed = JSON.parse(txt); }
@@ -1483,6 +1490,17 @@ Return ONLY JSON: { "summary": "...", "hypothesis": "...", "severity": "low|medi
           if (!m) throw new Error('no JSON');
           parsed = JSON.parse(m[0]);
         }
+
+        await logGeminiUsage({
+          tenantId, userId,
+          op: 'ai_insight_' + mode,
+          model: 'gemini-2.5-flash',
+          inputTokens: __aiUsage.promptTokenCount || 0,
+          outputTokens: __aiUsage.candidatesTokenCount || 0,
+          totalTokens: __aiUsage.totalTokenCount || 0,
+          latencyMs: Date.now() - __aiT0,
+          success: true,
+        });
 
         await cacheRef.set({
           mode, ingName, region,
@@ -1495,7 +1513,23 @@ Return ONLY JSON: { "summary": "...", "hypothesis": "...", "severity": "low|medi
         return;
       } catch (e) {
         console.error('ai_insight error:', e.message);
-        res.status(500).json({ error: 'AI insight generation failed' });
+        await logGeminiUsage({
+          tenantId, userId,
+          op: 'ai_insight_' + mode,
+          model: 'gemini-2.5-flash',
+          inputTokens: 0, outputTokens: 0, totalTokens: 0,
+          latencyMs: Date.now() - __aiT0,
+          success: false,
+          errorCode: e.code === 'TIMEOUT' ? 'timeout'
+            : (e.message || '').includes('429') ? 'rate_limit' : 'gemini_error',
+        });
+        if (e.code === 'TIMEOUT') {
+          res.status(504).json({ error: 'AI insight timed out. Please retry.' });
+        } else if (e.message && e.message.includes('429')) {
+          res.status(429).json({ error: 'AI insight rate limit reached. Try again in a minute.' });
+        } else {
+          res.status(500).json({ error: 'AI insight generation failed' });
+        }
         return;
       }
     }
@@ -1571,11 +1605,12 @@ Return ONLY JSON: { "summary": "...", "hypothesis": "...", "severity": "low|medi
         for (const item of sanitizedData) {
           const docId = item.id ? String(item.id) : collectionRef.doc().id;
           const docRef = collectionRef.doc(docId);
-          batch.set(docRef, { ...item, id: item.id || docId });
+          // Stamp _version=1 on insert for optimistic concurrency control.
+          batch.set(docRef, { ...item, id: item.id || docId, _version: 1 });
         }
         await batch.commit();
         await writeAuditLog(userId, userEmail, 'insert', collection, sanitizedData.length, tenantId);
-        result = { data: sanitizedData, error: null };
+        result = { data: sanitizedData.map(d => ({ ...d, _version: 1 })), error: null };
         break;
       }
 
@@ -1585,31 +1620,82 @@ Return ONLY JSON: { "summary": "...", "hypothesis": "...", "severity": "low|medi
           return;
         }
         const sanitizedUpdateData = sanitizeRecord(data);
+        // Optimistic lock: if client supplies _version, enforce match in a
+        // transaction. Stale write rejected w/ 409. _version increments on
+        // every update so concurrent edits surface as conflicts.
+        const expectedVersion = (data && typeof data._version === 'number') ? data._version : null;
         let query = collectionRef;
         for (const [field, value] of Object.entries(filters.eq)) {
           query = query.where(field, '==', value);
         }
         const snapshot = await query.get();
-        const batch = db.batch();
-        snapshot.docs.forEach(doc => batch.update(doc.ref, sanitizedUpdateData));
-        await batch.commit();
-        await writeAuditLog(userId, userEmail, 'update', collection, snapshot.docs.length, tenantId);
-        result = { data: { updated: snapshot.docs.length }, error: null };
+        if (snapshot.empty) {
+          result = { data: { updated: 0 }, error: null };
+          break;
+        }
+        // Strip _version from incoming payload — it is server-managed.
+        const { _version: _ignored, ...payloadWithoutVersion } = sanitizedUpdateData;
+        try {
+          const updatedCount = await db.runTransaction(async (tx) => {
+            const refs = snapshot.docs.map(d => d.ref);
+            const fresh = await Promise.all(refs.map(r => tx.get(r)));
+            if (expectedVersion !== null) {
+              for (const f of fresh) {
+                const cur = f.exists ? Number(f.data()._version || 1) : 0;
+                if (cur !== expectedVersion) {
+                  const err = new Error('VERSION_CONFLICT');
+                  err.code = 'VERSION_CONFLICT';
+                  err.currentVersion = cur;
+                  err.docId = f.id;
+                  throw err;
+                }
+              }
+            }
+            for (const f of fresh) {
+              const cur = f.exists ? Number(f.data()._version || 1) : 1;
+              tx.update(f.ref, { ...payloadWithoutVersion, _version: cur + 1 });
+            }
+            return refs.length;
+          });
+          await writeAuditLog(userId, userEmail, 'update', collection, updatedCount, tenantId);
+          result = { data: { updated: updatedCount }, error: null };
+        } catch (txErr) {
+          if (txErr && txErr.code === 'VERSION_CONFLICT') {
+            await writeAuditLog(userId, userEmail, 'update_conflict', collection, 0, tenantId);
+            res.status(409).json({
+              error: 'Document was modified by another user. Reload and try again.',
+              code: 'VERSION_CONFLICT',
+              docId: txErr.docId,
+              currentVersion: txErr.currentVersion,
+            });
+            return;
+          }
+          throw txErr;
+        }
         break;
       }
 
       case 'upsert': {
         const upsertData = Array.isArray(data) ? data : [data];
         const sanitizedUpsert = upsertData.map(sanitizeRecord);
-        const batch = db.batch();
+        // Strip incoming _version (server-managed). For new docs stamp 1, for
+        // existing docs increment. Done via transaction per doc to avoid races.
+        const upserted = [];
         for (const item of sanitizedUpsert) {
           const docId = item.id ? String(item.id) : collectionRef.doc().id;
           const docRef = collectionRef.doc(docId);
-          batch.set(docRef, { ...item, id: item.id || docId }, { merge: true });
+          const { _version: _ignored, ...payloadNoVersion } = item;
+          const final = await db.runTransaction(async (tx) => {
+            const cur = await tx.get(docRef);
+            const v = cur.exists ? Number(cur.data()._version || 1) + 1 : 1;
+            const merged = { ...payloadNoVersion, id: item.id || docId, _version: v };
+            tx.set(docRef, merged, { merge: true });
+            return merged;
+          });
+          upserted.push(final);
         }
-        await batch.commit();
-        await writeAuditLog(userId, userEmail, 'upsert', collection, sanitizedUpsert.length, tenantId);
-        result = { data: sanitizedUpsert, error: null };
+        await writeAuditLog(userId, userEmail, 'upsert', collection, upserted.length, tenantId);
+        result = { data: upserted, error: null };
         break;
       }
 
@@ -1684,7 +1770,7 @@ exports.inboundInvoice = invoices.inboundInvoice;
 
 // ── CORS for public signup ──────────────────────────────────────────────────
 // Signup is UNAUTHENTICATED (new user has no account yet), but still origin-
-// scoped to restaurantoracle.app family + localhost for dev.
+// scoped to bistrosteward.com family + localhost for dev.
 const signupCors = require('cors')({
   origin: function (origin, callback) {
     if (!origin) return callback(new Error('CORS: Origin required'), false);
@@ -1712,51 +1798,7 @@ function checkSignupRateLimit(ip) {
 }
 
 // ── Validation helpers ──────────────────────────────────────────────────────
-const CURRENT_TERMS_VERSION = '2026-04-24';
-
-function validateSignupInput(body) {
-  const errors = [];
-  const email = String(body.email || '').trim().toLowerCase();
-  const password = String(body.password || '');
-  const restaurantName = String(body.restaurantName || '').trim();
-  const plan = String(body.plan || '').toLowerCase();
-  const cardNonce = String(body.cardNonce || '');
-  const cardholderName = String(body.cardholderName || '').trim();
-  const verificationToken = body.verificationToken ? String(body.verificationToken) : undefined;
-  const agreedToTerms = body.agreedToTerms === true;
-  const termsVersion = String(body.termsVersion || '').trim();
-
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Valid email required');
-  }
-  if (!password || password.length < 8) {
-    errors.push('Password must be at least 8 characters');
-  }
-  if (password.length > 128) {
-    errors.push('Password too long');
-  }
-  if (!restaurantName || restaurantName.length < 2 || restaurantName.length > 100) {
-    errors.push('Restaurant name must be 2-100 characters');
-  }
-  if (!PLAN_CATALOG[plan]) {
-    errors.push('Plan must be starter, pro, or scale');
-  }
-  if (!cardNonce || !/^cnon:[A-Za-z0-9_-]+$/.test(cardNonce)) {
-    errors.push('Invalid card token');
-  }
-  if (!agreedToTerms) {
-    errors.push('You must agree to the Terms of Service and Privacy Policy');
-  }
-  if (!termsVersion || !/^\d{4}-\d{2}-\d{2}$/.test(termsVersion)) {
-    errors.push('Invalid terms version');
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-    normalized: { email, password, restaurantName, plan, cardNonce, cardholderName, verificationToken, agreedToTerms, termsVersion },
-  };
-}
+// CURRENT_TERMS_VERSION + validateSignupInput moved to ./billing-state.js (required above).
 
 // ── Square error → user-friendly message mapper ────────────────────────────
 // Square returns a structured error with .errors[] each having .code + .detail.
@@ -1890,7 +1932,7 @@ async function handleSignup(req, res) {
         email,
         givenName: cardholderName || restaurantName,
         referenceId: slug,
-        note: `Restaurant Oracle — ${PLAN_CATALOG[plan].name} — ${restaurantName}`,
+        note: `Bistro Steward — ${PLAN_CATALOG[plan].name} — ${restaurantName}`,
       });
     } catch (e) {
       console.error('[signup] Square customer creation failed:', e.message, e.body || '');
@@ -2038,7 +2080,7 @@ async function handleSignup(req, res) {
       data: {
         tenantId: newTenantId,
         slug,
-        appUrl: `https://restaurantoracle.app/user/${slug}`,
+        appUrl: `https://bistrosteward.com/user/${slug}`,
         ownerUid,
       },
       error: null,
@@ -2074,24 +2116,7 @@ exports.signupTenant = functions
 //  SQUARE WEBHOOK
 // ════════════════════════════════════════════════════════════════════════════
 
-/**
- * Map Square subscription status → tenant status.
- * Square statuses: ACTIVE | PAUSED | DEACTIVATED | CANCELED | PENDING
- */
-function mapSquareStatusToTenantStatus(sqStatus) {
-  switch ((sqStatus || '').toUpperCase()) {
-    case 'ACTIVE':
-    case 'PENDING':
-      return 'active';
-    case 'PAUSED':
-      return 'suspended';
-    case 'CANCELED':
-    case 'DEACTIVATED':
-      return 'cancelled';
-    default:
-      return 'active';
-  }
-}
+// mapSquareStatusToTenantStatus moved to ./billing-state.js (required above).
 
 /**
  * Resolve tenantId from a Square subscription ID. Returns null if not found.
@@ -2279,12 +2304,17 @@ async function handleSquareWebhook(req, res) {
       return;
     }
 
-    // Valid event types per Square 2025-01-23. Cancellations come through
-    // subscription.updated with status=CANCELED (no standalone subscription.canceled).
+    // Valid event types per Square 2025-01-23. Cancellations primarily come through
+    // subscription.updated with status=CANCELED, but Square also emits standalone
+    // subscription.canceled for some cancellation paths. Trial-end and past-due
+    // are explicit subscription event types as well.
     // Payment failures come through invoice.scheduled_charge_failed.
     const routableTypes = [
       'subscription.created',
       'subscription.updated',
+      'subscription.canceled',
+      'subscription.past_due',
+      'subscription.trial_ended',
       'invoice.created',
       'invoice.published',
       'invoice.payment_made',
@@ -2656,7 +2686,7 @@ async function adminOpInviteTeamMember(ctx, params) {
   let setupLink = null;
   try {
     setupLink = await auth.generatePasswordResetLink(inviteEmail, {
-      url: 'https://restaurantoracle.app/',
+      url: 'https://bistrosteward.com/',
       handleCodeInApp: false,
     });
   } catch (e) { console.warn('[admin] password reset link failed:', e.message); }
@@ -2668,7 +2698,7 @@ async function adminOpInviteTeamMember(ctx, params) {
     const tData = tenantDoc.exists ? tenantDoc.data() : {};
     await emails.sendEmail(inviteEmail, 'team_invite', {
       tenantId: ctx.tenantId,
-      restaurantName: tData.restaurantName || 'Restaurant Oracle',
+      restaurantName: tData.restaurantName || 'Bistro Steward',
       inviterName: ctx.userEmail,
       inviteeRole: role,
       setupLink,
@@ -2792,7 +2822,7 @@ async function handleAdminBilling(req, res) {
         await writeAuditLog(authCtx.userId, authCtx.userEmail, 'admin_blocked_tenant_status:' + op, null, 0, authCtx.tenantId);
         res.status(402).json({
           error: tenantStatus === 'suspended'
-            ? 'Account is suspended. Contact support@restaurantoracle.com.'
+            ? 'Account is suspended. Contact support@bistrosteward.com.'
             : 'Subscription is cancelled. Reactivate from Billing to continue.',
         });
         return;
@@ -3098,7 +3128,7 @@ async function superOpForceCancel(ctx, params) {
       result = await square.cancelSubscription({ subscriptionId: t.squareSubscriptionId });
     } catch (e) {
       console.warn('[super] forceCancel square error:', e.message);
-      return { error: 'Square cancel failed: ' + e.message, status: 502 };
+      return { error: 'Square cancel failed', status: 502 };
     }
   }
 
@@ -4141,7 +4171,8 @@ async function superOpExportTenant(ctx, params) {
       snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
       out.collections[sub] = docs;
     } catch (e) {
-      out.collections[sub] = { error: e.message };
+      console.warn('[super] export sub failed', tenantId, sub, e.message);
+      out.collections[sub] = { error: 'export failed for subcollection' };
     }
   }
   await writeSuperAudit(ctx, 'export', tenantId, { docCount: Object.values(out.collections).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0) });
@@ -4235,7 +4266,8 @@ async function superOpResetUserPassword(ctx, params) {
     await writeSuperAudit(ctx, 'reset_password', tenantId || null, { email: userEmail });
     return { data: { email: userEmail, resetLink: link } };
   } catch (e) {
-    return { error: 'Password reset failed: ' + e.message, status: 500 };
+    console.error('[super] reset password failed:', e.message);
+    return { error: 'Password reset failed', status: 500 };
   }
 }
 
@@ -4248,7 +4280,8 @@ async function superOpRevokeTokens(ctx, params) {
     await writeSuperAudit(ctx, 'revoke_tokens', tenantId || null, { email: userEmail, uid: u.uid });
     return { data: { email: userEmail, uid: u.uid, revokedAt: new Date().toISOString() } };
   } catch (e) {
-    return { error: 'Revoke failed: ' + e.message, status: 500 };
+    console.error('[super] revoke tokens failed:', e.message);
+    return { error: 'Revoke failed', status: 500 };
   }
 }
 
@@ -4260,7 +4293,8 @@ async function superOpResendVerification(ctx, params) {
     await writeSuperAudit(ctx, 'resend_verification', tenantId || null, { email: userEmail });
     return { data: { email: userEmail, verificationLink: link } };
   } catch (e) {
-    return { error: 'Verification link failed: ' + e.message, status: 500 };
+    console.error('[super] resend verification failed:', e.message);
+    return { error: 'Verification link failed', status: 500 };
   }
 }
 
@@ -4283,7 +4317,8 @@ async function superOpAdjustPlan(ctx, params) {
         planVariationId: newVar,
       });
     } catch (e) {
-      return { error: 'Square plan swap failed: ' + e.message, status: 502 };
+      console.error('[super] adjust plan square swap failed:', e.message);
+      return { error: 'Square plan swap failed', status: 502 };
     }
   }
 
@@ -4323,7 +4358,8 @@ async function superOpIssueRefund(ctx, params) {
       reason: sanitizeString(reason || 'Operator-issued refund'),
     });
   } catch (e) {
-    return { error: 'Square refund failed: ' + e.message, status: 502 };
+    console.error('[super] refund failed:', e.message);
+    return { error: 'Square refund failed', status: 502 };
   }
   await writeSuperAudit(ctx, 'refund_issued', tenantId, { paymentId, amountCents, reason: reason || '' });
   return { data: { refund: refundResult } };
@@ -4720,7 +4756,9 @@ exports.superAdmin = functions
  *        *_delete / *_archive / delete_* / archive_*                       → deletes
  *        get_* / list_* / read_*                                            → reads
  *        others → treated as writes (conservative)
- *   - Gemini tokens pulled from /gemini_usage_log for the tenant/day.
+ *   - Gemini tokens pulled from tenants/{tid}/geminiUsage subcollection
+ *     (where logGeminiUsage writes today). Legacy root /gemini_usage_log is
+ *     summed in for any pre-multi-tenant docs that may straddle the cutover.
  *   - Emails pulled from audit entries with operation === 'email_sent'.
  */
 async function tallyTenantDay(tenantId, dayStartMs, dayEndMs) {
@@ -4757,19 +4795,37 @@ async function tallyTenantDay(tenantId, dayStartMs, dayEndMs) {
     console.warn('[tallyTenantDay] audit scan failed', tenantId, e.message);
   }
 
+  // Primary: per-tenant subcollection where logGeminiUsage writes today.
   try {
-    const gemSnap = await db.collection('gemini_usage_log')
-      .where('tenant_id', '==', tenantId)
+    const gemSnap = await db.collection('tenants').doc(tenantId)
+      .collection('geminiUsage')
       .where('timestamp', '>=', new Date(dayStartMs))
       .where('timestamp', '<', new Date(dayEndMs))
       .get();
     for (const d of gemSnap.docs) {
       const e = d.data();
+      stats.geminiInput  += Number(e.inputTokens  || e.input_tokens  || 0);
+      stats.geminiOutput += Number(e.outputTokens || e.output_tokens || 0);
+    }
+  } catch (e) {
+    // Subcollection may not exist yet — zero out.
+  }
+
+  // Legacy fallback: root /gemini_usage_log for any pre-cutover docs.
+  // Summed because a single rollup day can straddle the migration boundary.
+  try {
+    const legacySnap = await db.collection('gemini_usage_log')
+      .where('tenant_id', '==', tenantId)
+      .where('timestamp', '>=', new Date(dayStartMs))
+      .where('timestamp', '<', new Date(dayEndMs))
+      .get();
+    for (const d of legacySnap.docs) {
+      const e = d.data();
       stats.geminiInput  += Number(e.input_tokens  || e.inputTokens  || 0);
       stats.geminiOutput += Number(e.output_tokens || e.outputTokens || 0);
     }
   } catch (e) {
-    // Gemini log may not exist yet — zero out.
+    // Legacy log may not exist — zero out.
   }
 
   return stats;
@@ -5224,7 +5280,7 @@ exports.runTrialRemindersNow = functions
       } catch (e) {
         console.error('[runTrialRemindersNow] error:', e.message);
         captureError(e, req, 'runTrialRemindersNow');
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Trial reminder run failed' });
       }
     });
   });
@@ -5268,14 +5324,14 @@ exports.sendTestEmail = functions
           invoiceId: 'INV-TEST-0001',
           inviterName: 'owner@example.com',
           inviteeRole: 'employee',
-          setupLink: 'https://restaurantoracle.app/app/',
+          setupLink: 'https://bistrosteward.com/app/',
           ...(data || {}),
         });
         res.status(result.ok ? 200 : 502).json({ data: result, error: result.ok ? null : result.error });
       } catch (e) {
         console.error('[sendTestEmail] error:', e.message);
         captureError(e, req, 'sendTestEmail');
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Test email send failed' });
       }
     });
   });

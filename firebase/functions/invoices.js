@@ -5,8 +5,8 @@
 //
 // Setup:
 //   1. SendGrid account, Inbound Parse enabled.
-//   2. MX record for invoices.restaurantoracle.app → mx.sendgrid.net (priority 10).
-//   3. In SendGrid: add hostname `invoices.restaurantoracle.app`, URL
+//   2. MX record for invoices.bistrosteward.com → mx.sendgrid.net (priority 10).
+//   3. In SendGrid: add hostname `invoices.bistrosteward.com`, URL
 //      `https://us-central1-<project>.cloudfunctions.net/inboundInvoice`,
 //      POST raw (multipart), check "Send Raw" = false, check "Spam Check".
 //   4. Set secret: `firebase functions:config:set invoice.sharedsecret="<random>"`
@@ -15,12 +15,13 @@
 //
 // Per-tenant routing:
 //   Each tenant has `tenants/{id}.invoiceToken` (8-char hex).
-//   Email arrives at `<token>@invoices.restaurantoracle.app`.
+//   Email arrives at `<token>@invoices.bistrosteward.com`.
 //   We parse the `to` field → extract token → look up tenant.
 
 const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
 const Busboy = require('@fastify/busboy');
+const crypto = require('crypto');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Defer admin.firestore() until first use — index.js calls initializeApp()
@@ -95,9 +96,9 @@ function parseEmailMultipart(req) {
 }
 
 function extractToken(toField) {
-  // "to" from SendGrid is like: `"Name" <abc12345@invoices.restaurantoracle.app>, other@x.com`
-  // Grab first `<token>@invoices.restaurantoracle.app` match.
-  const m = String(toField || '').match(/([a-f0-9]{6,32})@invoices\.restaurantoracle\.app/i);
+  // "to" from SendGrid is like: `"Name" <abc12345@invoices.bistrosteward.com>, other@x.com`
+  // Grab first `<token>@invoices.bistrosteward.com` match.
+  const m = String(toField || '').match(/([a-f0-9]{6,32})@invoices\.bistrosteward\.com/i);
   return m ? m[1].toLowerCase() : null;
 }
 
@@ -273,23 +274,38 @@ async function processInvoice(tenantId, parsed, files, emailMeta) {
     });
   }
 
+  const subtotal = Number(parsed.subtotal) || 0;
+  const tax = Number(parsed.tax) || 0;
+  const total = Number(parsed.total) || 0;
+  const lineSum = lineItems.reduce((s, li) => s + (Number(li.lineTotal) || 0), 0);
+  const computedSubtotal = Math.round(lineSum * 100) / 100;
+  const computedTotal = Math.round((subtotal + tax) * 100) / 100;
+  const invariantWarnings = [];
+  if (Math.abs(computedSubtotal - subtotal) > 0.02) {
+    invariantWarnings.push(`subtotal_mismatch: lineSum=${computedSubtotal} vs subtotal=${subtotal}`);
+  }
+  if (Math.abs(computedTotal - total) > 0.02) {
+    invariantWarnings.push(`total_mismatch: subtotal+tax=${computedTotal} vs total=${total}`);
+  }
+
   const invoiceDoc = {
     id: invoiceId,
     vendor_id: vendorId,
     vendor_name: (parsed.vendor && parsed.vendor.name) || '',
     invoice_number: String(parsed.invoiceNumber || '').slice(0, 100),
     invoice_date: String(parsed.invoiceDate || '').slice(0, 20),
-    subtotal: Number(parsed.subtotal) || 0,
-    tax: Number(parsed.tax) || 0,
-    total: Number(parsed.total) || 0,
+    subtotal,
+    tax,
+    total,
     line_items: lineItems.slice(0, 500),
     processed,
     unmatched,
+    invariant_warnings: invariantWarnings,
     source_email: String((emailMeta && emailMeta.from) || '').slice(0, 300),
     subject: String((emailMeta && emailMeta.subject) || '').slice(0, 300),
     attachments: files.map((f) => ({ filename: f.filename, mimeType: f.mimeType, size: f.size })),
     raw_parsed: parsed,
-    status: unmatched.length ? 'needs_review' : 'processed',
+    status: unmatched.length || invariantWarnings.length ? 'needs_review' : 'processed',
     created_at: now
   };
   await db().collection('tenants').doc(tenantId).collection('invoices')
@@ -307,8 +323,11 @@ async function handleInbound(req, res) {
   try {
     const expectSecret = (functions.config().invoice && functions.config().invoice.sharedsecret) || null;
     if (expectSecret) {
-      const given = req.query.s || req.headers['x-webhook-secret'] || '';
-      if (given !== expectSecret) {
+      const given = String(req.query.s || req.headers['x-webhook-secret'] || '');
+      const a = Buffer.from(given);
+      const b = Buffer.from(String(expectSecret));
+      // Length pre-check; timingSafeEqual throws on length mismatch.
+      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
@@ -377,10 +396,7 @@ exports.inboundInvoice = functions
   .runWith({ maxInstances: 5, timeoutSeconds: 120, memory: '512MB' })
   .https.onRequest(handleInbound);
 
-// Generate 8-hex-char token. Exported for provisionTenant to call.
+// Generate 8-hex-char token using CSPRNG. Exported for provisionTenant to call.
 exports.generateInvoiceToken = function () {
-  const chars = 'abcdef0123456789';
-  let t = '';
-  for (let i = 0; i < 8; i++) t += chars[Math.floor(Math.random() * chars.length)];
-  return t;
+  return crypto.randomBytes(4).toString('hex');
 };

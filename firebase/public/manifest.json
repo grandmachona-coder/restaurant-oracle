@@ -1,8 +1,9 @@
 {
-  "name": "Restaurant Oracle",
-  "short_name": "Oracle",
+  "name": "Bistro Steward",
+  "short_name": "Steward",
   "description": "Smart Kitchen Management",
-  "start_url": "/restaurant-oracle/",
+  "start_url": "/app.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
@@ -10,9 +11,21 @@
   "icons": [
     {
       "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Billing &amp; Account — Restaurant Oracle</title>
+<title>Billing &amp; Account — Bistro Steward</title>
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <meta name="theme-color" content="#1a1a2e">
@@ -145,7 +145,7 @@
     <div class="brand">
       <img src="icon.png" alt="">
       <div>
-        <div class="brand-title" id="brand-name">Restaurant Oracle</div>
+        <div class="brand-title" id="brand-name">Bistro Steward</div>
         <div class="brand-sub">Billing &amp; Account</div>
       </div>
     </div>
@@ -236,7 +236,7 @@
 
   </div>
 
-  <div class="footer">Restaurant Oracle · Owner Console · Built for restaurant owners</div>
+  <div class="footer">Bistro Steward · Owner Console · Built for restaurant owners</div>
 </div>
 
 <!-- Card-update modal -->
@@ -309,8 +309,15 @@ fbAuth.onAuthStateChanged(async (user) => {
   try { tokenResult = await user.getIdTokenResult(true); }
   catch (e) { hide('gate-loading'); show('gate-signin'); return; }
 
-  const role = tokenResult.claims.role;
-  if (role !== 'owner' && role !== 'admin') {
+  const claims = tokenResult.claims || {};
+  const role = claims.role;
+  const isSuper = claims.superAdmin === true || role === 'super_admin';
+  // Owner/admin must also be approved=true (server still enforces — defense in depth).
+  if (!isSuper && claims.approved !== true) {
+    hide('gate-loading'); show('gate-not-owner');
+    return;
+  }
+  if (!isSuper && role !== 'owner' && role !== 'admin') {
     hide('gate-loading'); show('gate-not-owner');
     return;
   }
@@ -348,7 +355,7 @@ async function bootConsole() {
 // ── Render ──────────────────────────────────────────────────────────────────
 function renderConsole() {
   const d = state.info;
-  $('brand-name').textContent = d.tenant.restaurantName || 'Restaurant Oracle';
+  $('brand-name').textContent = d.tenant.restaurantName || 'Bistro Steward';
 
   const tenantPill = $('tenant-status');
   if (d.tenant.status === 'active') { tenantPill.className = 'pill ok'; tenantPill.textContent = 'Active'; }
