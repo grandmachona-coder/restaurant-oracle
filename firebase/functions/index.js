@@ -22,6 +22,13 @@ const Sentry = require('@sentry/node');
 const square = require('./square');
 const emails = require('./emails');
 const invoices = require('./invoices');
+const auditQueue = require('./audit-queue');
+const signupRollback = require('./signup-rollback');
+const featureFlags = require('./feature-flags');
+const schedulerHeartbeat = require('./scheduler-heartbeat');
+const retention = require('./retention');
+const webhookDedup = require('./webhook-dedup');
+const refundGuard = require('./refund-guard');
 // NOTE: agents is required AFTER admin.initializeApp(), below.
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -221,8 +228,40 @@ const MAX_DELETE_BATCH = 100;
 
 function sanitizeString(str) {
   if (typeof str !== 'string') return str;
-  // Strip HTML tags
-  return str.replace(/<[^>]*>/g, '').substring(0, MAX_STRING_LENGTH);
+  // Strip HTML tags. A SINGLE pass is defeatable by reconstruction: removing the
+  // inner tag from `<scr<script>ipt>` leaves `<script>`. Iterate to a fixpoint so
+  // no tag can survive by being re-formed from surrounding text. (E-2.) The model
+  // here is "store plain text, escape at render via escHtml" — we keep legitimate
+  // characters like & intact and rely on iterate-to-stable tag removal.
+  let prev;
+  let out = str;
+  let guard = 0;
+  do {
+    prev = out;
+    out = out.replace(/<[^>]*>/g, '');
+  } while (out !== prev && ++guard < 20);
+  return out.substring(0, MAX_STRING_LENGTH);
+}
+
+/**
+ * Stricter sanitizer for content that may be rendered by clients we don't fully
+ * control the render path of — specifically platform_announcements, which the
+ * Firestore rules expose to EVERY signed-in tenant client (banners). Beyond the
+ * fixpoint tag-strip, this neutralizes bracket-encoding HTML entities
+ * (e.g. &#60;script&#62;, &lt;) and removes any residual angle brackets, so a
+ * stored payload cannot execute even if a future client renders it without
+ * escHtml. Operator-authored announcements rarely need raw entities/brackets, so
+ * the corruption risk for legitimate text is negligible. Note: &-without-; tokens
+ * like "AT&T" / "R&D" are deliberately left intact.
+ */
+function sanitizeAnnouncementText(str) {
+  if (typeof str !== 'string') return str;
+  let out = sanitizeString(str);
+  // Drop numeric (&#60; / &#x3c;) and named (&lt;) entities that could re-introduce markup.
+  out = out.replace(/&#x?[0-9a-fA-F]+;/g, ' ').replace(/&[a-zA-Z][a-zA-Z0-9]*;/g, ' ');
+  // Remove any residual lone angle brackets.
+  out = out.replace(/[<>]/g, '');
+  return out.substring(0, MAX_STRING_LENGTH);
 }
 
 function validateData(data, maxSize) {
@@ -314,29 +353,61 @@ setInterval(() => {
 }, RATE_LIMIT_GC_MS).unref?.();
 
 // ==================== AUDIT LOGGING (1.7) ====================
-// Writes to /tenants/{tenantId}/audit_log when tenant is known (normal case).
-// Falls back to ROOT /audit_log for pre-tenant-resolution events only
-// (auth_failure, tenant_not_found) — these can't be tenant-scoped because the
-// caller has no valid tenant context. Root fallback entries are readable only
-// by admins with direct Firestore console access.
-async function writeAuditLog(userId, userEmail, operation, collection, recordCount, tenantId) {
+// Routes through audit-queue.js for durability. Architecture:
+//   publish → on failure: direct Firestore write → on failure: pending_audit
+// Previously this function was fire-and-forget with a silent try/catch; a
+// transient Firestore error meant a missing audit entry that nothing would
+// ever reconcile. Inspector recon Pass 1 flagged this as P1 across 61+
+// call sites; Pass 2 confirmed. See audit-queue.js for the full pipeline.
+//
+// Backward compatible signature: existing call sites with 6 positional args
+// still work. `extra` and `idempotencyKey` are optional new parameters.
+async function writeAuditLog(userId, userEmail, operation, collection, recordCount, tenantId, extra, idempotencyKey) {
+  const event = {
+    user_id: userId,
+    user_email: userEmail || 'unknown',
+    tenant_id: tenantId || null,
+    operation: operation,
+    collection: collection || 'N/A',
+    record_count: recordCount || 0,
+    extra: extra || null,
+    publisher_timestamp_ms: Date.now(),
+  };
+
+  // Path 1: publish to Pub/Sub. Consumer writes to Firestore idempotently.
+  let eventId = null;
+  let publishError = null;
   try {
-    const entry = {
-      user_id: userId,
-      user_email: userEmail || 'unknown',
-      tenant_id: tenantId || 'unknown',
-      operation: operation,
-      collection: collection || 'N/A',
-      record_count: recordCount || 0,
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    };
-    const ref = tenantId
-      ? db.collection('tenants').doc(tenantId).collection('audit_log')
-      : db.collection('audit_log');
-    await ref.add(entry);
+    eventId = await auditQueue.publishAuditEvent(event, idempotencyKey);
+    return;
   } catch (e) {
-    // Don't fail the request if audit logging fails
-    console.error('Audit log write failed:', e.message);
+    publishError = e && (e.message || String(e));
+    console.warn('[audit] publish failed, falling back to direct write:', publishError);
+  }
+
+  // Path 2: direct Firestore write with the same eventId. If the consumer
+  // later receives the same message anyway, ALREADY_EXISTS is treated as a
+  // successful ack — no double-write.
+  let writeError = null;
+  try {
+    await auditQueue.directWriteAuditEvent(db, admin, event, eventId);
+    return;
+  } catch (e) {
+    writeError = e && (e.message || String(e));
+    console.warn('[audit] direct write failed:', writeError);
+  }
+
+  // Path 3: drop into /pending_audit for the reconcile job to pick up.
+  try {
+    await auditQueue.writePendingAudit(db, admin, event, eventId, { publishError, writeError });
+  } catch (finalErr) {
+    console.error('[audit] FATAL: all audit paths failed:', finalErr && finalErr.message);
+    try {
+      Sentry.captureException(finalErr, {
+        tags: { component: 'audit-queue', stage: 'pending_write' },
+        extra: { publishError, writeError, operation, tenantId },
+      });
+    } catch (_) { /* swallow Sentry init errors */ }
   }
 }
 
@@ -394,6 +465,20 @@ function withTimeout(promise, ms, label) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+// Like withTimeout but for fetch specifically: uses an AbortController so a
+// timeout actually CANCELS the underlying socket (withTimeout only abandons the
+// awaited promise, leaving the request running). Rejects with an AbortError on
+// timeout, which callers degrade gracefully. Used by the UPC lookup cascade.
+async function fetchWithTimeout(url, options, ms, label) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms || 8000);
+  try {
+    return await fetch(url, { ...(options || {}), signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ============================================================================
 // Writes one doc per Gemini call so dailyTenantCostAggregation can roll it up.
 // Per-tenant subcollection so reads stay scoped to the tenant.
@@ -427,6 +512,134 @@ async function logGeminiUsage({
       });
   } catch (e) {
     console.warn('[geminiUsage] log write failed (non-fatal):', e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  UPC / BARCODE LOOKUP HELPERS  (Phase 1 — camera-scan inventory)
+// ════════════════════════════════════════════════════════════════════════════
+// Pure, side-effect-free helpers so they can be unit-tested in isolation
+// (see _test_upc_lookup.js, which extracts these function bodies from source).
+
+// Validate a retail barcode: digits only, length 8/12/13/14, with a correct
+// GTIN mod-10 check digit. Covers EAN-8, UPC-A (12), EAN-13, and GTIN-14.
+// NOTE: 8-digit UPC-E codes are validated by the same EAN-8 algorithm, so a
+// well-formed UPC-E will pass here and be looked up as if it were EAN-8. If a
+// scanner emits compressed UPC-E, expand it to UPC-A client-side before lookup.
+function isValidBarcode(code) {
+  const s = String(code == null ? '' : code).trim();
+  if (!/^[0-9]+$/.test(s)) return false;
+  if (![8, 12, 13, 14].includes(s.length)) return false;
+  // GTIN check digit: weight 3/1 alternating from the rightmost data digit.
+  const digits = s.split('').map(Number);
+  const check = digits[digits.length - 1];
+  let sum = 0;
+  for (let i = digits.length - 2, pos = 0; i >= 0; i--, pos++) {
+    sum += digits[i] * (pos % 2 === 0 ? 3 : 1);
+  }
+  const computed = (10 - (sum % 10)) % 10;
+  return computed === check;
+}
+
+// Normalize an Open Food Facts /api/v2 product response into our cache shape.
+// Returns null when OFF has no usable product record for this barcode.
+function normalizeOffProduct(json, barcode) {
+  if (!json || json.status !== 1 || !json.product) return null;
+  const p = json.product;
+  const name = String(p.product_name || p.generic_name || '').trim();
+  if (!name) return null; // a record with no name is useless to a counter
+  const brand = String((p.brands || '').split(',')[0] || '').trim();
+  const qty = String(p.quantity || '').trim(); // e.g. "330 ml", "6 x 330ml", "1.5 L"
+  // Pull the LAST number+unit token so compound/multipack strings like
+  // "6 x 330 ml" or "2 L net" still yield a usable unit (here: ml / l). The
+  // raw quantity is always preserved as `size`; `unit` is best-effort.
+  const tokens = qty.match(/([\d.]+)\s*([a-zA-Z]+)/g) || [];
+  const last = tokens.length ? tokens[tokens.length - 1] : '';
+  const m = last.match(/([a-zA-Z]+)$/);
+  return {
+    barcode: String(barcode),
+    name: name.substring(0, 200),
+    brand: brand ? brand.substring(0, 120) : null,
+    size: qty ? qty.substring(0, 60) : null,
+    unit: m ? m[1].toLowerCase().substring(0, 20) : null,
+  };
+}
+
+// Normalize a paid-provider (eandata) response. Defensive: providers vary, so
+// we probe a few likely name fields and bail to null if none are present.
+function normalizePaidProduct(json, barcode) {
+  if (!json || typeof json !== 'object') return null;
+  const prod = json.product || json;
+  const attr = (prod && prod.attributes) || prod || {};
+  const name = String(
+    attr.product || attr.name || attr.title || prod.name || ''
+  ).trim();
+  if (!name) return null;
+  const brand = String(attr.company || attr.brand || attr.manufacturer || '').trim();
+  const size = String(attr.size || attr.quantity || '').trim();
+  return {
+    barcode: String(barcode),
+    name: name.substring(0, 200),
+    brand: brand ? brand.substring(0, 120) : null,
+    size: size ? size.substring(0, 60) : null,
+    unit: null,
+  };
+}
+
+// Per-tenant ledger of UPC lookups — one doc per call, mirroring logGeminiUsage
+// so cost/usage stays visible per tenant. `paid:true` rows are the ones that
+// cost money; everything else (cache hit, OFF hit, miss) is free. Non-fatal.
+// Schema: tenants/{tenantId}/upcUsage/{auto}
+async function logUpcLookup({
+  tenantId, userId, barcode, source, paid, found, latencyMs, success, errorCode,
+}) {
+  if (!tenantId) return;
+  try {
+    await db.collection('tenants').doc(tenantId)
+      .collection('upcUsage').add({
+        tenantId,
+        userId: userId || null,
+        barcode: String(barcode || ''),
+        source: String(source || 'unknown'),
+        paid: !!paid,
+        found: !!found,
+        latencyMs: Number(latencyMs) || 0,
+        success: !!success,
+        errorCode: errorCode || null,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+  } catch (e) {
+    console.warn('[upcUsage] log write failed (non-fatal):', e.message);
+  }
+}
+
+// Runaway-spend guard for the PAID provider: caps paid lookups per tenant per
+// UTC day. Only consulted when a paid call is actually about to happen (cache
+// AND Open Food Facts both missed AND a paid key is configured), so the extra
+// read is rare. Index-free: single timestamp-range query, count paid in code
+// (mirrors how tallyTenantDay reads geminiUsage). Fails OPEN on error — a
+// transient read failure must not silently block legitimate lookups; the
+// shared per-user rate limit is the backstop. Cap via UPC_PAID_DAILY_CAP.
+async function underPaidLookupCap(tenantId) {
+  if (!tenantId) return false;
+  const cap = Number(process.env.UPC_PAID_DAILY_CAP) || 1000;
+  try {
+    const now = new Date();
+    const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const dayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+    // Half-open [dayStart, dayEnd) — symmetric with tallyTenantDay, so a
+    // clock-skewed or backfilled future-dated row can't be counted against today.
+    const snap = await db.collection('tenants').doc(tenantId)
+      .collection('upcUsage')
+      .where('timestamp', '>=', dayStart)
+      .where('timestamp', '<', dayEnd)
+      .get();
+    let paidToday = 0;
+    snap.forEach((d) => { if (d.data() && d.data().paid === true) paidToday++; });
+    return paidToday < cap;
+  } catch (e) {
+    console.warn('[upcLookup] paid-cap check failed (failing open):', e.message);
+    return true;
   }
 }
 
@@ -667,22 +880,38 @@ async function handleRequest(req, res) {
       return;
     }
 
-    // Tenant-status gate: suspended/cancelled tenants get read-only access.
-    // Reads = observability for owners to recover; writes = blocked until resumed.
-    // Owners can still hit adminBilling (separate endpoint) to resume or update card.
+    // Tenant-status gate: billing-blocked tenants get read-only recovery.
+    // Reads = observability for owners to recover/export; writes = blocked
+    // until billing is fixed. Owners can still hit adminBilling (separate
+    // endpoint) to resume, update card, or renew.
+    //
+    // Statuses that trigger read-only mode: suspended, cancelled/canceled, and
+    // trial_expired (Cashier recon K-2 follow-up — trial_expired was added to
+    // checkTenantAccessByStatus in B5 but this inline gate, the actual write
+    // enforcement path, didn't yet check it). All four behave identically:
+    // read-only. The client renders a billing CTA (see app.html).
+    //
+    // A structured `code` is returned alongside the human message so the
+    // client can branch without brittle string-matching.
     {
       const tenantDocForGate = await db.collection('tenants').doc(tenantId).get();
       const tenantStatus = tenantDocForGate.exists
         ? String(tenantDocForGate.data().status || 'active').toLowerCase()
         : 'active';
-      const readOnlyOps = ['select', 'getTenantConfig', 'checkSlugAvailable'];
-      if ((tenantStatus === 'suspended' || tenantStatus === 'cancelled' || tenantStatus === 'canceled')
-          && !readOnlyOps.includes(operation)) {
-        await writeAuditLog(userId, userEmail, 'tenant_status_blocked', table, 0, tenantId);
+      const readOnlyOps = ['select', 'getTenantConfig', 'checkSlugAvailable', 'list_invoices', 'get_tenant_settings'];
+      const blockedStatuses = ['suspended', 'cancelled', 'canceled', 'trial_expired'];
+      if (blockedStatuses.includes(tenantStatus) && !readOnlyOps.includes(operation)) {
+        await writeAuditLog(userId, userEmail, 'tenant_status_blocked', table, 0, tenantId, { tenantStatus });
+        const messageByStatus = {
+          suspended: 'Account is suspended. Contact support@bistrosteward.com.',
+          cancelled: 'Subscription is cancelled. Reactivate from Billing & Team to continue.',
+          canceled: 'Subscription is cancelled. Reactivate from Billing & Team to continue.',
+          trial_expired: 'Your free trial has ended. Update billing to continue editing.',
+        };
         res.status(402).json({
-          error: tenantStatus === 'suspended'
-            ? 'Account is suspended. Contact support@bistrosteward.com.'
-            : 'Subscription is cancelled. Reactivate from Billing & Team to continue.',
+          error: messageByStatus[tenantStatus] || 'Account access is limited. Visit Billing to continue.',
+          code: 'tenant_status_blocked',
+          tenantStatus,
         });
         return;
       }
@@ -1127,6 +1356,130 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
       }
     }
 
+    // ==================== UPC / BARCODE LOOKUP (camera-scan inventory) ========
+    // Resolves a scanned retail barcode to a product name/size. Strategy:
+    //   1. upc_cache (shared, free, instant)  →  2. Open Food Facts (free)
+    //   →  3. paid provider (config-gated)    →  4. miss → client manual-link.
+    // Every successful resolution is written through to upc_cache so any given
+    // barcode is paid for at most once across all tenants. Mirrors the scan/
+    // voice handlers: same rate gate, audit emit, usage logging, and envelope.
+    if (operation === 'upcLookup') {
+      const barcode = String((data && data.barcode) || '').trim();
+      if (!isValidBarcode(barcode)) {
+        res.status(400).json({ error: 'Invalid or unsupported barcode' });
+        return;
+      }
+
+      const __upcT0 = Date.now();
+      try {
+        const cacheRef = db.collection('upc_cache').doc(barcode);
+
+        // 1 ── Cache hit (free, instant)
+        const cacheSnap = await cacheRef.get();
+        if (cacheSnap.exists) {
+          const c = cacheSnap.data() || {};
+          cacheRef.update({
+            hits: admin.firestore.FieldValue.increment(1),
+            lastHitAt: admin.firestore.FieldValue.serverTimestamp(),
+          }).catch(() => {}); // best-effort
+          await logUpcLookup({ tenantId, userId, barcode, source: 'cache', paid: false, found: true, latencyMs: Date.now() - __upcT0, success: true });
+          res.status(200).json({
+            data: { found: true, source: 'cache', product: { barcode, name: c.name, brand: c.brand || null, size: c.size || null, unit: c.unit || null } },
+            error: null,
+            _rateLimit: { remaining: rateCheck.remaining },
+          });
+          return;
+        }
+
+        let product = null;
+        let source = null;
+
+        // 2 ── Open Food Facts (free)
+        try {
+          const offUrl = 'https://world.openfoodfacts.org/api/v2/product/' +
+            encodeURIComponent(barcode) + '.json?fields=product_name,generic_name,brands,quantity';
+          const offResp = await fetchWithTimeout(offUrl, {
+            headers: { 'User-Agent': 'BistroSteward/1.0 (+https://bistrosteward.com)' },
+          }, 8000, 'off-lookup');
+          if (offResp.ok) {
+            const offJson = await offResp.json();
+            product = normalizeOffProduct(offJson, barcode);
+            if (product) source = 'off';
+          }
+        } catch (offErr) {
+          console.warn('[upcLookup] Open Food Facts failed (non-fatal):', offErr.message);
+        }
+
+        // 3 ── Paid provider fallback (config-gated; inert until UPC_PAID_API_KEY set)
+        if (!product) {
+          const paidKey = process.env.UPC_PAID_API_KEY;
+          if (paidKey && await underPaidLookupCap(tenantId)) {
+            try {
+              const paidUrl = 'https://eandata.com/feed/?v=3&keycode=' +
+                encodeURIComponent(paidKey) + '&mode=json&find=' + encodeURIComponent(barcode);
+              const paidResp = await fetchWithTimeout(paidUrl, {}, 8000, 'paid-upc-lookup');
+              if (paidResp.ok) {
+                const paidJson = await paidResp.json();
+                product = normalizePaidProduct(paidJson, barcode);
+                if (product) source = 'paid';
+              }
+            } catch (paidErr) {
+              console.warn('[upcLookup] paid provider failed (non-fatal):', paidErr.message);
+            }
+          }
+        }
+
+        // 4 ── Resolve
+        if (product) {
+          // write-through so this barcode is never paid for again.
+          // NOTE: `hits` is intentionally NOT written here — a concurrent
+          // resolve of the same barcode must not reset the counter. The hit
+          // counter is created/incremented only on the cache-hit path above.
+          cacheRef.set({
+            barcode,
+            name: product.name,
+            brand: product.brand || null,
+            size: product.size || null,
+            unit: product.unit || null,
+            source,
+            fetchedAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true }).catch(() => {});
+          await logUpcLookup({ tenantId, userId, barcode, source, paid: source === 'paid', found: true, latencyMs: Date.now() - __upcT0, success: true });
+          await writeAuditLog(userId, userEmail, 'upc_lookup', 'upc_cache', 1, tenantId, { barcode, source });
+          res.status(200).json({
+            data: { found: true, source, product },
+            error: null,
+            _rateLimit: { remaining: rateCheck.remaining },
+          });
+          return;
+        }
+
+        // Total miss → client offers a one-tap "link this barcode" flow.
+        await logUpcLookup({ tenantId, userId, barcode, source: 'none', paid: false, found: false, latencyMs: Date.now() - __upcT0, success: true });
+        await writeAuditLog(userId, userEmail, 'upc_lookup', 'upc_cache', 0, tenantId, { barcode, source: 'none' });
+        res.status(200).json({
+          data: { found: false, source: 'none', product: null },
+          error: null,
+          _rateLimit: { remaining: rateCheck.remaining },
+        });
+        return;
+
+      } catch (upcError) {
+        console.error('UPC lookup error:', upcError.message);
+        await logUpcLookup({ tenantId, userId, barcode, source: 'error', paid: false, found: false, latencyMs: Date.now() - __upcT0, success: false, errorCode: upcError.code === 'TIMEOUT' ? 'timeout' : 'upc_error' });
+        // NOTE: external OFF/paid timeouts are handled internally (fetchWithTimeout
+        // aborts → caught by the inner catches → degrade to a clean found:false
+        // miss). This 504 branch only fires if an INTERNAL await (e.g. cacheRef.get)
+        // surfaces a TIMEOUT-coded error; it is not the external-lookup timeout path.
+        if (upcError.code === 'TIMEOUT') {
+          res.status(504).json({ error: 'Lookup timed out. Try again.' });
+        } else {
+          res.status(500).json({ error: 'UPC lookup temporarily unavailable' });
+        }
+        return;
+      }
+    }
+
     // ── New tenant-level operations ──────────────────────────────────────────
     if (operation === 'getTenantConfig') {
       const tenantDoc = await db.collection('tenants').doc(tenantId).get();
@@ -1135,6 +1488,20 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
         return;
       }
       const d = tenantDoc.data();
+      // E-3: resolve feature flags server-side and hand the client a flat
+      // {name: bool} map. feature_flags is super-admin-read-only at the rules
+      // layer, so tenant clients can't (and must not) evaluate raw flag docs;
+      // evaluation precedence lives in feature-flags.js as the single source of
+      // truth. Best-effort: a flag-read failure must not break tenant config.
+      let resolvedFlags = {};
+      try {
+        const flagSnap = await db.collection('feature_flags').get();
+        const flagDocs = [];
+        flagSnap.forEach((fd) => flagDocs.push({ id: fd.id, ...fd.data() }));
+        resolvedFlags = featureFlags.resolveAllFlags(flagDocs, tenantId);
+      } catch (e) {
+        console.warn('[getTenantConfig] feature-flag resolve failed:', e && e.message);
+      }
       // Return safe subset (never expose stripeCustomerId to client)
       res.status(200).json({
         data: {
@@ -1144,6 +1511,7 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
           plan: d.plan,
           status: d.status,
           onboardingComplete: d.onboardingComplete || false,
+          featureFlags: resolvedFlags,
         },
         error: null,
       });
@@ -1871,6 +2239,22 @@ function mapSquareErrorToMessage(err, fallback) {
 async function handleSignup(req, res) {
   setSecurityHeaders(res);
 
+  // partialState accumulates per-step success markers so signup-rollback.js
+  // can compensate at any failure boundary. `email` is set as soon as we have
+  // validated input; other fields fill in as each step succeeds.
+  const partialState = {
+    email: null,
+    slug: null,
+    squareCustomerId: null,
+    squareCardId: null,
+    squareSubscriptionId: null,
+    tenantId: null,
+    ownerUid: null,
+    stage: 'init',
+  };
+  const rollbackDeps = { square, db, auth, admin, writeAuditLog };
+  const doRollback = (reason, errMsg) => signupRollback.rollbackSignup(rollbackDeps, partialState, reason, errMsg);
+
   try {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
@@ -1890,6 +2274,22 @@ async function handleSignup(req, res) {
       return;
     }
 
+    // Honeypot (anti-bot). `company_website` is a hidden field a human never
+    // sees or fills; a non-empty value almost always means a bot auto-filled the
+    // scraped form. Accept-and-discard: return a benign 200 and create NOTHING,
+    // so the bot burns the attempt without learning what tripped it. Legitimate
+    // signups always send this empty (the client also short-circuits on it).
+    const honeypot = (req.body && typeof req.body.company_website === 'string')
+      ? req.body.company_website.trim() : '';
+    if (honeypot !== '') {
+      try {
+        await writeAuditLog('signup', 'bot@honeypot', 'signup_honeypot_blocked', null, 0, null,
+          { ip, userAgent: String(req.headers['user-agent'] || '').slice(0, 200) });
+      } catch (_) { /* never block the discard on audit failure */ }
+      res.status(200).json({ data: { ok: true } });
+      return;
+    }
+
     // Validate
     const { valid, errors, normalized } = validateSignupInput(req.body || {});
     if (!valid) {
@@ -1897,6 +2297,8 @@ async function handleSignup(req, res) {
       return;
     }
     const { email, password, restaurantName, plan, cardNonce, cardholderName, verificationToken, termsVersion } = normalized;
+    partialState.email = email;
+    partialState.stage = 'validated';
     const userAgent = String(req.headers['user-agent'] || '').slice(0, 500);
 
     // Payload size guard
@@ -1924,8 +2326,11 @@ async function handleSignup(req, res) {
     }
     const slugSnap = await db.collection('tenants').where('slug', '==', slug).limit(1).get();
     if (!slugSnap.empty) slug = slug + '-' + Date.now().toString(36);
+    partialState.slug = slug;
+    partialState.stage = 'slug_reserved';
 
     // ── Step 4: Square customer ───────────────────────────────────────────
+    // No rollback needed if THIS step itself fails — nothing was created yet.
     let sqCustomer;
     try {
       sqCustomer = await square.createCustomer({
@@ -1941,8 +2346,12 @@ async function handleSignup(req, res) {
       res.status(502).json({ error: mapped.message, code: mapped.code });
       return;
     }
+    partialState.squareCustomerId = sqCustomer.id;
+    partialState.stage = 'square_customer_created';
 
     // ── Step 5: Attach card ───────────────────────────────────────────────
+    // Failure here leaves an orphaned Square customer (no programmatic delete).
+    // Rollback records that orphan in the audit log for human cleanup.
     let sqCard;
     try {
       sqCard = await square.createCard({
@@ -1954,10 +2363,13 @@ async function handleSignup(req, res) {
     } catch (e) {
       console.error('[signup] Square card attach failed:', e.message, e.body || '');
       const mapped = mapSquareErrorToMessage(e, 'Card was declined or invalid. Please try a different card.');
+      await doRollback('square_card_failed', e.message);
       await writeAuditLog('signup', email, 'signup_failed_square_card:' + mapped.code, null, 0, null);
       res.status(402).json({ error: mapped.message, code: mapped.code });
       return;
     }
+    partialState.squareCardId = sqCard.id;
+    partialState.stage = 'square_card_attached';
 
     // ── Step 6: Create subscription with 30-day free trial ────────────────
     // Square defers billing until start_date. Setting start_date = today + 30d
@@ -1979,55 +2391,76 @@ async function handleSignup(req, res) {
     } catch (e) {
       console.error('[signup] Square subscription creation failed:', e.message, e.body || '');
       const mapped = mapSquareErrorToMessage(e, 'Could not start subscription. Please try again.');
+      await doRollback('square_subscription_failed', e.message);
       await writeAuditLog('signup', email, 'signup_failed_square_subscription:' + mapped.code, null, 0, null);
       res.status(502).json({ error: mapped.message, code: mapped.code });
       return;
     }
+    partialState.squareSubscriptionId = sqSubscription.id;
+    partialState.stage = 'square_subscription_created';
 
     // ── Step 7: Provision tenant in Firestore ─────────────────────────────
+    // Any throw inside this block now triggers rollback of everything
+    // upstream (subscription → card → customer-orphan-note).
     const newTenantRef = db.collection('tenants').doc();
     const newTenantId = newTenantRef.id;
 
-    await newTenantRef.set({
-      slug,
-      restaurantName: sanitizeString(restaurantName),
-      ownerEmail: email,
-      plan,
-      status: 'active',
-      onboardingComplete: false,
-      squareCustomerId: sqCustomer.id,
-      squareSubscriptionId: sqSubscription.id,
-      squareSubscriptionStatus: sqSubscription.status || 'ACTIVE',
-      squareCardId: sqCard.id,
-      squareLocationId: process.env.SQUARE_LOCATION_ID || null,
-      trialEndsAt: admin.firestore.Timestamp.fromDate(trialStart),
-      termsAcceptedAt: admin.firestore.FieldValue.serverTimestamp(),
-      termsVersion,
-      termsAcceptedIp: ip,
-      termsAcceptedUserAgent: userAgent,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    try {
+      await newTenantRef.set({
+        slug,
+        restaurantName: sanitizeString(restaurantName),
+        ownerEmail: email,
+        plan,
+        status: 'active',
+        onboardingComplete: false,
+        squareCustomerId: sqCustomer.id,
+        squareSubscriptionId: sqSubscription.id,
+        squareSubscriptionStatus: sqSubscription.status || 'ACTIVE',
+        squareCardId: sqCard.id,
+        squareLocationId: process.env.SQUARE_LOCATION_ID || null,
+        trialEndsAt: admin.firestore.Timestamp.fromDate(trialStart),
+        termsAcceptedAt: admin.firestore.FieldValue.serverTimestamp(),
+        termsVersion,
+        termsAcceptedIp: ip,
+        termsAcceptedUserAgent: userAgent,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
 
-    // Seed default data
-    const seedData = getDefaultSeedData();
-    const batch = db.batch();
-    for (const [col, items] of Object.entries(seedData)) {
-      for (const item of items) {
-        const ref = db.collection('tenants').doc(newTenantId).collection(col).doc(String(item.id));
-        batch.set(ref, item);
+      partialState.tenantId = newTenantId;
+      partialState.stage = 'tenant_doc_created';
+
+      // Seed default data
+      const seedData = getDefaultSeedData();
+      const batch = db.batch();
+      for (const [col, items] of Object.entries(seedData)) {
+        for (const item of items) {
+          const ref = db.collection('tenants').doc(newTenantId).collection(col).doc(String(item.id));
+          batch.set(ref, item);
+        }
       }
-    }
-    await batch.commit();
+      await batch.commit();
 
-    // Add owner to approved_emails
-    await db.collection('tenants').doc(newTenantId).collection('approved_emails').add({
-      email,
-      role: 'owner',
-      added_by: 'signup_flow',
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      // Add owner to approved_emails
+      await db.collection('tenants').doc(newTenantId).collection('approved_emails').add({
+        email,
+        role: 'owner',
+        added_by: 'signup_flow',
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      partialState.stage = 'tenant_provisioned';
+    } catch (e) {
+      console.error('[signup] Firestore tenant provisioning failed:', e.message);
+      await doRollback('tenant_provisioning_failed', e.message);
+      await writeAuditLog('signup', email, 'signup_failed_tenant_provision', newTenantId, 0, null);
+      res.status(500).json({ error: 'Could not provision workspace. Please try again or contact support.' });
+      return;
+    }
 
     // ── Step 8: Create Firebase Auth user ─────────────────────────────────
+    // This used to set `pending_user_creation` and leave orphans. Now the
+    // rollback fully unwinds (delete tenant + cancel subscription + disable
+    // card + audit-record orphan customer), so the customer is not charged
+    // for a workspace they can't access.
     let ownerUid;
     try {
       const newUser = await auth.createUser({
@@ -2038,21 +2471,32 @@ async function handleSignup(req, res) {
       ownerUid = newUser.uid;
     } catch (e) {
       console.error('[signup] Firebase Auth user creation failed:', e.message);
-      // Tenant is provisioned but user doesn't exist — partial state.
-      // Mark tenant for reconciliation.
-      await newTenantRef.update({ status: 'pending_user_creation', reconcileNeeded: true });
+      await doRollback('auth_user_create_failed', e.message);
       await writeAuditLog('signup', email, 'signup_failed_auth_user', newTenantId, 0, newTenantId);
       res.status(500).json({ error: 'Account provisioning failed. Please contact support.' });
       return;
     }
+    partialState.ownerUid = ownerUid;
+    partialState.stage = 'auth_user_created';
 
     // ── Step 9: Stamp JWT custom claims ───────────────────────────────────
-    await auth.setCustomUserClaims(ownerUid, {
-      tenantId: newTenantId,
-      tenantSlug: slug,
-      approved: true,
-      role: 'owner',
-    });
+    // If this fails, the user exists but cannot access the tenant. Roll back
+    // fully — they'll need to sign up again, which is the correct UX.
+    try {
+      await auth.setCustomUserClaims(ownerUid, {
+        tenantId: newTenantId,
+        tenantSlug: slug,
+        approved: true,
+        role: 'owner',
+      });
+    } catch (e) {
+      console.error('[signup] setCustomUserClaims failed:', e.message);
+      await doRollback('claim_mint_failed', e.message);
+      await writeAuditLog('signup', email, 'signup_failed_claim_mint', newTenantId, 0, newTenantId);
+      res.status(500).json({ error: 'Account provisioning failed. Please contact support.' });
+      return;
+    }
+    partialState.stage = 'signup_complete';
 
     await writeAuditLog(ownerUid, email, 'signup_success', newTenantId, 1, newTenantId);
 
@@ -2132,6 +2576,46 @@ async function tenantBySquareSubscriptionId(subscriptionId) {
 }
 
 /**
+ * Revoke refresh tokens for every user known to belong to a tenant.
+ * Forces the next request from each user to mint fresh claims, which is how
+ * the post-status-change checks (Firestore rules' isActiveTenant + secureApi
+ * gate) get to see the new tenant.status without waiting up to an hour for
+ * natural token rotation.
+ *
+ * Best-effort: per-user failures are logged and skipped; returns the count
+ * of users whose tokens were revoked successfully.
+ */
+async function revokeAllTenantUserTokens(tenantId) {
+  if (!tenantId) return 0;
+  let count = 0;
+  const errors = [];
+  // approved_emails is the canonical roster of users with access to a tenant.
+  const emailsSnap = await db.collection('tenants').doc(tenantId)
+    .collection('approved_emails').get().catch(() => ({ forEach: () => {} }));
+  const emails = [];
+  emailsSnap.forEach(d => {
+    const e = d.data() && d.data().email;
+    if (e) emails.push(String(e).toLowerCase());
+  });
+  for (const email of emails) {
+    try {
+      const u = await auth.getUserByEmail(email);
+      await auth.revokeRefreshTokens(u.uid);
+      count++;
+    } catch (e) {
+      // user-not-found is expected for stub entries; anything else gets logged.
+      if (!e || e.code !== 'auth/user-not-found') {
+        errors.push({ email, error: e && e.message });
+      }
+    }
+  }
+  if (errors.length) {
+    console.warn('[revokeAllTenantUserTokens] partial:', JSON.stringify(errors));
+  }
+  return count;
+}
+
+/**
  * Handle a subscription lifecycle event. Square emits events like:
  *   subscription.created, subscription.updated, subscription.canceled
  *   invoice.created, invoice.published, invoice.payment_made, invoice.scheduled_charge_failed
@@ -2152,13 +2636,33 @@ async function handleSquareSubscriptionEvent(event) {
     }
     const priorSqStatus  = (tenant.data.squareSubscriptionStatus || '').toUpperCase();
     const newSqStatus    = (sub.status || '').toUpperCase();
-    const tenantStatus   = mapSquareStatusToTenantStatus(sub.status);
+    // Cashier recon K-2 (P1): subscription.trial_ended must immediately mark
+    // the tenant as 'trial_expired' regardless of what sub.status reports.
+    // Square keeps the subscription in ACTIVE state through trial-end (billing
+    // is deferred, not the subscription itself), so the default Square→tenant
+    // mapping would leave status as 'active' and the customer would keep
+    // accessing the app until either the next invoice succeeds or the daily
+    // poll catches up (up to 24 h later).
+    const tenantStatus = event.type === 'subscription.trial_ended'
+      ? 'trial_expired'
+      : mapSquareStatusToTenantStatus(sub.status);
     await tenant.doc.ref.update({
       status: tenantStatus,
       squareSubscriptionStatus: sub.status || null,
       lastWebhookEvent: event.type,
       lastWebhookAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    // When status changes to one that should lock the tenant out, revoke
+    // refresh tokens for every user in the tenant so their next request hits
+    // a fresh claim that the secureApi gate + Firestore rules can evaluate.
+    if (tenantStatus === 'trial_expired' || tenantStatus === 'suspended' ||
+        tenantStatus === 'canceled' || tenantStatus === 'cancelled') {
+      try {
+        await revokeAllTenantUserTokens(tenant.id);
+      } catch (e) {
+        console.warn('[webhook] revoke tokens on status change failed:', e.message);
+      }
+    }
     await writeAuditLog('square_webhook', 'webhook@square', `webhook_${event.type}`, null, 0, tenant.id);
 
     // Email on ACTIVE → CANCELED transition (user-initiated via admin ops OR
@@ -2200,6 +2704,30 @@ async function handleSquareSubscriptionEvent(event) {
     const planInfo = PLAN_CATALOG[tenant.data.plan] || {};
 
     if (event.type === 'invoice.payment_made') {
+      // Cashier recon K-2 (P1): mark firstChargeAt on the first successful
+      // payment. dailyTrialCheck uses this as the "trial converted" signal so
+      // it knows not to flip a paying tenant to trial_expired. Also flip status
+      // back to 'active' if it had been demoted to trial_expired or past_due
+      // (a successful charge resolves both).
+      try {
+        const tenantUpdates = {
+          lastChargeAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        if (!tenant.data.firstChargeAt) {
+          tenantUpdates.firstChargeAt = admin.firestore.FieldValue.serverTimestamp();
+        }
+        const lowerStatus = String(tenant.data.status || '').toLowerCase();
+        if (lowerStatus === 'trial_expired' || lowerStatus === 'past_due') {
+          tenantUpdates.status = 'active';
+          // Trigger token re-mint so the now-revived tenant can hit the app
+          // without waiting up to an hour for natural token rotation.
+          revokeAllTenantUserTokens(tenant.id).catch(e =>
+            console.warn('[webhook] revoke tokens on revive failed:', e.message));
+        }
+        await tenant.doc.ref.update(tenantUpdates);
+      } catch (e) {
+        console.warn('[webhook] firstChargeAt update failed:', e.message);
+      }
       try {
         await emails.sendEmail(tenant.data.ownerEmail, 'first_charge_receipt', {
           tenantId: tenant.id,
@@ -2322,7 +2850,21 @@ async function handleSquareWebhook(req, res) {
       'invoice.canceled',
     ];
     if (routableTypes.includes(event.type)) {
-      await handleSquareSubscriptionEvent(event);
+      // K-2: dedup on Square's event_id so an at-least-once redelivery of an
+      // already-processed event doesn't re-fire side effects. Retry-safe: if
+      // processing throws we 500 and the marker stays non-'processed', so
+      // Square's retry reprocesses.
+      const dedupResult = await webhookDedup.processWebhookOnce(
+        { db, admin },
+        event.event_id,
+        { type: event.type },
+        () => handleSquareSubscriptionEvent(event)
+      );
+      if (dedupResult.deduped) {
+        console.log('[webhook] duplicate event skipped:', event.event_id, event.type);
+      } else if (dedupResult.unkeyed) {
+        console.warn('[webhook] event had no event_id — processed without dedup:', event.type);
+      }
     } else {
       // Log unrecognized events but 200 so Square doesn't retry
       console.log('[webhook] Ignoring event type:', event.type);
@@ -2977,8 +3519,23 @@ async function superOpListTenants(/*ctx*/) {
   return { data: { tenants } };
 }
 
+// Resolve a tenant identifier that may be either a doc id OR a slug. The
+// operator console opens the drawer with whatever was in the URL (`tenantIdOrSlug`),
+// so accept both `params.tenantId` and `params.tenantIdOrSlug`. Returns '' when
+// nothing usable was supplied (caller emits 400); returns the raw value when it
+// matches neither an id nor a slug (caller emits 404).
+async function resolveTenantId(params) {
+  const raw = String((params && (params.tenantId || params.tenantIdOrSlug)) || '').trim();
+  if (!raw) return '';
+  const byId = await db.collection('tenants').doc(raw).get();
+  if (byId.exists) return raw;
+  const bySlug = await db.collection('tenants').where('slug', '==', raw).limit(1).get();
+  if (!bySlug.empty) return bySlug.docs[0].id;
+  return raw;
+}
+
 async function superOpGetTenantDetails(ctx, params) {
-  const tenantId = String(params.tenantId || '');
+  const tenantId = await resolveTenantId(params);
   if (!tenantId) return { error: 'tenantId required', status: 400 };
 
   const tenantDoc = await db.collection('tenants').doc(tenantId).get();
@@ -3008,10 +3565,18 @@ async function superOpGetTenantDetails(ctx, params) {
       id: d.id,
       email: data.email,
       role: data.role,
+      uid: null,
       added_by: data.added_by || null,
       created_at: data.created_at && data.created_at.toMillis ? data.created_at.toMillis() : null,
     });
   });
+  // Resolve each member's Auth uid (best-effort) — the Users tab needs it for
+  // reset-password / revoke-token / resend-verification actions. A missing or
+  // not-yet-registered member just keeps uid: null.
+  await Promise.all(team.map(async (m) => {
+    if (!m.email) return;
+    try { m.uid = (await auth.getUserByEmail(m.email)).uid; } catch (e) { /* not registered yet */ }
+  }));
 
   // Recent audit log (last 50)
   let audit = [];
@@ -3025,6 +3590,7 @@ async function superOpGetTenantDetails(ctx, params) {
         timestamp: data.timestamp && data.timestamp.toMillis ? data.timestamp.toMillis() : null,
         action: data.action,
         email: data.email,
+        user_email: data.email, // alias: audit tab renders e.user_email
         operation: data.operation,
         collection: data.collection,
         success: data.success,
@@ -3032,16 +3598,29 @@ async function superOpGetTenantDetails(ctx, params) {
     });
   } catch (e) { console.warn('[super] audit log read failed:', e.message); }
 
+  const createdAtMs = t.createdAt && t.createdAt.toMillis ? t.createdAt.toMillis() : null;
+  const trialEndsAtMs = t.trialEndsAt && t.trialEndsAt.toMillis ? t.trialEndsAt.toMillis() : null;
+  const lastActivityMs = t.lastActivityAt && t.lastActivityAt.toMillis ? t.lastActivityAt.toMillis() : null;
+  const planEntry = PLAN_CATALOG[t.plan] || null;
+  const priceCents = planEntry ? planEntry.priceCents : 0;
+  const cardLast4 = card ? card.last_4 : null;
+
   return {
     data: {
       tenant: {
         id: tenantDoc.id,
+        tenantId: tenantDoc.id, // alias: the operator console reads tenant.tenantId
         slug: t.slug,
         restaurantName: t.restaurantName || t.restaurant_name,
         ownerEmail: t.ownerEmail || t.owner_email,
         plan: t.plan,
         status: t.status,
-        createdAt: t.createdAt && t.createdAt.toMillis ? t.createdAt.toMillis() : null,
+        createdAt: createdAtMs,
+        signedUpAt: createdAtMs,      // alias used by the summary tab
+        trialEndsAt: trialEndsAtMs,
+        lastActivityMs,
+        mrrUsd: priceCents / 100,
+        cardLast4,
         onboardingComplete: !!t.onboardingComplete,
         suspendedAt: t.suspendedAt && t.suspendedAt.toMillis ? t.suspendedAt.toMillis() : null,
         suspendedReason: t.suspendedReason || null,
@@ -3056,6 +3635,9 @@ async function superOpGetTenantDetails(ctx, params) {
         canceledDate: subscription.canceled_date,
         chargedThroughDate: subscription.charged_through_date,
         planVariationId: subscription.plan_variation_id,
+        planId: planEntry ? planEntry.name : (t.plan || null),
+        priceCents,
+        cardLast4,
       } : null,
       card: card ? {
         id: card.id,
@@ -3224,28 +3806,27 @@ const RATE_CARD = Object.freeze({
   geminiInputPer1M:        0.075,      // Gemini 2.5 Flash input tokens
   geminiOutputPer1M:       0.30,       // Gemini 2.5 Flash output tokens
   resendPerEmail:          0.0004,     // ~$20 per 50k
+  upcPaidLookupUsd:        0.03,       // est. per PAID UPC lookup (eandata $0.01–0.05; cache/OFF hits are free)
 });
 
 // ── Shared audit helper that stamps super_admin_ prefix ─────────────────────
+// Pass 3 (Expediter, P2): migrated from a fire-and-forget direct .add() to the
+// durable audit queue (publish → direct-write → pending_audit → Sentry), so
+// operator-console actions get the same durability guarantees as writeAuditLog.
+// Platform-scoped events (no tenantId) carry a `scope: 'platform'` marker in
+// `extra` and route to the root /audit_log, preserving prior routing.
 async function writeSuperAudit(ctx, action, tenantId, extra) {
-  try {
-    const entry = {
-      user_id: ctx.userId,
-      user_email: ctx.userEmail,
-      tenant_id: tenantId || 'platform',
-      operation: action.startsWith('super_admin_') ? action : ('super_admin_' + action),
-      collection: 'operator_console',
-      record_count: 1,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      ...(extra || {}),
-    };
-    const ref = tenantId
-      ? db.collection('tenants').doc(tenantId).collection('audit_log')
-      : db.collection('audit_log');
-    await ref.add(entry);
-  } catch (e) {
-    console.error('[writeSuperAudit] failed:', e.message);
-  }
+  const op = action.startsWith('super_admin_') ? action : ('super_admin_' + action);
+  const mergedExtra = tenantId ? (extra || null) : { scope: 'platform', ...(extra || {}) };
+  return writeAuditLog(
+    ctx.userId,
+    ctx.userEmail,
+    op,
+    'operator_console',
+    1,
+    tenantId || null,
+    mergedExtra
+  );
 }
 
 function ymdUtc(ms) {
@@ -3452,11 +4033,12 @@ async function superOpGetKpiOverview(/*ctx*/) {
 }
 
 async function superOpGetTenantFull(ctx, params) {
-  const tenantId = String(params.tenantId || '');
+  const tenantId = await resolveTenantId(params);
   if (!tenantId) return { error: 'tenantId required', status: 400 };
 
-  // Re-use getTenantDetails for the core payload
-  const base = await superOpGetTenantDetails(ctx, params);
+  // Re-use getTenantDetails for the core payload (pass the resolved id so the
+  // slug→id resolution isn't repeated downstream).
+  const base = await superOpGetTenantDetails(ctx, { ...params, tenantId });
   if (base.error) return base;
 
   const now = Date.now();
@@ -3519,6 +4101,7 @@ async function superOpGetTenantFull(ctx, params) {
       feature: data.feature,
       sentiment: data.sentiment,
       comment: data.comment,
+      message: data.comment, // alias: feedback tab renders e.message
       userEmail: data.userEmail,
       timestamp: data.timestamp && data.timestamp.toMillis ? data.timestamp.toMillis() : null,
       reviewed: !!data.reviewed,
@@ -3551,56 +4134,129 @@ async function superOpGetTenantFull(ctx, params) {
     firestoreWrites: 0,
     cfInvocations: 0,
     geminiUsdSpend: 0,
+    upcUsdSpend: 0,
+    upcPaidLookups: 0,
     totalUsdCost: 0,
     daily: [],
   };
   costsSnap.forEach(d => {
     const c = d.data() || {};
     costSummary.days++;
-    costSummary.firestoreReads += Number(c.firestoreReads || 0);
-    costSummary.firestoreWrites += Number(c.firestoreWrites || 0);
+    // The per-day rollup doc stores these as `reads`/`writes` (not
+    // `firestoreReads`/`firestoreWrites`), so read the actual field names.
+    costSummary.firestoreReads += Number(c.reads || 0);
+    costSummary.firestoreWrites += Number(c.writes || 0);
     costSummary.cfInvocations += Number(c.cfInvocations || 0);
-    costSummary.geminiUsdSpend += Number(c.geminiUsdSpend || 0);
+    // The rollup writes geminiInUsd + geminiOutUsd (not a single geminiUsdSpend),
+    // so derive the Gemini dollar line from those; fall back to a legacy
+    // geminiUsdSpend field if an older doc carried it.
+    const geminiUsd = Number(c.geminiUsdSpend || 0) || (Number(c.geminiInUsd || 0) + Number(c.geminiOutUsd || 0));
+    const upcUsd = Number(c.upcLookupUsd || 0);
+    costSummary.geminiUsdSpend += geminiUsd;
+    costSummary.upcUsdSpend += upcUsd;
+    costSummary.upcPaidLookups += Number(c.upcPaidLookups || 0);
     costSummary.totalUsdCost += Number(c.totalUsdCost || 0);
     costSummary.daily.push({
       date: c.date,
+      reads: Number(c.reads || 0),
+      writes: Number(c.writes || 0),
+      cfInvocations: Number(c.cfInvocations || 0),
+      geminiInputTokens: Number(c.geminiInputTokens || 0),
+      geminiOutputTokens: Number(c.geminiOutputTokens || 0),
+      emailsSent: Number(c.emailsSent || 0),
+      upcPaidLookups: Number(c.upcPaidLookups || 0),
       totalUsdCost: Number(c.totalUsdCost || 0),
-      geminiUsdSpend: Number(c.geminiUsdSpend || 0),
+      geminiUsdSpend: geminiUsd,
+      upcUsdSpend: upcUsd,
     });
   });
   costSummary.daily.sort((a, b) => (a.date < b.date ? -1 : 1));
 
+  // Shape mirrors what runDailyUsageStatsRollup actually writes to
+  // tenant_usage_daily: { activeUsers, totalOps, topOps[], lastActivityMs }.
+  // (Prior version read recipesCreated/oracleQueries/uniqueUsers/etc. — fields
+  // the rollup never writes — so every value was 0 and the usage tab, which
+  // reads f.usageSummary.daily, rendered blank.)
   const usageSummary = {
     days: 0,
-    recipesCreated: 0,
-    prepSheetsGenerated: 0,
-    inventoryCounts: 0,
-    oracleQueries: 0,
-    uniqueUsers: 0,
-    sessions: 0,
+    totalOps: 0,
+    peakActiveUsers: 0,
+    lastActivityMs: 0,
     daily: [],
   };
   usageSnap.forEach(d => {
     const u = d.data() || {};
     usageSummary.days++;
-    usageSummary.recipesCreated += Number(u.recipesCreated || 0);
-    usageSummary.prepSheetsGenerated += Number(u.prepSheetsGenerated || 0);
-    usageSummary.inventoryCounts += Number(u.inventoryCounts || 0);
-    usageSummary.oracleQueries += Number(u.oracleQueries || 0);
-    usageSummary.uniqueUsers = Math.max(usageSummary.uniqueUsers, Number(u.uniqueUsers || 0));
-    usageSummary.sessions += Number(u.sessions || 0);
+    usageSummary.totalOps += Number(u.totalOps || 0);
+    usageSummary.peakActiveUsers = Math.max(usageSummary.peakActiveUsers, Number(u.activeUsers || 0));
+    usageSummary.lastActivityMs = Math.max(usageSummary.lastActivityMs, Number(u.lastActivityMs || 0));
     usageSummary.daily.push({
       date: u.date,
-      recipesCreated: Number(u.recipesCreated || 0),
-      oracleQueries: Number(u.oracleQueries || 0),
-      uniqueUsers: Number(u.uniqueUsers || 0),
+      activeUsers: Number(u.activeUsers || 0),
+      totalOps: Number(u.totalOps || 0),
+      topOps: Array.isArray(u.topOps) ? u.topOps : [],
     });
   });
   usageSummary.daily.sort((a, b) => (a.date < b.date ? -1 : 1));
 
+  // ── Drawer enrichment (fields the operator console reads but base lacked) ──
+  // Owner Auth uid — needed by impersonate / resend-welcome actions.
+  let ownerUid = null;
+  const ownerEmail = base.data.tenant && base.data.tenant.ownerEmail;
+  if (ownerEmail) {
+    try { ownerUid = (await auth.getUserByEmail(ownerEmail)).uid; } catch (e) { /* not registered yet */ }
+  }
+  const tenantEnriched = { ...base.data.tenant, ownerUid };
+
+  // Per-collection document counts (Data / Raw-data tabs). count() aggregation
+  // — cheap, no full reads; skip empties and any collection without an index.
+  const dataVolume = {};
+  const volCollections = [...ALLOWED_COLLECTIONS, 'support_tickets', 'feedback_events', 'internal_notes'];
+  await Promise.all(volCollections.map(async (sub) => {
+    try {
+      const c = await tenantRef.collection(sub).count().get();
+      const n = c.data().count;
+      if (n > 0) dataVolume[sub] = n;
+    } catch (e) { /* missing collection/index — skip */ }
+  }));
+
+  // Resolved feature flags for this tenant → [{name, value, scope}].
+  // (`featureFlags` is the imported module, so the local list is `flagList`.)
+  let flagList = [];
+  try {
+    const flagSnap = await db.collection('feature_flags').get();
+    const tid = String(tenantId);
+    flagSnap.forEach((fd) => {
+      const doc = fd.data() || {};
+      const name = doc.name || fd.id;
+      const enabled = Array.isArray(doc.enabledTenants) ? doc.enabledTenants.map(String) : [];
+      const disabled = Array.isArray(doc.disabledTenants) ? doc.disabledTenants.map(String) : [];
+      let scope = 'global';
+      if (disabled.indexOf(tid) !== -1 || enabled.indexOf(tid) !== -1) scope = 'tenant';
+      else if (Number(doc.rolloutPercent) > 0) scope = 'rollout';
+      flagList.push({ name, value: !!featureFlags.evaluateFeatureFlag(doc, tid), scope });
+    });
+  } catch (e) { console.warn('[super] feature flag resolve failed:', e.message); }
+
+  // Recent Square charges (best-effort; [] on any failure — see square.listRecentCharges).
+  let charges = [];
+  const custId = base.data.tenant && base.data.tenant.squareCustomerId;
+  if (custId) {
+    try { charges = await square.listRecentCharges({ customerId: custId }); }
+    catch (e) { console.warn('[super] charges fetch failed (non-fatal):', e.message); }
+  }
+
   return {
     data: {
       ...base.data,
+      tenant: tenantEnriched,
+      users: base.data.team,          // alias: Users tab + summary count
+      approvedEmails: base.data.team, // alias: summary "Approved emails" count
+      tickets: ticketsRecent,         // alias: Tickets tab
+      auditRecent: base.data.audit,   // alias: Audit tab
+      dataVolume,
+      featureFlags: flagList,
+      charges,
       ticketSummary: {
         openCount: ticketsOpenSnap.data().count,
         recent: ticketsRecent,
@@ -3838,22 +4494,136 @@ async function superOpAddTicketTag(ctx, params) {
   const { tenantId, ticketId, tag } = params || {};
   if (!tenantId || !ticketId || !tag) return { error: 'tenantId, ticketId, tag required', status: 400 };
   const ticketRef = db.collection('tenants').doc(tenantId).collection('support_tickets').doc(ticketId);
+  const cleanTag = sanitizeString(tag);
   await ticketRef.update({
-    tags: admin.firestore.FieldValue.arrayUnion(sanitizeString(tag)),
+    tags: admin.firestore.FieldValue.arrayUnion(cleanTag),
     lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-  return { data: { ticketId, tag } };
+  // Pass 3 (Expediter): tag changes were the only ticket ops not audited.
+  await writeSuperAudit(ctx, 'ticket_tag_added', tenantId, { ticketId, tag: cleanTag });
+  return { data: { ticketId, tag: cleanTag } };
 }
 
 async function superOpRemoveTicketTag(ctx, params) {
   const { tenantId, ticketId, tag } = params || {};
   if (!tenantId || !ticketId || !tag) return { error: 'tenantId, ticketId, tag required', status: 400 };
   const ticketRef = db.collection('tenants').doc(tenantId).collection('support_tickets').doc(ticketId);
+  const cleanTag = sanitizeString(tag);
   await ticketRef.update({
-    tags: admin.firestore.FieldValue.arrayRemove(sanitizeString(tag)),
+    tags: admin.firestore.FieldValue.arrayRemove(cleanTag),
     lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-  return { data: { ticketId, tag } };
+  await writeSuperAudit(ctx, 'ticket_tag_removed', tenantId, { ticketId, tag: cleanTag });
+  return { data: { ticketId, tag: cleanTag } };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  INVOICE REVIEW — unconfirmed OCR items (Pass 3 finding B6)
+// ════════════════════════════════════════════════════════════════════════════
+// Phase B2 routes low-confidence / large-price-jump OCR line items into the
+// invoice doc's `unconfirmed[]` array instead of writing ingredient.cost.
+// These ops give an operator the path to act on them: list invoices needing
+// review, then confirm (apply the price) or reject (discard) each item.
+
+async function superOpListNeedsReviewInvoices(ctx, params) {
+  const { tenantId, limit = 100 } = params || {};
+  if (!tenantId) return { error: 'tenantId required', status: 400 };
+  let q = db.collection('tenants').doc(tenantId).collection('invoices')
+    .where('status', '==', 'needs_review');
+  q = q.limit(Math.min(500, Math.max(1, Number(limit) || 100)));
+  const snap = await q.get();
+  const invoices = [];
+  snap.forEach(d => {
+    const data = d.data() || {};
+    invoices.push({
+      id: d.id,
+      vendor_name: data.vendor_name || '',
+      invoice_number: data.invoice_number || '',
+      invoice_date: data.invoice_date || '',
+      total: data.total || 0,
+      unconfirmed: Array.isArray(data.unconfirmed) ? data.unconfirmed : [],
+      unmatched: Array.isArray(data.unmatched) ? data.unmatched : [],
+      invariant_warnings: Array.isArray(data.invariant_warnings) ? data.invariant_warnings : [],
+    });
+  });
+  return { data: { invoices } };
+}
+
+// Shared core: move an unconfirmed item out of the array, optionally applying
+// its price to the ingredient. Returns the updated invoice status.
+async function resolveUnconfirmedItem(ctx, tenantId, invoiceId, ingId, apply) {
+  const invRef = db.collection('tenants').doc(tenantId).collection('invoices').doc(String(invoiceId));
+  return db.runTransaction(async (t) => {
+    const invSnap = await t.get(invRef);
+    if (!invSnap.exists) return { error: 'Invoice not found', status: 404 };
+    const inv = invSnap.data() || {};
+    const unconfirmed = Array.isArray(inv.unconfirmed) ? inv.unconfirmed.slice() : [];
+    const idx = unconfirmed.findIndex(u => String(u.ingId) === String(ingId));
+    if (idx < 0) return { error: 'Unconfirmed item not found on invoice', status: 404 };
+    const item = unconfirmed[idx];
+
+    if (apply) {
+      // Apply the reviewed price to the ingredient — same write shape as
+      // invoices.js processInvoice, but operator-confirmed.
+      const ingRef = db.collection('tenants').doc(tenantId).collection('ings').doc(String(item.ingId));
+      const ingSnap = await t.get(ingRef);
+      const ing = ingSnap.exists ? (ingSnap.data() || {}) : {};
+      const history = Array.isArray(ing.price_history) ? ing.price_history.slice() : [];
+      history.push({
+        date: inv.invoice_date || new Date().toISOString().slice(0, 10),
+        price: item.unitPrice,
+        vendorId: inv.vendor_id || 0,
+        invoiceId,
+        unit: item.unit || 'ea',
+        confidence: item.confidence || 'operator_confirmed',
+        confirmedBy: ctx.userEmail,
+      });
+      t.set(ingRef, {
+        cost: item.unitPrice || ing.cost || 0,
+        price_history: history.slice(-200),
+      }, { merge: true });
+    }
+
+    // Remove from unconfirmed[] and append to a resolution log on the invoice.
+    unconfirmed.splice(idx, 1);
+    const resolutionLog = Array.isArray(inv.review_log) ? inv.review_log.slice() : [];
+    resolutionLog.push({
+      ingId: item.ingId,
+      name: item.name,
+      action: apply ? 'confirmed' : 'rejected',
+      unitPrice: item.unitPrice,
+      by: ctx.userEmail,
+      at: new Date().toISOString(),
+    });
+    const newStatus = (unconfirmed.length === 0
+      && (!Array.isArray(inv.unmatched) || inv.unmatched.length === 0)
+      && (!Array.isArray(inv.invariant_warnings) || inv.invariant_warnings.length === 0))
+      ? 'processed' : 'needs_review';
+    t.update(invRef, { unconfirmed, review_log: resolutionLog, status: newStatus });
+    return { data: { invoiceId, ingId, action: apply ? 'confirmed' : 'rejected', newStatus, remaining: unconfirmed.length } };
+  });
+}
+
+async function superOpConfirmInvoiceItem(ctx, params) {
+  const { tenantId, invoiceId, ingId } = params || {};
+  if (!tenantId || !invoiceId || ingId === undefined) {
+    return { error: 'tenantId, invoiceId, ingId required', status: 400 };
+  }
+  const result = await resolveUnconfirmedItem(ctx, tenantId, invoiceId, ingId, true);
+  if (result.error) return result;
+  await writeSuperAudit(ctx, 'invoice_item_confirmed', tenantId, { invoiceId, ingId });
+  return result;
+}
+
+async function superOpRejectInvoiceItem(ctx, params) {
+  const { tenantId, invoiceId, ingId } = params || {};
+  if (!tenantId || !invoiceId || ingId === undefined) {
+    return { error: 'tenantId, invoiceId, ingId required', status: 400 };
+  }
+  const result = await resolveUnconfirmedItem(ctx, tenantId, invoiceId, ingId, false);
+  if (result.error) return result;
+  await writeSuperAudit(ctx, 'invoice_item_rejected', tenantId, { invoiceId, ingId });
+  return result;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -4025,18 +4795,29 @@ async function superOpGetTenantMeta(ctx, params) {
 }
 
 async function superOpSetTenantMeta(ctx, params) {
-  const { tenantId, fields } = params || {};
-  if (!tenantId || !fields || typeof fields !== 'object') return { error: 'tenantId and fields required', status: 400 };
-  const allowed = ['tags', 'csm', 'priorityScore', 'followUpDate', 'strategicValueFlag',
+  const p = params || {};
+  const tenantId = await resolveTenantId(p);
+  if (!tenantId) return { error: 'tenantId required', status: 400 };
+  // The operator console sends meta fields flat: { priority, assignedOperator,
+  // notes } (and the Meta tab reads those same keys back off /tenant_meta).
+  // Tolerate a legacy { fields: {...} } wrapper too. Legacy keys (csm,
+  // priorityScore, …) are kept in the allow-list so older data paths still work.
+  const src = (p.fields && typeof p.fields === 'object') ? p.fields : p;
+  const allowed = ['tags', 'priority', 'assignedOperator', 'notes',
+                   'csm', 'priorityScore', 'followUpDate', 'strategicValueFlag',
                    'competitorDisplacedFrom', 'renewalRiskFlag', 'customLabels'];
   const updates = {};
   for (const k of allowed) {
-    if (k in fields) updates[k] = fields[k];
+    if (!(k in src)) continue;
+    const v = src[k];
+    if (k === 'tags' && Array.isArray(v)) updates[k] = v.map(x => sanitizeString(String(x)));
+    else if (typeof v === 'string') updates[k] = sanitizeString(v);
+    else updates[k] = v; // null / number / boolean pass through
   }
   updates.lastOperatorTouch = admin.firestore.FieldValue.serverTimestamp();
   updates.lastOperatorTouchBy = ctx.userEmail;
   await db.collection('tenant_meta').doc(tenantId).set(updates, { merge: true });
-  await writeSuperAudit(ctx, 'meta_updated', tenantId, { keys: Object.keys(updates) });
+  await writeSuperAudit(ctx, 'meta_updated', tenantId, { keys: Object.keys(updates).filter(k => !k.startsWith('lastOperator')) });
   return { data: { ok: true } };
 }
 
@@ -4346,22 +5127,48 @@ async function superOpCompInvoice(ctx, params) {
 }
 
 async function superOpIssueRefund(ctx, params) {
-  const { tenantId, paymentId, amountCents, reason } = params || {};
-  if (!tenantId || !paymentId || !amountCents) return { error: 'tenantId, paymentId, amountCents required', status: 400 };
-  const idempotencyKey = `refund-${tenantId}-${paymentId}-${Date.now()}`;
+  const { tenantId, paymentId, amountCents, reason, clientRefundId } = params || {};
+  if (!tenantId || !paymentId) return { error: 'tenantId and paymentId required', status: 400 };
+
+  // K-6: cap the refund at the original payment amount — fetch the payment from
+  // Square first so a typo can't refund more than was charged.
+  let paymentAmount = null;
+  let paymentCurrency = 'USD';
+  try {
+    const p = await square.squareFetch('/v2/payments/' + encodeURIComponent(String(paymentId)), 'GET');
+    const m = p && p.payment && p.payment.amount_money;
+    if (m && Number.isFinite(Number(m.amount))) {
+      paymentAmount = Number(m.amount);
+      paymentCurrency = m.currency || 'USD';
+    }
+  } catch (e) {
+    console.error('[super] refund payment lookup failed:', e.message);
+    return { error: 'Could not verify payment before refund', status: 502 };
+  }
+  if (paymentAmount === null) return { error: 'Payment not found or has no amount', status: 404 };
+
+  // K-6: validate amount + mandatory second approval (confirm + re-typed amount).
+  const check = refundGuard.validateRefund({ amountCents, confirm: params && params.confirm, confirmAmountCents: params && params.confirmAmountCents }, paymentAmount);
+  if (!check.ok) return { error: check.error, status: check.status };
+  const amount = check.amount;
+
+  // K-6: DETERMINISTIC idempotency key (the old key embedded Date.now(), so a
+  // double-click double-refunded). Same logical refund → same key → Square dedups.
+  const idempotencyKey = refundGuard.refundIdempotencyKey(tenantId, paymentId, amount, clientRefundId);
+
   let refundResult = null;
   try {
     refundResult = await square.squareFetch('/v2/refunds', 'POST', {
       idempotency_key: idempotencyKey,
       payment_id: String(paymentId),
-      amount_money: { amount: Number(amountCents), currency: 'USD' },
+      amount_money: { amount, currency: paymentCurrency },
       reason: sanitizeString(reason || 'Operator-issued refund'),
     });
   } catch (e) {
     console.error('[super] refund failed:', e.message);
     return { error: 'Square refund failed', status: 502 };
   }
-  await writeSuperAudit(ctx, 'refund_issued', tenantId, { paymentId, amountCents, reason: reason || '' });
+  await writeSuperAudit(ctx, 'refund_issued', tenantId, { paymentId, amountCents: amount, paymentAmount, reason: reason || '' });
   return { data: { refund: refundResult } };
 }
 
@@ -4370,16 +5177,25 @@ async function superOpPushAnnouncement(ctx, params) {
   if (!title || !body) return { error: 'title and body required', status: 400 };
   const ref = db.collection('platform_announcements').doc();
   const now = admin.firestore.FieldValue.serverTimestamp();
+  // E-2: announcements reach every tenant client — sanitize with the strict
+  // announcement sanitizer (fixpoint tag-strip + entity/bracket neutralization).
+  // targetRoute must be an in-app relative route only: reject anything that
+  // isn't a "/path"-shaped string to block javascript:/data:/open-redirect.
+  const safeRoute = (typeof targetRoute === 'string'
+    && /^\/[A-Za-z0-9_\-/?=&.#]*$/.test(targetRoute)
+    && !/^\/\//.test(targetRoute)) // not protocol-relative //evil.com
+    ? targetRoute.slice(0, 200)
+    : null;
   const doc = {
-    title: sanitizeString(title),
-    body: sanitizeString(body),
+    title: sanitizeAnnouncementText(title),
+    body: sanitizeAnnouncementText(body),
     audience: (typeof audience === 'string' || Array.isArray(audience)) ? audience : 'all',
     severity: ['info', 'warning', 'critical'].includes(severity) ? severity : 'info',
     createdAt: now,
     createdBy: ctx.userEmail,
     expiresAt: expiresAt ? admin.firestore.Timestamp.fromDate(new Date(expiresAt)) : null,
     dismissible: !!dismissible,
-    targetRoute: targetRoute || null,
+    targetRoute: safeRoute,
   };
   await ref.set(doc);
   await writeSuperAudit(ctx, 'announcement_pushed', null, { id: ref.id, title });
@@ -4528,17 +5344,53 @@ async function superOpUpdateOperatorStatus(ctx, params) {
     statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
     statusUpdatedBy: ctx.userEmail,
   }, { merge: true });
+  // Audit cross-operator status changes too — supervising peers is fine, but
+  // the trail must exist (e.g. who marked whom offline, and when).
+  await writeSuperAudit(ctx, 'operator_status_updated', null, { targetUid: uid, status });
   return { data: { uid, status } };
 }
 
 async function superOpUpdateOperatorProfile(ctx, params) {
   const { uid, displayName, role, photoUrl } = params || {};
   if (!uid) return { error: 'uid required', status: 400 };
+
+  // Hierarchy guard: operators may only edit their OWN profile here.
+  // Letting any super-admin silently overwrite a peer's displayName, photo,
+  // or role confuses the operator dashboard and could lock a peer out of
+  // their own profile management. Super-admin grants/revokes are
+  // intentionally exclusive to grantSuperAdmin / revokeSuperAdmin, which
+  // mutate the authoritative `superAdmin` custom claim and emit their own
+  // audit entries.
+  if (uid !== ctx.userId) {
+    await writeSuperAudit(ctx, 'operator_profile_update_denied', null, {
+      targetUid: uid, reason: 'cross_operator_edit_not_permitted',
+    });
+    return { error: "Cannot edit another operator's profile", status: 403 };
+  }
+  if (role !== undefined) {
+    await writeSuperAudit(ctx, 'operator_profile_update_denied', null, {
+      targetUid: uid, reason: 'role_field_not_settable_here',
+    });
+    return {
+      error: 'Role changes go through grantSuperAdmin / revokeSuperAdmin',
+      status: 400,
+    };
+  }
+
   const updates = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
   if (displayName !== undefined) updates.displayName = sanitizeString(displayName);
-  if (role !== undefined) updates.role = role;
-  if (photoUrl !== undefined) updates.photoUrl = photoUrl;
+  if (photoUrl !== undefined) {
+    const url = String(photoUrl || '').trim();
+    if (url && !/^https?:\/\//.test(url)) {
+      return { error: 'photoUrl must be an http(s) URL', status: 400 };
+    }
+    updates.photoUrl = url || null;
+  }
   await db.collection('operators').doc(uid).set(updates, { merge: true });
+  await writeSuperAudit(ctx, 'operator_profile_updated', null, {
+    targetUid: uid,
+    fields: Object.keys(updates).filter(k => k !== 'updatedAt'),
+  });
   return { data: { ok: true } };
 }
 
@@ -4671,6 +5523,11 @@ const SUPER_OPS = {
   setFeatureFlag:      superOpSetFeatureFlag,
   manualAuditEntry:    superOpManualAuditEntry,
 
+  // Invoice review (unconfirmed OCR items — Pass 3 B6)
+  listNeedsReviewInvoices: superOpListNeedsReviewInvoices,
+  confirmInvoiceItem:      superOpConfirmInvoiceItem,
+  rejectInvoiceItem:       superOpRejectInvoiceItem,
+
   // Agents
   listOperators:          superOpListOperators,
   updateOperatorStatus:   superOpUpdateOperatorStatus,
@@ -4766,6 +5623,7 @@ async function tallyTenantDay(tenantId, dayStartMs, dayEndMs) {
     reads: 0, writes: 0, deletes: 0,
     invocations: 0,
     geminiInput: 0, geminiOutput: 0,
+    upcPaidLookups: 0,
     emails: 0,
     activeUsers: new Set(),
   };
@@ -4828,6 +5686,22 @@ async function tallyTenantDay(tenantId, dayStartMs, dayEndMs) {
     // Legacy log may not exist — zero out.
   }
 
+  // Paid UPC lookups from tenants/{tid}/upcUsage (cache/OFF hits are free and
+  // don't count). Timestamp-range query + sum-in-code keeps it index-free,
+  // same shape as the geminiUsage tally above.
+  try {
+    const upcSnap = await db.collection('tenants').doc(tenantId)
+      .collection('upcUsage')
+      .where('timestamp', '>=', new Date(dayStartMs))
+      .where('timestamp', '<', new Date(dayEndMs))
+      .get();
+    for (const d of upcSnap.docs) {
+      if (d.data() && d.data().paid === true) stats.upcPaidLookups++;
+    }
+  } catch (e) {
+    // Subcollection may not exist yet — zero out.
+  }
+
   return stats;
 }
 
@@ -4842,13 +5716,14 @@ function estimateCostsUsd(tally) {
   const geminiInUsd       = (tally.geminiInput  / 1000000) * RATE_CARD.geminiInputPer1M;
   const geminiOutUsd      = (tally.geminiOutput / 1000000) * RATE_CARD.geminiOutputPer1M;
   const emailUsd          = tally.emails * RATE_CARD.resendPerEmail;
+  const upcLookupUsd      = (Number(tally.upcPaidLookups) || 0) * RATE_CARD.upcPaidLookupUsd;
   const totalUsdCost      = firestoreReadUsd + firestoreWriteUsd + firestoreDelUsd
                           + cfInvokeUsd + cfComputeUsd
-                          + geminiInUsd + geminiOutUsd + emailUsd;
+                          + geminiInUsd + geminiOutUsd + emailUsd + upcLookupUsd;
   return {
     firestoreReadUsd, firestoreWriteUsd, firestoreDelUsd,
     cfInvokeUsd, cfComputeUsd,
-    geminiInUsd, geminiOutUsd, emailUsd,
+    geminiInUsd, geminiOutUsd, emailUsd, upcLookupUsd,
     totalUsdCost,
   };
 }
@@ -4867,7 +5742,7 @@ async function runDailyTenantCostAggregation() {
   const ymd = ymdUtc(dayStart);
 
   const tenantsSnap = await db.collection('tenants').get();
-  const stats = { scanned: tenantsSnap.size, written: 0, errors: 0, totalUsd: 0 };
+  const stats = { scanned: tenantsSnap.size, written: 0, errors: 0, totalUsd: 0, date: ymd };
 
   for (const doc of tenantsSnap.docs) {
     const tenantId = doc.id;
@@ -4886,6 +5761,7 @@ async function runDailyTenantCostAggregation() {
         cfInvocations: tally.invocations,
         geminiInputTokens: tally.geminiInput,
         geminiOutputTokens: tally.geminiOutput,
+        upcPaidLookups: tally.upcPaidLookups,
         emailsSent: tally.emails,
         ...costs,
         computedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -4908,7 +5784,11 @@ exports.dailyTenantCostAggregation = functions
   .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '512MB', secrets: ['SENTRY_DSN'] })
   .pubsub.schedule('0 1 * * *')
   .timeZone('America/Los_Angeles')
-  .onRun(async () => { await runDailyTenantCostAggregation(); return null; });
+  .onRun(async () => {
+    // N-1/N-2: heartbeat records run completeness + surfaces silent failures.
+    await schedulerHeartbeat.withHeartbeat(db, admin, 'dailyTenantCostAggregation', runDailyTenantCostAggregation);
+    return null;
+  });
 
 /**
  * Per-tenant activity rollup: active users, total ops, dominant op types.
@@ -4922,7 +5802,7 @@ async function runDailyUsageStatsRollup() {
   const ymd = ymdUtc(dayStart);
 
   const tenantsSnap = await db.collection('tenants').get();
-  const stats = { scanned: tenantsSnap.size, written: 0, errors: 0 };
+  const stats = { scanned: tenantsSnap.size, written: 0, errors: 0, date: ymd };
 
   for (const doc of tenantsSnap.docs) {
     const tenantId = doc.id;
@@ -4980,7 +5860,10 @@ exports.dailyUsageStatsRollup = functions
   .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '512MB', secrets: ['SENTRY_DSN'] })
   .pubsub.schedule('30 1 * * *')
   .timeZone('America/Los_Angeles')
-  .onRun(async () => { await runDailyUsageStatsRollup(); return null; });
+  .onRun(async () => {
+    await schedulerHeartbeat.withHeartbeat(db, admin, 'dailyUsageStatsRollup', runDailyUsageStatsRollup);
+    return null;
+  });
 
 /**
  * Compute a 0–100 health score per tenant. Signals:
@@ -5103,7 +5986,10 @@ exports.dailyHealthScoreCompute = functions
   .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '512MB', secrets: ['SENTRY_DSN'] })
   .pubsub.schedule('0 2 * * *')
   .timeZone('America/Los_Angeles')
-  .onRun(async () => { await runDailyHealthScoreCompute(); return null; });
+  .onRun(async () => {
+    await schedulerHeartbeat.withHeartbeat(db, admin, 'dailyHealthScoreCompute', runDailyHealthScoreCompute);
+    return null;
+  });
 
 /**
  * Early-morning trial-status sweep. Marks tenants whose trial has elapsed as
@@ -5122,7 +6008,17 @@ async function runDailyTrialCheck() {
     try {
       const t = doc.data();
       const status = String(t.status || '').toLowerCase();
-      if (status === 'active' || status === 'cancelled' || status === 'canceled' || status === 'trial_expired') {
+      // Skip terminal or already-flagged states.
+      if (status === 'cancelled' || status === 'canceled' || status === 'trial_expired') {
+        stats.skipped++;
+        continue;
+      }
+      // Skip paying customers. A 'firstChargeAt' field is set on the first
+      // successful invoice.payment_made webhook — its presence is the
+      // positive signal that the trial converted. Cashier recon K-2 (P1):
+      // previously this loop skipped status='active' which is the state every
+      // fresh signup is in, so the poll never trial-expired anyone.
+      if (t.firstChargeAt) {
         stats.skipped++;
         continue;
       }
@@ -5130,6 +6026,13 @@ async function runDailyTrialCheck() {
         status: 'trial_expired',
         trialExpiredAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+      // Revoke refresh tokens so the customer's next request mints a fresh
+      // claim that the secureApi gate + Firestore rules can both evaluate.
+      try {
+        await revokeAllTenantUserTokens(doc.id);
+      } catch (e) {
+        console.warn('[dailyTrialCheck] revoke tokens failed for', doc.id, e.message);
+      }
       stats.expired++;
     } catch (e) {
       stats.errors++;
@@ -5146,7 +6049,10 @@ exports.dailyTrialCheck = functions
   .runWith({ maxInstances: 1, timeoutSeconds: 300, memory: '256MB', secrets: ['SENTRY_DSN'] })
   .pubsub.schedule('0 8 * * *')
   .timeZone('America/Los_Angeles')
-  .onRun(async () => { await runDailyTrialCheck(); return null; });
+  .onRun(async () => {
+    await schedulerHeartbeat.withHeartbeat(db, admin, 'dailyTrialCheck', runDailyTrialCheck);
+    return null;
+  });
 
 // ════════════════════════════════════════════════════════════════════════════
 //  PHASE 2 — AUTOMATION AGENTS (scheduled)
@@ -5334,4 +6240,184 @@ exports.sendTestEmail = functions
         res.status(500).json({ error: 'Test email send failed' });
       }
     });
+  });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  AUDIT-LOG QUEUE — RECONCILIATION OF /pending_audit
+// ════════════════════════════════════════════════════════════════════════════
+// pending_audit holds events that failed BOTH Pub/Sub publish AND direct
+// Firestore write — a double-failure scenario that should be rare. This
+// daily job re-publishes them; success deletes the pending entry. After
+// MAX_ATTEMPTS we stop trying and mark them permanently_failed for human
+// inspection (an operator can manually republish from the console).
+const AUDIT_RECONCILE_MAX_ATTEMPTS = 5;
+const AUDIT_RECONCILE_BATCH = 500;
+
+async function runDailyAuditReconcile() {
+  let processed = 0, succeeded = 0, failed = 0, abandoned = 0;
+  let snap;
+  try {
+    snap = await db.collection('pending_audit')
+      .where('status', 'in', ['pending', 'failed'])
+      .limit(AUDIT_RECONCILE_BATCH)
+      .get();
+  } catch (e) {
+    console.warn('[auditReconcile] query failed (collection may not exist yet):', e.message);
+    return { processed: 0, succeeded: 0, failed: 0, abandoned: 0, skipped: true };
+  }
+  for (const doc of snap.docs) {
+    const event = doc.data() || {};
+    if ((event.attempts || 0) >= AUDIT_RECONCILE_MAX_ATTEMPTS) {
+      try {
+        await doc.ref.update({
+          status: 'permanently_failed',
+          abandonedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (_) { /* swallow */ }
+      abandoned++;
+      processed++;
+      continue;
+    }
+    try {
+      await auditQueue.publishAuditEvent(event, event.eventId);
+      await doc.ref.delete();
+      succeeded++;
+    } catch (e) {
+      try {
+        await doc.ref.update({
+          attempts: (event.attempts || 0) + 1,
+          lastError: e && e.message,
+          lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+        });
+      } catch (_) { /* swallow */ }
+      failed++;
+    }
+    processed++;
+  }
+  console.log(`[auditReconcile] processed=${processed} succeeded=${succeeded} failed=${failed} abandoned=${abandoned}`);
+  return { processed, succeeded, failed, abandoned };
+}
+
+exports.dailyAuditReconcile = functions
+  .region('us-central1')
+  .runWith({
+    maxInstances: 1,
+    timeoutSeconds: 300,
+    memory: '256MB',
+    secrets: ['SENTRY_DSN'],
+  })
+  .pubsub.schedule('15 1 * * *')
+  .timeZone('America/Los_Angeles')
+  .onRun(async () => {
+    await runDailyAuditReconcile();
+    return null;
+  });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  RETENTION SWEEP (I-2) — enforces privacy.html §7 deletion promises
+// ════════════════════════════════════════════════════════════════════════════
+// Cancelled tenants get their operational data purged ~90 days after cancel;
+// audit_log (billing records) is preserved for 7 years, then expired entries
+// are deleted. DESTRUCTIVE deletion is gated behind RETENTION_SWEEP_ENABLED
+// (env). Default = report-only: identify eligible tenants, stamp purgeEligibleAt,
+// emit audit, log — delete nothing. See retention.js for the rationale.
+async function runDailyRetentionSweep() {
+  const started = Date.now();
+  const nowMs = Date.now();
+  const hardDelete = retention.hardDeleteEnabled(process.env);
+  // NOTE: the 7-year audit_log expiry pass (retention.isAuditEntryExpired) is
+  // intentionally NOT run yet — the platform is new, no entry is close to 7
+  // years old, and a full cross-tenant audit scan is expensive. The helper is
+  // tested and ready to wire when the oldest data approaches the window.
+  const stats = { scanned: 0, eligible: 0, purged: 0, reportOnly: 0, errors: 0, hardDelete };
+
+  const tenantsSnap = await db.collection('tenants').get();
+  stats.scanned = tenantsSnap.size;
+
+  const deps = {
+    db,
+    admin,
+    deleteCollectionInBatches: signupRollback._internal.deleteCollectionInBatches,
+    auth: admin.auth(),
+    revokeTokens: revokeAllTenantUserTokens,
+    writeAuditLog,
+  };
+
+  for (const doc of tenantsSnap.docs) {
+    const tenant = doc.data();
+    if (!retention.isTenantDueForPurge(tenant, nowMs)) continue;
+    stats.eligible++;
+    try {
+      const r = await retention.purgeTenantData(deps, doc.id, { hardDelete });
+      if (r.purged) stats.purged++; else stats.reportOnly++;
+      if (r.errors && r.errors.length) stats.errors += r.errors.length;
+    } catch (e) {
+      stats.errors++;
+      console.error('[retentionSweep] tenant failed', doc.id, e.message);
+    }
+  }
+
+  console.log('[retentionSweep] done', JSON.stringify({ ...stats, elapsedMs: Date.now() - started }));
+  return stats;
+}
+
+exports.dailyRetentionSweep = functions
+  .region('us-central1')
+  .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '512MB', secrets: ['SENTRY_DSN'] })
+  .pubsub.schedule('45 2 * * *')
+  .timeZone('America/Los_Angeles')
+  .onRun(async () => {
+    await schedulerHeartbeat.withHeartbeat(db, admin, 'dailyRetentionSweep', runDailyRetentionSweep);
+    return null;
+  });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  AUDIT-LOG QUEUE CONSUMER (Pub/Sub-triggered)
+// ════════════════════════════════════════════════════════════════════════════
+// Subscribes to the audit-events topic and writes each message to Firestore.
+// .create() against /tenants/{id}/audit_log/{eventId} (or root /audit_log)
+// means duplicate Pub/Sub deliveries become ALREADY_EXISTS, which the
+// consumer treats as a successful idempotent ack. Throwing any other error
+// causes Pub/Sub to retry with backoff; after the configured max delivery
+// attempts the message lands in the DLQ (configured at the subscription).
+//
+// One-time GCP setup (manual, NOT in deploy.sh):
+//   gcloud pubsub topics create bistro-steward-audit-events \
+//     --project=restaurant-oracle
+//   gcloud pubsub topics create bistro-steward-audit-events-dlq \
+//     --project=restaurant-oracle
+// After deploying this function, attach the DLQ to the auto-created
+// subscription via:
+//   gcloud pubsub subscriptions update <auto-subscription-name> \
+//     --dead-letter-topic=bistro-steward-audit-events-dlq \
+//     --max-delivery-attempts=5
+exports.consumeAuditEvent = functions
+  .region('us-central1')
+  .runWith({
+    maxInstances: 5,
+    timeoutSeconds: 60,
+    memory: '256MB',
+    secrets: ['SENTRY_DSN'],
+  })
+  .pubsub.topic(auditQueue.AUDIT_TOPIC_NAME)
+  .onPublish(async (message, context) => {
+    try {
+      const result = await auditQueue.processAuditMessage(
+        db, admin,
+        message.data,
+        message.attributes || {}
+      );
+      if (result && result.discarded) {
+        // Malformed payloads are ack'd to prevent infinite retry loops;
+        // they're already logged by processAuditMessage.
+        return null;
+      }
+      return null;
+    } catch (e) {
+      // Throw to trigger Pub/Sub retry. Sentry sees it via Sentry.Init's
+      // global handler. Don't double-log.
+      console.error('[consumeAuditEvent] failed:', e && e.message, 'messageId=', context && context.eventId);
+      throw e;
+    }
   });

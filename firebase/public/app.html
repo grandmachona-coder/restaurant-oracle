@@ -1061,9 +1061,18 @@ async function secureApi(operation, table, data, filters, options){
 
         var result = await response.json();
 
+        // Billing-block (402): the tenant is suspended / cancelled / trial_expired.
+        // Reads are allowed (read-only recovery); write ops return this. Show a
+        // persistent billing banner with a renew/manage CTA instead of a cryptic
+        // error toast. (Phase B7 — Pass 3 / Line Cook finding.)
+        if(response.status === 402 && result.code === 'tenant_status_blocked'){
+            try { handleBillingBlock(result.tenantStatus, result.error); } catch(_){}
+            return {data:null, error:{message:result.error, code:result.code, tenantStatus:result.tenantStatus}};
+        }
+
         if(result.error){
             console.error('API error:', operation, table);
-            return {data:null, error:{message:result.error}};
+            return {data:null, error:{message:result.error, code:result.code || null}};
         }
 
         return {data: result.data, error: null};
@@ -1071,6 +1080,67 @@ async function secureApi(operation, table, data, filters, options){
         console.error('secureApi exception:', e);
         return {data:null, error:{message:e.message || 'API request failed'}};
     }
+}
+
+// ==================== BILLING-BLOCK BANNER (Phase B7) ====================
+// Shown when a write is blocked because the tenant is suspended, cancelled, or
+// trial_expired. Read-only recovery remains in effect, so the app stays usable
+// for viewing/exporting; this banner explains why edits are disabled and links
+// to the billing surface. Idempotent — safe to call repeatedly.
+function handleBillingBlock(tenantStatus, message){
+    var status = String(tenantStatus || '').toLowerCase();
+    var copy = {
+        trial_expired: {
+            title: 'Your free trial has ended',
+            body: 'Editing is paused. Add or update billing to keep your kitchen data flowing — everything is still here, ready when you are.',
+            cta: 'Start your subscription'
+        },
+        suspended: {
+            title: 'Your account is suspended',
+            body: 'Editing is paused. Contact support to restore full access — your data is safe and viewable in the meantime.',
+            cta: 'Manage billing'
+        },
+        cancelled: {
+            title: 'Your subscription is cancelled',
+            body: 'Editing is paused. Reactivate any time to pick up right where you left off.',
+            cta: 'Reactivate subscription'
+        }
+    };
+    copy.canceled = copy.cancelled;
+    var c = copy[status] || {
+        title: 'Account access is limited',
+        body: message || 'Visit billing to continue editing.',
+        cta: 'Manage billing'
+    };
+
+    var existing = document.getElementById('billing-block-banner');
+    if(existing){ return; } // already shown this session
+
+    var banner = document.createElement('div');
+    banner.id = 'billing-block-banner';
+    banner.setAttribute('role','alert');
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;'
+        + 'background:linear-gradient(90deg,#7a1f2b,#a8323f);color:#fff;'
+        + 'padding:12px 16px;display:flex;align-items:center;gap:14px;'
+        + 'box-shadow:0 2px 14px rgba(0,0,0,.35);font-size:14px;';
+    var textWrap = document.createElement('div');
+    textWrap.style.cssText = 'flex:1;min-width:0;';
+    var strong = document.createElement('strong');
+    strong.textContent = c.title + ' — ';
+    var span = document.createElement('span');
+    span.textContent = c.body;
+    textWrap.appendChild(strong);
+    textWrap.appendChild(span);
+    var btn = document.createElement('a');
+    btn.href = '/billing';
+    btn.textContent = c.cta;
+    btn.style.cssText = 'flex:0 0 auto;background:#fff;color:#a8323f;font-weight:700;'
+        + 'text-decoration:none;padding:8px 16px;border-radius:8px;white-space:nowrap;';
+    banner.appendChild(textWrap);
+    banner.appendChild(btn);
+    document.body.appendChild(banner);
+    // Nudge page content down so the banner doesn't cover the top nav.
+    document.body.style.paddingTop = (banner.offsetHeight || 52) + 'px';
 }
 
 // ==================== AUTH FUNCTIONS ====================
@@ -1496,6 +1566,19 @@ async function onAuthStateChange(user){
         try {
             var claims = currentAuthUser.customClaims || {};
             var banner = document.getElementById('impersonation-banner');
+            // L-3: impersonation is entered via signInWithCustomToken WITHOUT a
+            // full page reload, so module-global in-memory state (undoHistory,
+            // _scanReviewItems) survives the auth transition. An undo snapshot or
+            // pending invoice-scan review captured under one tenant must NOT be
+            // applicable after switching into/out of an impersonated tenant — it
+            // references a different tenant's rows. Flush on any transition.
+            // (Exit normally does a full reload, but flush there too defensively.)
+            var _isImp = claims.impersonating === true;
+            if(_isImp || window._lastImpersonating === true){
+                try { undoHistory = []; updateUndoButton(); } catch(e){}
+                try { _scanReviewItems = []; } catch(e){}
+            }
+            window._lastImpersonating = _isImp;
             if(claims.impersonating === true){
                 document.body.classList.add('impersonating');
                 document.getElementById('imp-tenant').textContent =
@@ -1549,11 +1632,16 @@ async function onAuthStateChange(user){
             }
         } catch(e) { /* banner is non-critical */ }
 
-        // PostHog identify + tenant group (plan backfilled later by checkAndShowOnboarding → getInfo)
-        if(window.roIdentify) window.roIdentify(user, currentAuthUser.customClaims || {});
-
-        // Sentry identify + tenant tags — attach user/tenant to all future error events
+        // Sentry identify + tenant tags — attach user/tenant to all future error
+        // events. Done early (before the approval gate) ON PURPOSE: if the gate
+        // itself errors we still want the event attributed to this user/tenant.
         if(window.roSentryIdentify) window.roSentryIdentify(user, currentAuthUser.customClaims || {});
+
+        // I-16 (Inspector): PostHog identify is DEFERRED until after the approval
+        // gate below (see "Verify email is approved"). A user who authenticates
+        // with Firebase but is not on the tenant whitelist gets signed out, and
+        // must NOT be counted as an identified product-analytics user. The
+        // identify call now lives right after that check passes.
 
         // Email verification gate (password users only; Google/other federated providers are pre-verified)
         var isPasswordUser = (user.providerData || []).some(function(p){return p && p.providerId === 'password';});
@@ -1616,6 +1704,31 @@ async function onAuthStateChange(user){
             }
         } catch(e) {
             dbg('Access check error:', e);
+        }
+
+        // I-16: approval gate has passed — NOW identify in PostHog. Tenant group
+        // + plan are backfilled later by checkAndShowOnboarding → getInfo. A
+        // billing-blocked tenant is still a real customer (read-only recovery),
+        // so identifying here, before the billing banner below, is correct.
+        if(window.roIdentify) window.roIdentify(user, currentAuthUser.customClaims || {});
+
+        // Proactive billing-status check (Phase B7). A billing-blocked tenant
+        // (suspended / cancelled / trial_expired) keeps read-only access, so the
+        // access check above succeeds and the user can browse — but edits will
+        // fail. Surface the billing banner up front via getTenantConfig (a
+        // read-only op allowed for blocked tenants) rather than waiting for the
+        // first failed write.
+        try {
+            var cfg = await secureApi('getTenantConfig', null, null, null);
+            if(cfg && cfg.data){
+                window.__bsFlags = cfg.data.featureFlags || {};
+                var st = String(cfg.data.status||'').toLowerCase();
+                if(st === 'trial_expired' || st === 'suspended' || st === 'cancelled' || st === 'canceled'){
+                    handleBillingBlock(st, null);
+                }
+            }
+        } catch(e) {
+            dbg('Tenant status check error:', e);
         }
 
     }else{
@@ -1960,7 +2073,7 @@ function getDefaultUnits(){
 
 // Field mapping functions (database snake_case to local camelCase)
 function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0,isWarehouse:a.is_warehouse||0,invFrequency:a.inv_frequency||'',assignedTo:a.assigned_to||'',lastInventory:a.last_inventory||''};}
-function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:i.standalone||0,minQty:i.par||0,autoShop:i.auto_shop||0,cost:i.cost||0,isMenuItem:i.is_menu_item||0,menuId:i.menu_id||0,vendorId:i.vendor_id||0,priceHistory:i.price_history||[]};}
+function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:i.standalone||0,minQty:i.par||0,autoShop:i.auto_shop||0,cost:i.cost||0,isMenuItem:i.is_menu_item||0,menuId:i.menu_id||0,vendorId:i.vendor_id||0,priceHistory:i.price_history||[],barcode:i.barcode||''};}
 function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,menuId:i.menu_id||0,qty:i.qty||0,unit:i.unit||'ea',outOfStock:i.out_of_stock||0};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id,isMenuItem:p.is_menu_item||0,menuId:p.menu_id||0};}
@@ -1978,7 +2091,7 @@ function mapVendorFromDb(v){return{id:v.id,name:v.name||'',contactName:v.contact
 
 // Mapping functions for saving (local camelCase to database snake_case)
 function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep,is_warehouse:a.isWarehouse||0,inv_frequency:a.invFrequency||'',assigned_to:a.assignedTo||'',last_inventory:a.lastInventory||''};}
-function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,standalone:i.standalone,par:i.minQty,auto_shop:i.autoShop,cost:i.cost||0,is_menu_item:i.isMenuItem||0,menu_id:i.menuId||0,vendor_id:i.vendorId||0,price_history:i.priceHistory||[]};}
+function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,standalone:i.standalone,par:i.minQty,auto_shop:i.autoShop,cost:i.cost||0,is_menu_item:i.isMenuItem||0,menu_id:i.menuId||0,vendor_id:i.vendorId||0,price_history:i.priceHistory||[],barcode:i.barcode||null};}
 function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,menu_id:i.menuId||null,qty:i.qty,unit:i.unit,out_of_stock:i.outOfStock||0};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId,is_menu_item:p.isMenuItem||0,menu_id:p.menuId||0};}
@@ -2984,6 +3097,13 @@ function undoAction(){
     D.conversions=state.conversions;
     if(state.vendors) D.vendors=state.vendors;
     updateUndoButton();
+    // L-2: register every restored difference in changeLog/deleteLog BEFORE we
+    // schedule the write. Otherwise an in-flight listener snapshot that lands
+    // between this restore and the Firestore commit would see empty pending
+    // sets in mergeListenerUpdate() and overwrite the restored data with the
+    // pre-undo remote state. detectAllChanges() diffs D against syncedSnapshot
+    // and marks the changed/deleted ids, so the merge preserves the restore.
+    detectAllChanges();
     scheduleSync();
     render();
 }
@@ -3310,12 +3430,17 @@ function getConversionForIng(ingId){
 
 function convertToStorage(qty,ingId){
     var conv=getConversionForIng(ingId);
-    if(!conv||!conv.factor)return null;
+    // L-1: guard non-positive factor (0/NaN/negative) the same way
+    // convertToStorageUnits does, so a bad conversion row can't produce
+    // Infinity/NaN/negative storage quantities. L-6: reject negative qty.
+    if(!conv||!(conv.factor>0))return null;
+    if(!(qty>=0))return null;
     return{qty:Math.ceil(qty/conv.factor),unit:conv.storageUnit};
 }
 function convertToRecipe(qty,ingId){
     var conv=getConversionForIng(ingId);
-    if(!conv||!conv.factor)return null;
+    if(!conv||!(conv.factor>0))return null;
+    if(!(qty>=0))return null;
     return{qty:qty*conv.factor,unit:conv.recipeUnit};
 }
 
@@ -3441,9 +3566,12 @@ function renderInv(c,s){
 
     // Scan & Print toolbar (admin only)
     if(isOwner()){
-        html+='<div style="display:flex;gap:8px;margin-bottom:12px">';
-        html+='<button onclick="showScanModal()" style="flex:1;background:rgba(0,184,148,.15);border:1px solid rgba(0,184,148,.3);border-radius:8px;padding:10px;color:#00b894;cursor:pointer;font-size:calc(12px * var(--font-scale));font-weight:600">&#x1F4F7; Scan Sheet</button>';
-        html+='<button onclick="showPrintSelectModal()" style="flex:1;background:rgba(108,92,231,.15);border:1px solid rgba(108,92,231,.3);border-radius:8px;padding:10px;color:#a29bfe;cursor:pointer;font-size:calc(12px * var(--font-scale));font-weight:600">&#x1F5A8;&#xFE0F; Print Sheet</button>';
+        html+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+        if(flagOn('upcScanner')){
+            html+='<button onclick="showAreaScanPicker()" style="flex:1;min-width:120px;background:rgba(253,203,110,.15);border:1px solid rgba(253,203,110,.35);border-radius:8px;padding:10px;color:#fdcb6e;cursor:pointer;font-size:calc(12px * var(--font-scale));font-weight:600" title="Scan packaged-goods barcodes with the camera">&#x1F4F1; Scan Barcode</button>';
+        }
+        html+='<button onclick="showScanModal()" style="flex:1;min-width:120px;background:rgba(0,184,148,.15);border:1px solid rgba(0,184,148,.3);border-radius:8px;padding:10px;color:#00b894;cursor:pointer;font-size:calc(12px * var(--font-scale));font-weight:600">&#x1F4F7; Scan Sheet</button>';
+        html+='<button onclick="showPrintSelectModal()" style="flex:1;min-width:120px;background:rgba(108,92,231,.15);border:1px solid rgba(108,92,231,.3);border-radius:8px;padding:10px;color:#a29bfe;cursor:pointer;font-size:calc(12px * var(--font-scale));font-weight:600">&#x1F5A8;&#xFE0F; Print Sheet</button>';
         html+='</div>';
     }
 
@@ -4654,9 +4782,15 @@ function formatQty(qty){
 function convertToRecipeUnits(ingId, qty, fromUnit){
     var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null;
     if(!conv) return {qty: qty, unit: fromUnit};
+    // L-6: a negative qty at the conversion boundary is a data error, not a
+    // valid request. Pass it through unchanged rather than fabricating a
+    // converted negative (callers treat unchanged-unit as "not converted").
+    if(!(qty >= 0)) return {qty: qty, unit: fromUnit};
 
     // If fromUnit is storage unit, convert to recipe units
     if(fromUnit === conv.storageUnit){
+        // Guard non-positive/invalid factor (mirrors convertToStorageUnits).
+        if(!(conv.factor > 0)) return {qty: qty, unit: fromUnit};
         return {qty: qty * conv.factor, unit: conv.recipeUnit};
     }
     return {qty: qty, unit: fromUnit};
@@ -4665,11 +4799,13 @@ function convertToRecipeUnits(ingId, qty, fromUnit){
 function convertToStorageUnits(ingId, qty, fromUnit){
     var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null;
     if(!conv) return {qty: qty, unit: fromUnit};
+    // L-6: reject negative qty at the boundary.
+    if(!(qty >= 0)) return {qty: qty, unit: fromUnit};
 
     // If fromUnit is recipe unit, convert to storage units
     if(fromUnit === conv.recipeUnit){
         // Guard against division by zero or invalid factor
-        if(!conv.factor || conv.factor <= 0) return {qty: qty, unit: fromUnit};
+        if(!(conv.factor > 0)) return {qty: qty, unit: fromUnit};
         return {qty: qty / conv.factor, unit: conv.storageUnit};
     }
     return {qty: qty, unit: fromUnit};
@@ -4926,7 +5062,11 @@ function calculateShoppingList(silent){
             // Convert shortfall to storage units for shopping
             var forShopping = convertToStorageUnits(ingId, shortfall, need.unit);
             toShop[ingId] = {
-                qty: Math.ceil(forShopping.qty * 10) / 10,
+                // L-7: round UP to 1 decimal so we always buy enough, but absorb
+                // floating-point round-trip noise first (e.g. a true 2.0 that the
+                // storage↔recipe round-trip leaves as 19.9999999/10) so we don't
+                // ceil it up to an extra tenth. toFixed(6) collapses sub-micro noise.
+                qty: Math.ceil(Number((forShopping.qty * 10).toFixed(6))) / 10,
                 unit: forShopping.unit,
                 recipeQty: shortfall,
                 recipeUnit: need.unit,
@@ -8450,29 +8590,33 @@ async function handleExcelImport(file){
                 if(!row || !row.length) continue;
 
                 var firstCell = String(row[0] || '').trim();
+                // L-4: section-header matching must be case-insensitive — a user
+                // who retypes "Storage Locations" instead of "STORAGE LOCATIONS"
+                // should still import. Match against an uppercased copy.
+                var firstCellU = firstCell.toUpperCase();
 
                 // Detect section headers
-                if(firstCell.includes('STORAGE LOCATIONS')){
+                if(firstCellU.includes('STORAGE LOCATIONS')){
                     currentSection = 'areas'; headers = []; continue;
-                } else if(firstCell.includes('INGREDIENT CATEGORIES')){
+                } else if(firstCellU.includes('INGREDIENT CATEGORIES')){
                     currentSection = 'cats'; headers = []; continue;
-                } else if(firstCell.includes('INGREDIENTS') && !firstCell.includes('RECIPE')){
+                } else if(firstCellU.includes('INGREDIENTS') && !firstCellU.includes('RECIPE')){
                     currentSection = 'ings'; headers = []; continue;
-                } else if(firstCell.includes('RECIPE CATEGORIES')){
+                } else if(firstCellU.includes('RECIPE CATEGORIES')){
                     currentSection = 'recCats'; headers = []; continue;
-                } else if(firstCell.includes('RECIPES') && !firstCell.includes('MENU') && !firstCell.includes('INGREDIENTS')){
+                } else if(firstCellU.includes('RECIPES') && !firstCellU.includes('MENU') && !firstCellU.includes('INGREDIENTS')){
                     currentSection = 'recs'; headers = []; continue;
-                } else if(firstCell.includes('RECIPE INGREDIENTS')){
+                } else if(firstCellU.includes('RECIPE INGREDIENTS')){
                     currentSection = 'recIngs'; headers = []; continue;
-                } else if(firstCell.includes('MENU CATEGORIES')){
+                } else if(firstCellU.includes('MENU CATEGORIES')){
                     currentSection = 'menuCats'; headers = []; continue;
-                } else if(firstCell.includes('MENU ITEMS')){
+                } else if(firstCellU.includes('MENU ITEMS')){
                     currentSection = 'menus'; headers = []; continue;
-                } else if(firstCell.includes('MENU RECIPES')){
+                } else if(firstCellU.includes('MENU RECIPES')){
                     currentSection = 'menuRecs'; headers = []; continue;
-                } else if(firstCell.includes('UNIT CONVERSIONS')){
+                } else if(firstCellU.includes('UNIT CONVERSIONS')){
                     currentSection = 'conversions'; headers = []; continue;
-                } else if(firstCell.includes('NOTES:')){
+                } else if(firstCellU.includes('NOTES:')){
                     currentSection = null; continue;
                 }
 
@@ -8498,6 +8642,21 @@ async function handleExcelImport(file){
                     sections[currentSection].push(obj);
                 }
             }
+
+            // L-5: collapse duplicate-id rows within each section (last
+            // occurrence wins). A template with a repeated id otherwise pushes
+            // two rows into the same D array — the duplicate shadows the first
+            // in find()-by-id lookups and collides on the Firestore doc-id
+            // write. Deduping here makes "last wins" explicit and deterministic.
+            Object.keys(sections).forEach(function(sec){
+                var byId = {}, order = [];
+                sections[sec].forEach(function(r){
+                    var key = String(r.id);
+                    if(!(key in byId)) order.push(key);
+                    byId[key] = r;
+                });
+                sections[sec] = order.map(function(k){ return byId[k]; });
+            });
 
             // Validate and import
             if(!sections.areas && !sections.ings && !sections.recs && !sections.menus){
@@ -9796,6 +9955,284 @@ function applyScanResults(areaId){
     showToast('Applied '+applied+' items'+(skipped?' ('+skipped+' skipped)':''),'success');
 }
 
+// ==================== UPC / BARCODE SCANNER (Phase 2) ====================
+var _UPC={area:0,items:[],stream:null,reader:null,det:null,iv:0,scanning:false,last:'',lastT:0};
+
+// Feature-flag gate — resolved server-side (getTenantConfig → data.featureFlags)
+// and captured at login into window.__bsFlags. The 'upcScanner' flag is off by
+// default; enable it per-tenant (LaChona-first pilot) via the feature_flags
+// collection. Fail-closed: if flags haven't loaded, the scanner stays hidden.
+function flagOn(name){return !!(window.__bsFlags&&window.__bsFlags[name]);}
+
+// GTIN mod-10 checksum — mirrors the server isValidBarcode so we never call the
+// backend for garbage reads. Accepts EAN-8 / UPC-A(12) / EAN-13 / GTIN-14.
+function _upcValid(code){
+    var s=String(code==null?'':code).trim();
+    if(!/^[0-9]+$/.test(s))return false;
+    if([8,12,13,14].indexOf(s.length)===-1)return false;
+    var d=s.split('').map(Number),chk=d[d.length-1],sum=0;
+    for(var i=d.length-2,pos=0;i>=0;i--,pos++){sum+=d[i]*(pos%2===0?3:1);}
+    return (10-(sum%10))%10===chk;
+}
+
+function showAreaScanPicker(){
+    if(!isOwner()){showToast('Admin only','warning');return;}
+    if(!flagOn('upcScanner')){showToast('Barcode scanning is not enabled for your account yet','warning');return;}
+    var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
+    var html='<div class="modal-t">Scan Barcodes</div>';
+    html+='<p style="color:#a0aec0;font-size:calc(11px * var(--font-scale));margin-bottom:12px">Pick the area you are counting, then point your camera at packaged items.</p>';
+    D.areas.forEach(function(area){
+        var count=D.inv.filter(function(i){return i.areaId===area.id;}).length;
+        html+='<button class="btn btn-s" onclick="closeModal();openUpcScanner('+area.id+')" style="width:100%;margin-bottom:8px;text-align:left;padding:12px">'+escHtml(area.name)+' <span style="color:#636e72">('+count+' items)</span></button>';
+    });
+    html+='<button class="btn btn-s" onclick="closeModal()" style="width:100%;margin-top:8px">Cancel</button>';
+    m.innerHTML=html;mo.classList.add('open');
+}
+
+function openUpcScanner(areaId){
+    if(!isOwner()){showToast('Admin only','warning');return;}
+    if(!flagOn('upcScanner')){showToast('Barcode scanning is not enabled for your account yet','warning');return;}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showToast('Camera not available on this device. Use Scan Sheet or hand count.','warning');return;}
+    _UPC={area:areaId,items:[],stream:null,reader:null,det:null,iv:0,scanning:false,last:'',lastT:0,manual:false,_unit:'ea'};
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    var ov=document.createElement('div');
+    ov.id='upc-ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#000;display:flex;flex-direction:column;font-family:inherit';
+    ov.innerHTML=''
+      +'<video id="upc-vid" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>'
+      +'<div style="position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:rgba(15,23,36,.82);color:#e0e6ed">'
+        +'<span style="font-weight:600">Scan &mdash; '+escHtml(area?area.name:'Inventory')+'</span>'
+        +'<button onclick="_upcFinish()" aria-label="Close scanner" style="background:none;border:none;color:#e0e6ed;font-size:24px;line-height:1;cursor:pointer">&times;</button>'
+      +'</div>'
+      +'<div style="flex:1;position:relative;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none">'
+        +'<div style="width:74%;max-width:340px;height:120px;border:3px solid rgba(253,203,110,.9);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.28)"></div>'
+      +'</div>'
+      +'<div id="upc-panel" style="position:relative;z-index:2;background:rgba(15,23,36,.92);color:#e0e6ed;padding:14px 16px"></div>';
+    document.body.appendChild(ov);
+    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}).then(function(stream){
+        _UPC.stream=stream;
+        var v=document.getElementById('upc-vid');
+        if(!v){stream.getTracks().forEach(function(t){t.stop();});return;}
+        v.srcObject=stream;
+        _UPC.scanning=true;
+        _upcDefaultPanel();
+        _upcStartDecode();
+    }).catch(function(){
+        _upcManualOnly('Camera permission denied. You can type barcodes, or use Scan Sheet / hand count.');
+    });
+    if(window.roTrack) window.roTrack('feature_used',{feature:'upc_scanner_opened'});
+}
+
+function _upcStartDecode(){
+    var video=document.getElementById('upc-vid');
+    if(!video)return;
+    if('BarcodeDetector' in window){
+        try{
+            _UPC.det=new window.BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
+            _UPC.iv=setInterval(function(){
+                if(!_UPC.scanning||!video.videoWidth)return;
+                _UPC.det.detect(video).then(function(codes){
+                    if(codes&&codes.length)_upcOnDetect(String(codes[0].rawValue||''));
+                }).catch(function(){});
+            },300);
+            return;
+        }catch(e){}
+    }
+    _upcLoadZxing(function(err){
+        if(err||!window.ZXing){_upcManualOnly('Live scanning is not supported on this browser — type the barcode instead.');return;}
+        try{
+            _UPC.reader=new window.ZXing.BrowserMultiFormatReader();
+            _UPC.reader.decodeFromVideoElement(video,function(result){
+                if(result&&_UPC.scanning)_upcOnDetect(String(result.getText?result.getText():(result.text||'')));
+            });
+        }catch(e2){_upcManualOnly('Could not start the barcode reader — type the barcode instead.');}
+    });
+}
+
+function _upcLoadZxing(cb){
+    if(window.ZXing){cb();return;}
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+    s.onload=function(){cb();};
+    s.onerror=function(){cb(new Error('zxing load failed'));};
+    document.head.appendChild(s);
+}
+
+function _upcBeep(){
+    try{
+        var Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+        _UPC.ac=_UPC.ac||new Ctx();
+        var o=_UPC.ac.createOscillator(),g=_UPC.ac.createGain();
+        o.frequency.value=880;o.connect(g);g.connect(_UPC.ac.destination);
+        g.gain.setValueAtTime(0.12,_UPC.ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,_UPC.ac.currentTime+0.16);
+        o.start();o.stop(_UPC.ac.currentTime+0.16);
+    }catch(e){}
+}
+
+function _upcOnDetect(code){
+    var now=Date.now();
+    if(code===_UPC.last&&now-_UPC.lastT<2500)return;
+    if(!_upcValid(code))return;
+    _UPC.last=code;_UPC.lastT=now;_UPC.scanning=false;
+    _upcBeep();if(navigator.vibrate)navigator.vibrate(60);
+    var ing=D.ings.find(function(i){return !i.archived&&String(i.barcode||'')===code;});
+    if(ing){_upcPortion(ing,code,null);return;}
+    _upcSetStatus('Looking up '+code+'…');
+    secureApi('upcLookup',null,{barcode:code}).then(function(res){
+        var prod=(res&&res.data&&res.data.product)||null;
+        _upcLinkPicker(code,prod);
+    }).catch(function(){_upcLinkPicker(code,null);});
+}
+
+function _upcPanel(){return document.getElementById('upc-panel');}
+function _upcSetStatus(msg){var p=_upcPanel();if(p)p.innerHTML='<div style="text-align:center;color:#fdcb6e;font-size:calc(13px * var(--font-scale))">'+escHtml(msg)+'</div>';}
+
+function _upcDefaultPanel(){
+    var p=_upcPanel();if(!p)return;
+    p.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
+      +'<span style="color:#a0aec0;font-size:calc(12px * var(--font-scale))">Point at a barcode to add it</span>'
+      +'<span style="background:rgba(0,184,148,.18);color:#00b894;border-radius:20px;padding:4px 12px;font-size:calc(12px * var(--font-scale));font-weight:600">'+_UPC.items.length+' captured</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px">'
+        +'<button onclick="_upcManualEntry()" class="btn btn-s" style="flex:1">Type barcode</button>'
+        +'<button onclick="_upcFinish()" class="btn btn-p" style="flex:1">Done ('+_UPC.items.length+')</button>'
+      +'</div>';
+}
+
+function _upcManualEntry(){
+    var p=_upcPanel();if(!p)return;_UPC.scanning=false;
+    p.innerHTML='<div style="font-size:calc(12px * var(--font-scale));color:#e0e6ed;margin-bottom:8px">Enter the barcode digits</div>'
+      +'<div style="display:flex;gap:8px">'
+        +'<input id="upc-manual" type="tel" inputmode="numeric" placeholder="e.g. 049000050103" style="flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'
+        +'<button class="btn btn-p" onclick="_upcManualSubmit()">Find</button>'
+      +'</div>'
+      +'<button class="btn btn-s" style="width:100%;margin-top:8px" onclick="_upcResume()">Back to camera</button>';
+    var el=document.getElementById('upc-manual');if(el)el.focus();
+}
+function _upcManualSubmit(){
+    var el=document.getElementById('upc-manual');var code=el?String(el.value||'').trim():'';
+    if(!_upcValid(code)){showToast('That barcode does not look valid','warning');return;}
+    _UPC.last='';_upcOnDetect(code);
+}
+function _upcManualOnly(msg){
+    var p=_upcPanel();if(!p)return;_UPC.scanning=false;_UPC.manual=true;
+    p.innerHTML='<div style="color:#fdcb6e;font-size:calc(12px * var(--font-scale));margin-bottom:8px">'+escHtml(msg)+'</div>'
+      +'<div style="display:flex;gap:8px">'
+        +'<input id="upc-manual" type="tel" inputmode="numeric" placeholder="Barcode digits" style="flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'
+        +'<button class="btn btn-p" onclick="_upcManualSubmit()">Find</button>'
+      +'</div>'
+      +'<button class="btn btn-s" style="width:100%;margin-top:8px" onclick="_upcFinish()">Done ('+_UPC.items.length+')</button>';
+}
+
+function _upcLinkPicker(code,prod){
+    _UPC._code=code;_UPC._prod=prod;
+    var p=_upcPanel();if(!p)return;
+    var hint=prod?('Looks like: <b style="color:#e0e6ed">'+escHtml(prod.name||'')+(prod.size?(' &middot; '+escHtml(prod.size)):'')+'</b>'):'Not in the product catalog yet';
+    p.innerHTML='<div style="font-size:calc(12px * var(--font-scale));color:#a0aec0;margin-bottom:4px">Barcode '+escHtml(code)+'</div>'
+      +'<div style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;margin-bottom:8px">'+hint+'. Link it to one of your ingredients:</div>'
+      +'<input id="upc-ing-search" oninput="_upcRenderIngList(this.value)" placeholder="Search ingredients…" style="width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'
+      +'<div id="upc-ing-list" style="max-height:30vh;overflow-y:auto;margin-top:8px"></div>'
+      +'<button class="btn btn-s" style="width:100%;margin-top:8px" onclick="_upcResume()">Skip this item</button>';
+    _upcRenderIngList(prod&&prod.name?prod.name:'');
+}
+function _upcRenderIngList(filter){
+    var box=document.getElementById('upc-ing-list');if(!box)return;
+    var f=String(filter||'').toLowerCase().trim();
+    var list=D.ings.filter(function(i){return !i.archived&&(!f||i.name.toLowerCase().indexOf(f)!==-1);}).slice(0,40);
+    if(!list.length){box.innerHTML='<div style="color:#a0aec0;font-size:calc(11px * var(--font-scale));padding:8px">No matching ingredients.</div>';return;}
+    box.innerHTML=list.map(function(i){
+        return '<button class="upc-ing-pick" data-ing="'+i.id+'" style="display:block;width:100%;text-align:left;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px;margin-bottom:6px;color:#e0e6ed;cursor:pointer;font-size:calc(12px * var(--font-scale))">'+escHtml(i.name)+'</button>';
+    }).join('');
+    box.querySelectorAll('.upc-ing-pick').forEach(function(btn){
+        btn.onclick=function(){
+            var ing=D.ings.find(function(x){return x.id===(+btn.dataset.ing);});
+            if(!ing)return;
+            ing.barcode=_UPC._code;markChanged('ings',ing.id);
+            _upcPortion(ing,_UPC._code,_UPC._prod);
+        };
+    });
+}
+
+function _upcPortion(ing,code,prod){
+    var p=_upcPanel();if(!p)return;
+    var unit=ing.defUnit||'ea';
+    _UPC._unit=unit;
+    var sizeHint=prod&&prod.size?(' <span style="color:#a0aec0;font-weight:400">('+escHtml(prod.size)+')</span>'):'';
+    p.innerHTML='<div style="font-size:calc(14px * var(--font-scale));font-weight:600;color:#00b894;margin-bottom:8px">'+escHtml(ing.name)+sizeHint+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+        +'<button onclick="_upcStep(-1)" style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#e0e6ed;font-size:20px;cursor:pointer">&minus;</button>'
+        +'<input id="upc-qty" type="number" step="any" value="1" style="flex:1;text-align:center;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px;color:#e0e6ed;font-size:calc(18px * var(--font-scale))">'
+        +'<button onclick="_upcStep(1)" style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#e0e6ed;font-size:20px;cursor:pointer">+</button>'
+        +'<span style="color:#a0aec0;min-width:34px;font-size:calc(12px * var(--font-scale))">'+escHtml(unit)+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+        +['0.25','0.5','0.75','1','2'].map(function(q){return '<button onclick="_upcSetQty('+q+')" style="flex:1;background:rgba(116,185,255,.15);border:1px solid rgba(116,185,255,.35);border-radius:8px;padding:8px 0;color:#74b9ff;cursor:pointer;font-size:calc(13px * var(--font-scale))">'+(q==='0.25'?'¼':q==='0.5'?'½':q==='0.75'?'¾':q)+'</button>';}).join('')
+      +'</div>'
+      +'<div style="display:flex;gap:8px">'
+        +'<button class="btn btn-s" style="flex:1" onclick="_upcResume()">Skip</button>'
+        +'<button class="btn btn-p" style="flex:2" onclick="_upcCommit('+ing.id+')">Add to count</button>'
+      +'</div>';
+    var qi=document.getElementById('upc-qty');if(qi){qi.focus();qi.select&&qi.select();}
+}
+function _upcSetQty(v){var el=document.getElementById('upc-qty');if(el)el.value=v;}
+function _upcStep(d){var el=document.getElementById('upc-qty');if(!el)return;var v=(+el.value||0)+d;if(v<0)v=0;el.value=Math.round(v*100)/100;}
+
+function _upcCommit(ingId){
+    var ing=D.ings.find(function(i){return i.id===ingId;});if(!ing){_upcResume();return;}
+    var unit=_UPC._unit||ing.defUnit||'ea';
+    var el=document.getElementById('upc-qty');var qty=el?(+el.value||0):0;
+    if(qty<0)qty=0;
+    qty=Math.round(qty*100)/100;
+    var existing=_UPC.items.find(function(it){return it.ingId===ingId;});
+    if(existing){existing.qty=qty;existing.unit=unit;}
+    else{_UPC.items.push({ingId:ingId,name:ing.name,qty:qty,unit:unit});}
+    showToast('Added '+ing.name+' ('+qty+' '+unit+')','success');
+    _upcResume();
+}
+
+function _upcResume(){
+    _UPC.scanning=true;_UPC.last='';
+    if(_UPC.manual){_upcManualOnly('Scan another item, or tap Done.');}
+    else{_upcDefaultPanel();}
+}
+
+function _upcStop(){
+    _UPC.scanning=false;
+    if(_UPC.iv){clearInterval(_UPC.iv);_UPC.iv=0;}
+    if(_UPC.reader){try{_UPC.reader.reset();}catch(e){}_UPC.reader=null;}
+    if(_UPC.stream){try{_UPC.stream.getTracks().forEach(function(t){t.stop();});}catch(e){}_UPC.stream=null;}
+    var ov=document.getElementById('upc-ov');if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);
+}
+
+function _upcFinish(){
+    var items=_UPC.items.slice(),areaId=_UPC.area;
+    _upcStop();
+    if(!items.length){return;}
+    saveState('Barcode scan: inventory update');
+    var applied=0;
+    items.forEach(function(item){
+        var ing=D.ings.find(function(i){return i.id===item.ingId;});if(!ing)return;
+        var existing=D.inv.find(function(x){return x.ingId===ing.id&&x.areaId===areaId;});
+        if(existing){
+            var oldQty=existing.qty;existing.qty=item.qty;
+            if(existing.qty>0&&existing.outOfStock)existing.outOfStock=0;
+            logInventoryChange(ing.name,oldQty,existing.unit,item.qty,existing.unit);
+            markChanged('inv',existing.id);
+        }else{
+            var ni={id:nid++,areaId:areaId,subArea:'',ingId:ing.id,recId:0,menuId:0,qty:item.qty,unit:item.unit||ing.defUnit||'ea'};
+            D.inv.push(ni);
+            logInventoryChange(ing.name,0,ni.unit,item.qty,ni.unit);
+            markChanged('inv',ni.id);
+        }
+        applied++;
+    });
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    if(area){area.lastInventory=new Date().toISOString();markChanged('areas',area.id);}
+    render();saveAllData();
+    if(window.roTrack) window.roTrack('feature_used',{feature:'upc_scan_applied',applied:applied});
+    showToast('Applied '+applied+' scanned item'+(applied===1?'':'s'),'success');
+}
 
 </script>
 </body>

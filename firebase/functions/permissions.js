@@ -14,7 +14,7 @@ const ALLOWED_COLLECTIONS = [
 
 const ALLOWED_OPERATIONS = [
   'select', 'insert', 'update', 'upsert', 'delete',
-  'invite_user', 'voice', 'scan', 'reserve_ids',
+  'invite_user', 'voice', 'scan', 'upcLookup', 'reserve_ids',
   'provisionTenant', 'deprovisionTenant', 'getTenantConfig', 'checkSlugAvailable',
   'submitFeedback',
   'get_tenant_settings', 'rotate_invoice_token', 'list_invoices',
@@ -22,7 +22,7 @@ const ALLOWED_OPERATIONS = [
 ];
 
 const BOOL_OPS = [
-  'invite_user', 'voice', 'scan', 'reserve_ids',
+  'invite_user', 'voice', 'scan', 'upcLookup', 'reserve_ids',
   'provisionTenant', 'deprovisionTenant', 'getTenantConfig', 'checkSlugAvailable',
   'submitFeedback',
   'get_tenant_settings', 'rotate_invoice_token', 'list_invoices',
@@ -32,7 +32,7 @@ const BOOL_OPS = [
 const PERMISSION_MATRIX = {
   super_admin: {
     select: '*', insert: '*', update: '*', upsert: '*', delete: '*',
-    invite_user: true, voice: true, scan: true, reserve_ids: true,
+    invite_user: true, voice: true, scan: true, upcLookup: true, reserve_ids: true,
     provisionTenant: true, deprovisionTenant: true,
     getTenantConfig: true, checkSlugAvailable: true,
     submitFeedback: true, get_tenant_settings: true,
@@ -40,7 +40,7 @@ const PERMISSION_MATRIX = {
   },
   owner: {
     select: '*', insert: '*', update: '*', upsert: '*', delete: '*',
-    invite_user: true, voice: true, scan: true, reserve_ids: true,
+    invite_user: true, voice: true, scan: true, upcLookup: true, reserve_ids: true,
     getTenantConfig: true, checkSlugAvailable: true,
     provisionTenant: false, deprovisionTenant: false,
     submitFeedback: true, get_tenant_settings: true,
@@ -48,7 +48,7 @@ const PERMISSION_MATRIX = {
   },
   admin: {
     select: '*', insert: '*', update: '*', upsert: '*', delete: '*',
-    invite_user: true, voice: true, scan: true, reserve_ids: true,
+    invite_user: true, voice: true, scan: true, upcLookup: true, reserve_ids: true,
     getTenantConfig: true, checkSlugAvailable: false,
     provisionTenant: false, deprovisionTenant: false,
     submitFeedback: true, get_tenant_settings: true,
@@ -60,7 +60,7 @@ const PERMISSION_MATRIX = {
     update: ['inv', 'log', 'shopping'],
     upsert: ['inv', 'log', 'shopping', 'ings', 'areas', 'cats', 'menu_cats', 'rec_cats', 'units', 'recs', 'menus', 'preps', 'conversions'],
     delete: [],
-    invite_user: false, voice: true, scan: true, reserve_ids: true,
+    invite_user: false, voice: true, scan: true, upcLookup: true, reserve_ids: true,
     getTenantConfig: false, checkSlugAvailable: false,
     provisionTenant: false, deprovisionTenant: false,
     submitFeedback: true, get_tenant_settings: false,

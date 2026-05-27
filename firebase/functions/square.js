@@ -281,8 +281,37 @@ async function createWebhookSubscription({ name, notificationUrl, eventTypes, ap
   return res.subscription;
 }
 
+/**
+ * List recent invoices (charges) for a customer, normalized for the operator
+ * console billing tab. Best-effort: returns [] when customer/location is absent.
+ * NOTE: not yet verified against live Square — confirm the invoice /
+ * payment-request money shape against a real account before relying on amounts.
+ */
+async function listRecentCharges({ customerId, limit = 20 }) {
+  if (!customerId) return [];
+  const locationId = process.env.SQUARE_LOCATION_ID;
+  if (!locationId) return [];
+  const res = await squareFetch('/v2/invoices/search', 'POST', {
+    query: { filter: { location_ids: [locationId], customer_ids: [customerId] } },
+    limit,
+  });
+  const invoices = (res && res.invoices) || [];
+  return invoices.map((inv) => {
+    const pr = Array.isArray(inv.payment_requests) ? inv.payment_requests[0] : null;
+    const money = (pr && (pr.computed_amount_money || pr.total_completed_amount_money))
+      || inv.next_payment_amount_money || null;
+    return {
+      id: inv.id,
+      createdAt: inv.created_at ? Date.parse(inv.created_at) : null,
+      amountCents: money && money.amount != null ? Number(money.amount) : 0,
+      status: inv.status || null,
+    };
+  });
+}
+
 module.exports = {
   squareFetch,
+  listRecentCharges,
   createCustomer,
   createCard,
   createSubscription,

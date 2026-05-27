@@ -21,7 +21,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // User is approved AND belongs to this specific tenant
+    // User is approved AND belongs to this specific tenant.
+    //
+    // Billing-status note (Cashier recon K-1, reconciled in Pass-3 follow-up):
+    // we intentionally do NOT gate READS on tenant.status here. Billing-blocked
+    // tenants (suspended / cancelled / trial_expired) get *read-only recovery*
+    // by design — owners can still view and export their data and decide to
+    // renew. That read-only behavior is implemented at the secureApi write gate
+    // (which blocks write ops for those statuses) and reinforced by the fact
+    // that ALL client writes are denied at the rules level (`allow write: if
+    // false` everywhere — writes only happen server-side via the Admin SDK,
+    // which bypasses rules). The genuine security boundary — cross-tenant
+    // isolation — is the `request.auth.token.tenantId == tenantId` check below,
+    // which is untouched. A status-based read-block here would have *broken*
+    // read-only recovery (listeners would fail) while adding no security value,
+    // since writes are already impossible from the client.
     function isApprovedForTenant(tenantId) {
       return request.auth != null
         && request.auth.token.approved == true
@@ -33,7 +47,7 @@ service cloud.firestore {
       return isApprovedForTenant(tenantId);
     }
 
-    // Super admin claim (set via CF superAdmin grant op)
+    // Super admin claim (set via CF superAdmin grant op).
     function isSuperAdmin() {
       return request.auth != null && request.auth.token.superAdmin == true;
     }
@@ -224,9 +238,49 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Per-tenant UPC lookup ledger — written by logUpcLookup helper via Admin
+    // SDK. One doc per barcode lookup (cache hit / OFF / paid / miss). Super
+    // admins read all; tenant owners may read their own for cost transparency.
+    match /tenants/{tenantId}/upcUsage/{eventId} {
+      allow read: if isSuperAdmin() || belongsToTenant(tenantId);
+      allow write: if false;
+    }
+
+    // Shared UPC product cache (barcode → {name, brand, size, unit, source}).
+    // Product data is public and barcode-identical across tenants, so this is
+    // a single root collection — that's what makes a paid lookup one-time for
+    // everyone. Resolved and written only by the upcLookup op (Admin SDK
+    // bypasses rules); clients receive products through the CF response, never
+    // by reading this collection directly.
+    match /upc_cache/{barcode} {
+      allow read, write: if false;
+    }
+
+    // Scheduler heartbeats (N-1/N-2) — one doc per daily scheduled job recording
+    // last run time, status, completeness, and consecutive failures. Super-admin
+    // read (operator dashboard surfaces stale/failed jobs); written by the
+    // scheduled CFs via Admin SDK only.
+    match /scheduler_heartbeats/{jobName} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
     // ── Root-level server-side-only collections ──────────────────────────────
     // Root /audit_log fallback for pre-auth events (auth_failure, tenant_not_found).
     match /audit_log/{document=**} {
+      allow read, write: if false;
+    }
+
+    // pending_audit holds events that failed both Pub/Sub publish AND direct
+    // Firestore write. A reconcile job drains these back into audit_log.
+    // Written only by Cloud Functions (Admin SDK bypasses rules).
+    match /pending_audit/{document=**} {
+      allow read, write: if false;
+    }
+
+    // webhook_events records Square webhook deduplication keys. Written only
+    // by squareWebhook handler (Admin SDK bypasses). Read by no client.
+    match /webhook_events/{document=**} {
       allow read, write: if false;
     }
 

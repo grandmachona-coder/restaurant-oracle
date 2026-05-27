@@ -506,6 +506,7 @@
             <div class="k">CF invocations</div><div class="v">$0.40 per 1M</div>
             <div class="k">Gemini input tokens</div><div class="v">$0.075 per 1M</div>
             <div class="k">Gemini output tokens</div><div class="v">$0.30 per 1M</div>
+            <div class="k">UPC paid lookup</div><div class="v">$0.03 each (est.)</div>
             <div class="k">Resend email</div><div class="v">$0.0004 per email</div>
           </div>
         </div>
@@ -1229,7 +1230,7 @@ function renderTenantTab(tab) {
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
         <div class="kpi"><div class="kpi-label">Health</div><div class="kpi-val">${f.health?.score ?? '—'}</div><div class="kpi-sub">${escHtml(f.health?.status || '—')}</div></div>
         <div class="kpi"><div class="kpi-label">MRR</div><div class="kpi-val">${fmtUsd(t.mrrUsd || 0)}</div></div>
-        <div class="kpi"><div class="kpi-label">Cost last 30 d</div><div class="kpi-val">${fmtUsd(f.costs30dUsd || 0)}</div></div>
+        <div class="kpi"><div class="kpi-label">Cost last 30 d</div><div class="kpi-val">${fmtUsd(f.costSummary?.totalUsdCost || 0)}</div></div>
       </div>
     `;
   } else if (tab === 'users') {
@@ -1279,20 +1280,27 @@ function renderTenantTab(tab) {
       `).join('')}</tbody></table>` : '<div class="empty">No charges on record.</div>'}
     `;
   } else if (tab === 'costs') {
-    const costs = f.costsSeries || [];
+    const cs = f.costSummary || {};
+    const costs = cs.daily || [];
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const monthStr = todayStr.slice(0, 7);
+    const cost30d = Number(cs.totalUsdCost || 0);
+    const costToday = costs.filter(c => c.date === todayStr).reduce((s, c) => s + Number(c.totalUsdCost || 0), 0);
+    const costMtd = costs.filter(c => String(c.date || '').startsWith(monthStr)).reduce((s, c) => s + Number(c.totalUsdCost || 0), 0);
     body.innerHTML = `
       <div class="kv">
-        <div class="k">Cost last 30 d</div><div class="v mono">${fmtUsd(f.costs30dUsd || 0)}</div>
-        <div class="k">Cost today (est)</div><div class="v mono">${fmtUsd(f.costToday || 0)}</div>
-        <div class="k">Month to date</div><div class="v mono">${fmtUsd(f.costMonthToDate || 0)}</div>
+        <div class="k">Cost last 30 d</div><div class="v mono">${fmtUsd(cost30d)}</div>
+        <div class="k">Cost today (est)</div><div class="v mono">${fmtUsd(costToday)}</div>
+        <div class="k">Month to date</div><div class="v mono">${fmtUsd(costMtd)}</div>
+        <div class="k">UPC paid lookups (30 d)</div><div class="v mono">${fmtNum(cs.upcPaidLookups || 0)} ($${(Number(cs.upcUsdSpend || 0)).toFixed(2)})</div>
       </div>
       <div class="section-h">Daily breakdown</div>
-      ${costs.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Reads</th><th>Writes</th><th>CF inv</th><th>Gemini tok</th><th>Emails</th><th>Total USD</th></tr></thead><tbody>${costs.map(c => `
-        <tr><td>${escHtml(c.date)}</td><td>${fmtNum(c.reads)}</td><td>${fmtNum(c.writes)}</td><td>${fmtNum(c.cfInvocations)}</td><td>${fmtNum((c.geminiInputTokens || 0) + (c.geminiOutputTokens || 0))}</td><td>${fmtNum(c.emailsSent)}</td><td class="mono">${fmtUsd(c.totalUsdCost)}</td></tr>
+      ${costs.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Reads</th><th>Writes</th><th>CF inv</th><th>Gemini tok</th><th>UPC paid</th><th>Emails</th><th>Total USD</th></tr></thead><tbody>${costs.map(c => `
+        <tr><td>${escHtml(c.date)}</td><td>${fmtNum(c.reads)}</td><td>${fmtNum(c.writes)}</td><td>${fmtNum(c.cfInvocations)}</td><td>${fmtNum((c.geminiInputTokens || 0) + (c.geminiOutputTokens || 0))}</td><td>${fmtNum(c.upcPaidLookups || 0)}</td><td>${fmtNum(c.emailsSent)}</td><td class="mono">${fmtUsd(c.totalUsdCost)}</td></tr>
       `).join('')}</tbody></table>` : '<div class="empty">No cost rollups yet. Run the scheduler or click "Run rollups now" on Overview.</div>'}
     `;
   } else if (tab === 'usage') {
-    const usage = f.usageSeries || [];
+    const usage = (f.usageSummary && f.usageSummary.daily) || [];
     body.innerHTML = `
       <div class="section-h">Daily activity</div>
       ${usage.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Active users</th><th>Total ops</th><th>Top op</th></tr></thead><tbody>${usage.map(u => `
@@ -1511,10 +1519,17 @@ function renderTenantTab(tab) {
       if (!amt) { toast('Amount required', 'err'); return; }
       if (!(await confirmAction({ title: 'Issue refund?', message: `Refund $${amt.toFixed(2)} via Square. Cannot be un-refunded.`, requireText: t.slug, okLabel: 'Refund' }))) return;
       try {
+        const cents = Math.round(amt * 100);
         const r = await callSuper('issueRefund', {
           tenantId,
           paymentId: document.getElementById('ref-payment').value,
-          amountCents: Math.round(amt * 100),
+          amountCents: cents,
+          // K-6: second-approval contract. The confirmAction dialog above already
+          // surfaced the dollar amount and required typing the tenant slug; these
+          // satisfy the server's confirm gate. The server also caps the refund at
+          // the original charge, so a typo can never refund more than was paid.
+          confirm: true,
+          confirmAmountCents: cents,
           reason: document.getElementById('ref-reason').value,
         });
         toast('Refund: ' + (r.refundId || 'ok'), 'ok');
