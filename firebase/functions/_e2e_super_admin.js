@@ -13,7 +13,7 @@ const API_KEY = process.env.FIREBASE_WEB_API_KEY;
 if (!API_KEY) { console.error('FIREBASE_WEB_API_KEY required'); process.exit(1); }
 
 const SUPER_URL = 'https://us-central1-restaurant-oracle.cloudfunctions.net/superAdmin';
-const TEST_EMAIL = `super-e2e-${Date.now()}@restaurant-oracle.test`;
+const TEST_EMAIL = `super-e2e-${Date.now()}@bistrosteward.test`;
 const TEST_PASSWORD = `TestPass${Date.now()}_!A`;
 
 async function signIn(email, password) {
@@ -92,7 +92,7 @@ async function main() {
     }
 
     // 5. grantSuperAdmin (grant to a throwaway, then revoke)
-    const granteeEmail = `grantee-${Date.now()}@restaurant-oracle.test`;
+    const granteeEmail = `grantee-${Date.now()}@bistrosteward.test`;
     const granteeUser = await auth.createUser({ email: granteeEmail, password: 'XYZ_TempPass123' });
     console.log(`\n[5] grantSuperAdmin(${granteeEmail})`);
     r = await callOp(token, 'grantSuperAdmin', { email: granteeEmail });
@@ -120,6 +120,40 @@ async function main() {
       r = await callOp(token, 'unsuspendTenant', { tenantId: firstTenant.id });
       console.log(`  unsuspend status=${r.status} result=${JSON.stringify(r.data.data)}`);
     }
+
+    // 9. updateOperatorStatus(self → busy) — allowed; supervisor edits also allowed by design.
+    console.log('\n[9] updateOperatorStatus(self → busy)');
+    r = await callOp(token, 'updateOperatorStatus', { uid: user.uid, status: 'busy' });
+    console.log(`  status=${r.status} result=${JSON.stringify(r.data.data)}`);
+    if (r.status !== 200) throw new Error('Expected 200 for self status update');
+
+    // 10. updateOperatorProfile(self) — allowed
+    console.log('\n[10] updateOperatorProfile(self) — should succeed');
+    r = await callOp(token, 'updateOperatorProfile', { uid: user.uid, displayName: 'E2E Tester' });
+    console.log(`  status=${r.status} result=${JSON.stringify(r.data.data)}`);
+    if (r.status !== 200) throw new Error('Expected 200 for self profile update');
+
+    // 11. updateOperatorProfile(other) — should fail 403 (hierarchy guard)
+    console.log('\n[11] updateOperatorProfile(other) — should fail 403');
+    r = await callOp(token, 'updateOperatorProfile', {
+      uid: 'someone-else-uid', displayName: 'Hijacked',
+    });
+    console.log(`  status=${r.status} error=${r.data.error || 'none'}`);
+    if (r.status !== 403) throw new Error('Expected 403 when editing another operator');
+
+    // 12. updateOperatorProfile(self, role=...) — should fail 400 (role goes through grant/revoke)
+    console.log('\n[12] updateOperatorProfile(self, role=admin) — should fail 400');
+    r = await callOp(token, 'updateOperatorProfile', { uid: user.uid, role: 'admin' });
+    console.log(`  status=${r.status} error=${r.data.error || 'none'}`);
+    if (r.status !== 400) throw new Error('Expected 400 when role field is present');
+
+    // 13. updateOperatorProfile(self, photoUrl='javascript:...') — should fail 400 (URL guard)
+    console.log('\n[13] updateOperatorProfile(self, bad photoUrl) — should fail 400');
+    r = await callOp(token, 'updateOperatorProfile', {
+      uid: user.uid, photoUrl: 'javascript:alert(1)',
+    });
+    console.log(`  status=${r.status} error=${r.data.error || 'none'}`);
+    if (r.status !== 400) throw new Error('Expected 400 for non-http photoUrl');
 
     console.log('\n[e2e] All ops passed ✓');
 

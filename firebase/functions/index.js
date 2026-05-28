@@ -106,12 +106,15 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3001',
   'https://bistrosteward.com',
   'https://admin.bistrosteward.com',
+  'https://restaurantoracle.app',
+  'https://admin.restaurantoracle.app',
 ];
 
-// Allow any tenant subdomain of bistrosteward.com
+// Allow any tenant subdomain of bistrosteward.com or restaurantoracle.app
 function isAllowedOrigin(origin) {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   if (/^https:\/\/[a-z0-9-]+\.bistrosteward\.com$/.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.restaurantoracle\.app$/.test(origin)) return true;
   return false;
 }
 

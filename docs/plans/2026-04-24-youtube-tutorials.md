@@ -1,12 +1,38 @@
-# Restaurant Oracle YouTube Tutorial Series — Implementation Plan
+# Bistro Steward YouTube Tutorial Series — Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Produce 10 short YouTube tutorial videos covering end-to-end new-restaurant setup for Restaurant Oracle, plus the supporting in-app help drawer, demo tenant, and scripts repository required to record and link them.
+**Goal:** Produce 10 short YouTube tutorial videos covering end-to-end new-restaurant setup for Bistro Steward, plus the supporting in-app help drawer, demo tenant, and scripts repository required to record and link them.
 
 **Architecture:** Three workstreams in sequence — (1) build the missing UI surfaces the spec assumes (help drawer + `?help=` deep-linker, recipe cost badge, Oracle text chat with analytical intents) so every video has something real to film, (2) seed a stable demo tenant via a repeatable script, (3) write all 10 scripts before any recording. Recording, upload, captioning, and YouTube channel work hand off to the human user (Anthony) after script approval.
 
 **Tech Stack:** Vanilla JS PWA (`firebase/public/app.html`), Firebase Auth + Firestore (`/tenants/{tenantId}/...`), Cloud Functions Node 22 (`firebase/functions/index.js`), Gemini 2.5 Flash via `@google/generative-ai`, Square Web Payments SDK, Markdown scripts in `docs/tutorials/`, Node seed script using Firebase Admin SDK + ADC credentials.
+
+**Status (updated 2026-05-01):** Plan composed and awaiting Anthony approval. Nothing executed yet.
+
+| Phase | State | Notes |
+|---|---|---|
+| Phase 0 — recon | ⬜ not started | Earlier exploration cited wrong file (`index.html` 641-line landing instead of `app.html` 9212 lines). Re-verify cost-UI + Oracle state before Chunk 2. |
+| Chunk 1 — foundation | ⬜ not started | `docs/tutorials/` skeleton, help drawer (CSS+JS+JSON), `app.html` wiring, demo-tenant seeder, 6 fixture JSONs. |
+| Chunk 2 — features | ⬜ not started | Recipe cost badge (green/yellow/red), Oracle text chat (4 intents: margin_trend, unused_ingredients, vendor_forecast, recipe_health). |
+| Chunk 3 — scripts | ⬜ not started | 10 markdown scripts at 150 wpm, plus recording-guide.md and upload-checklist.md. |
+| Chunk 4 — record/upload | ⬜ user-owned | 10 days estimated. Triggered after script approval. |
+
+**Confirmed decisions:**
+
+1. Build all blocker features in this task — videos 6 (cost badge) and 10 (Oracle chat) are not deferred (per CLAUDE.md "complete coverage" rule).
+2. Help drawer + `?help=` deep-link in scope.
+3. Demo data spec: 40 ingredients, 15 recipes, 3 menus, 4 areas, 2 vendors, 7 days mock sales.
+4. Demo tenant: slug `demo-restaurant`, owner `demo@bistrosteward.com`, marked `isDemo: true` so never billed and never appears in production reports.
+5. Square sandbox card `4111 1111 1111 1111` exp `12/26` CVV `123` ZIP `97229` for all card demos.
+6. Effort split: Claude ≈ 3 days (recon + chunks 1-3); Anthony ≈ 13 days (record + edit + caption + upload). Total ≈ 16 working days.
+
+**Open items requiring real assets (Anthony):**
+
+- Grocery receipt photo for video 4 (`docs/tutorials/_assets/04-receipt.jpg`).
+- Vendor invoice PDF for video 5 (`docs/tutorials/_assets/05-invoice.pdf`).
+- YouTube channel "Bistro Steward" creation (channel art + thumbnails).
+- Real YouTube video IDs pasted back into `firebase/public/help-videos.json` after upload.
 
 ---
 
@@ -16,7 +42,7 @@
 
 | # | Title | Length | Status |
 |---|---|---|---|
-| 1 | Welcome to Restaurant Oracle | 90s | Ready to script |
+| 1 | Welcome to Bistro Steward | 90s | Ready to script |
 | 2 | Sign up and create your account | 3m | Ready (signup.html + terms.html exist) |
 | 3 | Set up your team | 2m | Ready (admin.html team UI) |
 | 4 | Create your first ingredient list | 4m | Ready (manual + AI receipt scan) |
@@ -34,8 +60,8 @@ Cross-cutting blockers: help drawer + `?help=` URL handler do not exist; demo te
 1. Build all blocker features in this task (do not defer videos 6 and 10 — CLAUDE.md "complete coverage" rule).
 2. Help drawer is in scope.
 3. Demo data: 40 ingredients, 15 recipes, 3 menus, 4 storage areas, 2 vendors, 1 week of mock sales.
-4. Demo tenant slug: `demo-restaurant`, owner email: `demo@restaurantoracle.app`.
-5. YouTube channel: "Restaurant Oracle" (user creates).
+4. Demo tenant slug: `demo-restaurant`, owner email: `demo@bistrosteward.com`.
+5. YouTube channel: "Bistro Steward" (user creates).
 6. Square sandbox for all card demos. Test card: `4111 1111 1111 1111`, exp `12/26`, CVV `123`, ZIP `97229`.
 7. Scripts live in `docs/tutorials/NN-slug.md`, one per video, version controlled.
 8. Recording, editing, upload, captioning, thumbnails — user (Anthony) executes after scripts approved.
@@ -105,7 +131,7 @@ Earlier exploration cited `firebase/public/index.html` (641-line landing page) i
 - [ ] **Step 1: Locate recipe modal**
 
 ```bash
-grep -n "renderRecs\|recipe-modal\|recipeModal\|food.cost\|foodCost" /Users/mulefamily/Claude/Restaurant-Oracle/firebase/public/app.html | head -50
+grep -n "renderRecs\|recipe-modal\|recipeModal\|food.cost\|foodCost" /Users/mulefamily/Claude/Bistro-Steward/firebase/public/app.html | head -50
 ```
 
 - [ ] **Step 2: Read recipe ingredient/cost section**
@@ -136,7 +162,7 @@ git commit -m "docs: phase-0 recon recipe costing"
 - [ ] **Step 1: Locate Oracle/voice/Gemini code**
 
 ```bash
-grep -n "voiceToggle\|voiceProcess\|oracle\|gemini\|/voice\|/oracle\|chat-panel" /Users/mulefamily/Claude/Restaurant-Oracle/firebase/public/app.html | head -50
+grep -n "voiceToggle\|voiceProcess\|oracle\|gemini\|/voice\|/oracle\|chat-panel" /Users/mulefamily/Claude/Bistro-Steward/firebase/public/app.html | head -50
 ```
 
 - [ ] **Step 2: Inspect transcript handling, FAB DOM, any latent text-input markup**
@@ -160,7 +186,7 @@ git commit -m "docs: phase-0 recon oracle chat"
 - [ ] **Step 1: Search**
 
 ```bash
-grep -n "URLSearchParams\|location.search\|?help\|help-drawer\|helpVideo" /Users/mulefamily/Claude/Restaurant-Oracle/firebase/public/app.html
+grep -n "URLSearchParams\|location.search\|?help\|help-drawer\|helpVideo" /Users/mulefamily/Claude/Bistro-Steward/firebase/public/app.html
 ```
 
 - [ ] **Step 2: Record findings.** Confirm `?help=` is unhandled. Confirm there is no global help drawer.
@@ -184,7 +210,7 @@ git commit -m "docs: phase-0 recon complete"
 - [ ] **Step 1: Write README**
 
 ```markdown
-# Restaurant Oracle Tutorial Scripts
+# Bistro Steward Tutorial Scripts
 
 Each script in this directory drives one YouTube video. Scripts are reviewed
 before any recording happens. Once a video is uploaded, paste its YouTube ID
@@ -198,7 +224,7 @@ into `firebase/public/help-videos.json` so in-app help icons deep-link to it.
   real tenant UUIDs. Use the demo tenant only.
 
 ## Demo tenant
-Slug `demo-restaurant`. Email `demo@restaurantoracle.app`. Reset via
+Slug `demo-restaurant`. Email `demo@bistrosteward.com`. Reset via
 `node scripts/seed-demo-tenant.js --reset` before each recording session.
 
 ## Index
@@ -281,7 +307,7 @@ git commit -m "feat(help): drawer styles"
 ```json
 {
   "_doc": "Slug-to-YouTube map. Replace YOUTUBE_ID_* with real ID after upload. Chapters in seconds.",
-  "welcome":         { "yt": "YOUTUBE_ID_01", "title": "Welcome to Restaurant Oracle", "chapters": [] },
+  "welcome":         { "yt": "YOUTUBE_ID_01", "title": "Welcome to Bistro Steward", "chapters": [] },
   "signup":          { "yt": "YOUTUBE_ID_02", "title": "Sign up and create your account",
                        "chapters": [[0,"Intro"],[20,"Pick a plan"],[60,"Card entry"],[120,"Verify email"],[160,"First login"]] },
   "team":            { "yt": "YOUTUBE_ID_03", "title": "Set up your team",
@@ -616,7 +642,7 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 const TENANT_SLUG  = 'demo-restaurant';
-const OWNER_EMAIL  = 'demo@restaurantoracle.app';
+const OWNER_EMAIL  = 'demo@bistrosteward.com';
 const TENANT_NAME  = 'Demo Bistro (filming only)';
 
 const args = new Set(process.argv.slice(2));
@@ -698,7 +724,7 @@ async function reset(tenantRef) {
   }
 
   console.log('Done. Login: ' + OWNER_EMAIL + ' / ***REMOVED***');
-  console.log('URL: https://restaurantoracle.app/app.html');
+  console.log('URL: https://bistrosteward.com/app.html');
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });
 ```
@@ -706,7 +732,7 @@ async function reset(tenantRef) {
 - [ ] **Step 2: `scripts/README.md`**
 
 ```markdown
-# Restaurant Oracle Scripts
+# Bistro Steward Scripts
 
 ## Seeding the demo tenant
 
@@ -726,7 +752,7 @@ The seeder is idempotent. Tenant doc has `isDemo: true` so it can never be bille
 - [ ] **Step 3: Dry-run**
 
 ```bash
-cd /Users/mulefamily/Claude/Restaurant-Oracle
+cd /Users/mulefamily/Claude/Bistro-Steward
 node scripts/seed-demo-tenant.js --dry-run
 ```
 
@@ -738,7 +764,7 @@ Expected: prints `would seed ingredients × 40`, etc., exits 0.
 node scripts/seed-demo-tenant.js --reset
 ```
 
-Expected: creates user, tenant, claims, all collections. Login at https://restaurantoracle.app/app.html with the printed credentials confirms onboarding is complete and ingredients tab shows 40 rows.
+Expected: creates user, tenant, claims, all collections. Login at https://bistrosteward.com/app.html with the printed credentials confirms onboarding is complete and ingredients tab shows 40 rows.
 
 - [ ] **Step 5: Commit**
 
@@ -1059,14 +1085,14 @@ Each script is a single Markdown file ~200-700 words with three sections: **Hook
 - [ ] **Step 1: Write script** (template; full prose during execution)
 
 ```markdown
-# 01 — Welcome to Restaurant Oracle (90 seconds)
+# 01 — Welcome to Bistro Steward (90 seconds)
 
 **Runtime:** 90s. **Word target:** 225. **Slug:** `welcome`.
 
 ## Hook (0:00–0:15)
 Show: marketing landing page top fold.
 Say: "If you run a restaurant, you already know food cost is your hardest math
-problem. Restaurant Oracle is the tool I built to make that math invisible — so
+problem. Bistro Steward is the tool I built to make that math invisible — so
 you can run service instead of fighting spreadsheets."
 
 ## Body (0:15–1:15)
@@ -1193,7 +1219,7 @@ OBS scene preset (1440p source, 1080p output, 30fps, MKV). Mic config (Shure MV7
 
 - [ ] **Step 2: `upload-checklist.md` covers**
 
-YouTube channel "Restaurant Oracle" creation steps, channel art spec (2560×1440), thumbnail spec (1280×720, brand red `#c0392b`, 60pt Inter Bold title, screenshot of relevant screen), upload form fields (title format `EP NN — Title (Restaurant Oracle Tutorial)`, description template with chapter timestamps + restaurantoracle.app link), playlist "Getting Started with Restaurant Oracle" ordered 1→10, captions workflow (auto-generate, then download SRT, manually correct, re-upload), end-screen template (subscribe + next video). After upload, paste real YouTube ID into `firebase/public/help-videos.json` and redeploy.
+YouTube channel "Bistro Steward" creation steps, channel art spec (2560×1440), thumbnail spec (1280×720, brand red `#c0392b`, 60pt Inter Bold title, screenshot of relevant screen), upload form fields (title format `EP NN — Title (Bistro Steward Tutorial)`, description template with chapter timestamps + bistrosteward.com link), playlist "Getting Started with Bistro Steward" ordered 1→10, captions workflow (auto-generate, then download SRT, manually correct, re-upload), end-screen template (subscribe + next video). After upload, paste real YouTube ID into `firebase/public/help-videos.json` and redeploy.
 
 - [ ] **Step 3: Commit**
 
@@ -1228,16 +1254,16 @@ After PR merged, Anthony:
 - [ ] Buys/installs OBS Studio + Descript per `recording-guide.md`.
 - [ ] Records each video against the demo tenant on a clean Chrome profile.
 - [ ] Edits in Descript, exports 1080p MP4.
-- [ ] Uploads each to YouTube channel "Restaurant Oracle".
+- [ ] Uploads each to YouTube channel "Bistro Steward".
 - [ ] Adds captions (YouTube auto, then manual correction, ~10 min/video).
 - [ ] Adds chapter timestamps from the script's chapters list.
 - [ ] Adds thumbnails per `upload-checklist.md`.
-- [ ] Creates playlist "Getting Started with Restaurant Oracle".
+- [ ] Creates playlist "Getting Started with Bistro Steward".
 - [ ] Pastes real YouTube IDs into `firebase/public/help-videos.json`, redeploys.
 
 ### Task 4.3: Final verification (USER ACTION)
 
-- [ ] Open https://restaurantoracle.app/app.html?help=welcome — drawer plays correct video.
+- [ ] Open https://bistrosteward.com/app.html?help=welcome — drawer plays correct video.
 - [ ] Repeat for all 10 slugs.
 - [ ] YouTube channel screenshot showing 10+ videos with captions.
 - [ ] Playlist URL verified.

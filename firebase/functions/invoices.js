@@ -190,30 +190,87 @@ async function matchIngredient(tenantId, description) {
 async function upsertVendor(tenantId, vendorInfo) {
   if (!vendorInfo || !vendorInfo.name) return null;
   const qname = normalize(vendorInfo.name);
+  // Sommelier recon S-2 (P1): vendor matching now considers geographic scope.
+  // "Sysco Inc" in WA and "Sysco Inc" in OR share a normalized name but are
+  // legally distinct franchises; merging their price history would corrupt
+  // recipe costs. We compare on state primarily, fall back to city.
+  // Legacy records without state get backfilled when state arrives, but never
+  // get treated as different from a state-bearing record on first read.
+  const qstate = normalize(vendorInfo.state || '');
+  const qcity = normalize(vendorInfo.city || '');
+  const qaddress = String(vendorInfo.address || '').slice(0, 500);
+
   const vSnap = await db().collection('tenants').doc(tenantId).collection('vendors').get();
   for (const doc of vSnap.docs) {
-    if (normalize(doc.data().name) === qname) return { id: Number(doc.id), ...doc.data() };
+    const data = doc.data();
+    if (normalize(data.name) !== qname) continue;
+    const docState = normalize(data.state || '');
+    const docCity = normalize(data.city || '');
+    // Match rules (order matters):
+    //   1. If neither side carries a state, fall back to legacy name-only match.
+    //   2. If states are both present and differ, treat as distinct vendors —
+    //      keep searching.
+    //   3. If only one side has state, treat as match and backfill the missing
+    //      side. Same rule for city as a tiebreaker.
+    const statesConflict = docState && qstate && docState !== qstate;
+    if (statesConflict) continue;
+    const citiesConflict = !statesConflict && docCity && qcity && docCity !== qcity;
+    if (citiesConflict) continue;
+
+    // Backfill missing fields on the existing vendor doc. Single-document
+    // updates are atomic in Firestore, so concurrent invoices for the same
+    // vendor writing the same backfill values are safe (Pass 3 / Sommelier:
+    // the genuine race was duplicate *creation*, addressed below).
+    const backfill = {};
+    if (qstate && !docState) backfill.state = qstate;
+    if (qcity && !docCity) backfill.city = qcity;
+    if (qaddress && !data.address) backfill.address = qaddress;
+    if (Object.keys(backfill).length > 0) {
+      backfill.updated_at = admin.firestore.FieldValue.serverTimestamp();
+      try { await doc.ref.update(backfill); } catch (_) { /* best-effort */ }
+    }
+    return { id: Number(doc.id), ...data, ...backfill };
   }
-  // Create new vendor
+
+  // No match → create a new vendor, guarded by a deterministic name+state
+  // key document so two concurrent invoices for the same brand-new vendor
+  // cannot both create a duplicate (Pass 3 / Sommelier S-2 follow-up). The
+  // counter increment, vendor doc, and key doc all commit in one transaction.
+  const vendorKey = (qname + '__' + (qstate || 'nostate'))
+    .replace(/[^a-z0-9_]+/g, '_').slice(0, 180);
+  const keyRef = db().collection('tenants').doc(tenantId).collection('vendor_keys').doc(vendorKey);
   const counterRef = db().collection('tenants').doc(tenantId).collection('counters').doc('next_id');
-  const newId = await db().runTransaction(async (t) => {
-    const d = await t.get(counterRef);
-    const current = d.exists ? (d.data().value || 1000) : 1000;
-    t.set(counterRef, { value: current + 1 }, { merge: true });
-    return current + 1;
+  const created = await db().runTransaction(async (t) => {
+    const keyDoc = await t.get(keyRef);
+    if (keyDoc.exists && keyDoc.data() && keyDoc.data().vendorId) {
+      return { existingId: Number(keyDoc.data().vendorId) };
+    }
+    const cd = await t.get(counterRef);
+    const current = cd.exists ? (cd.data().value || 1000) : 1000;
+    const newId = current + 1;
+    t.set(counterRef, { value: newId }, { merge: true });
+    const rec = {
+      id: newId,
+      name: String(vendorInfo.name).slice(0, 200),
+      state: qstate || '',
+      city: qcity || '',
+      address: qaddress,
+      contact_name: '',
+      email: String(vendorInfo.email || '').slice(0, 200),
+      phone: String(vendorInfo.phone || '').slice(0, 50),
+      website: '',
+      notes: 'Auto-created from inbound invoice',
+      archived: 0
+    };
+    t.set(db().collection('tenants').doc(tenantId).collection('vendors').doc(String(newId)), rec);
+    t.set(keyRef, { vendorId: newId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    return { rec };
   });
-  const rec = {
-    id: newId,
-    name: String(vendorInfo.name).slice(0, 200),
-    contact_name: '',
-    email: String(vendorInfo.email || '').slice(0, 200),
-    phone: String(vendorInfo.phone || '').slice(0, 50),
-    website: '',
-    notes: 'Auto-created from inbound invoice',
-    archived: 0
-  };
-  await db().collection('tenants').doc(tenantId).collection('vendors').doc(String(newId)).set(rec);
-  return rec;
+  if (created.rec) return created.rec;
+  // A concurrent invoice won the create race — return the winning vendor.
+  const winner = await db().collection('tenants').doc(tenantId)
+    .collection('vendors').doc(String(created.existingId)).get();
+  return winner.exists ? { id: created.existingId, ...winner.data() } : null;
 }
 
 async function processInvoice(tenantId, parsed, files, emailMeta) {
@@ -232,26 +289,74 @@ async function processInvoice(tenantId, parsed, files, emailMeta) {
   const lineItems = Array.isArray(parsed.lineItems) ? parsed.lineItems : [];
   const processed = [];
   const unmatched = [];
+  const unconfirmed = []; // OCR-low-confidence OR large-price-jump items pending human review
+
+  // Sommelier recon S-1 (P1): Gemini returns a `confidence` field per line item
+  // (high|medium|low). Previously we logged it and wrote anyway. Now: any item
+  // marked `low`, or any item whose price moved more than PRICE_JUMP_THRESHOLD
+  // from the prior cost, routes to `unconfirmed[]` instead of mutating
+  // ingredient.cost. The invoice doc carries the unconfirmed list and gets
+  // marked `needs_review` so an operator can confirm or reject the read.
+  const PRICE_JUMP_THRESHOLD = 0.5; // 50% — order-of-magnitude swings are
+                                     // almost always OCR errors (decimal misread)
+  const CONFIDENCE_ENUM = ['high', 'medium', 'low'];
+  // Normalize confidence to the enum. Pass 3 (Sommelier): if Gemini returns a
+  // numeric or unexpected value (e.g. 0.9 → "0.9"), it isn't in the enum, so we
+  // treat it as 'low' and gate it — conservative, never silently writes an
+  // unverifiable price.
+  function normalizeConfidence(raw) {
+    const norm = String(raw == null ? 'medium' : raw).toLowerCase().trim();
+    return CONFIDENCE_ENUM.includes(norm) ? norm : 'low';
+  }
+  function shouldGateForReview(confidence, prevCost, newCost) {
+    if (confidence === 'low') return { gated: true, reason: 'low_confidence_ocr' };
+    if (prevCost > 0) {
+      const delta = Math.abs(newCost - prevCost) / prevCost;
+      if (delta > PRICE_JUMP_THRESHOLD) {
+        return { gated: true, reason: 'large_price_jump', deltaPct: Math.round(delta * 1000) / 10 };
+      }
+    }
+    return { gated: false };
+  }
 
   for (const li of lineItems) {
     const desc = String(li.description || '').slice(0, 500);
     const qty = Number(li.qty) || 0;
     const unit = String(li.unit || 'ea').slice(0, 20);
     const unitPrice = Number(li.unitPrice) || (qty > 0 ? Number(li.lineTotal) / qty : 0);
+    const confidence = normalizeConfidence(li.confidence);
     const ing = await matchIngredient(tenantId, desc);
     if (!ing) {
-      unmatched.push({ description: desc, qty, unit, unitPrice, lineTotal: Number(li.lineTotal) || 0 });
+      unmatched.push({ description: desc, qty, unit, unitPrice, lineTotal: Number(li.lineTotal) || 0, confidence });
       continue;
     }
-    const ingRef = db().collection('tenants').doc(tenantId).collection('ings').doc(String(ing.id));
     const prevCost = Number(ing.cost) || 0;
+    const gate = shouldGateForReview(confidence, prevCost, unitPrice);
+    if (gate.gated) {
+      // Do NOT mutate ingredient.cost — needs human review first.
+      unconfirmed.push({
+        ingId: ing.id,
+        name: ing.name,
+        qty,
+        unit,
+        unitPrice,
+        prevCost,
+        confidence,
+        reason: gate.reason,
+        deltaPct: gate.deltaPct || (prevCost > 0 ? Math.round(((unitPrice - prevCost) / prevCost) * 1000) / 10 : null),
+      });
+      continue;
+    }
+
+    const ingRef = db().collection('tenants').doc(tenantId).collection('ings').doc(String(ing.id));
     const history = Array.isArray(ing.price_history) ? ing.price_history.slice() : [];
     history.push({
       date: parsed.invoiceDate || new Date().toISOString().slice(0, 10),
       price: unitPrice,
       vendorId,
       invoiceId,
-      unit
+      unit,
+      confidence,
     });
     // Keep last 200 points max
     const trimmed = history.slice(-200);
@@ -270,6 +375,7 @@ async function processInvoice(tenantId, parsed, files, emailMeta) {
       unit,
       unitPrice,
       prevCost,
+      confidence,
       delta: prevCost > 0 ? ((unitPrice - prevCost) / prevCost) * 100 : 0
     });
   }
@@ -300,12 +406,13 @@ async function processInvoice(tenantId, parsed, files, emailMeta) {
     line_items: lineItems.slice(0, 500),
     processed,
     unmatched,
+    unconfirmed,
     invariant_warnings: invariantWarnings,
     source_email: String((emailMeta && emailMeta.from) || '').slice(0, 300),
     subject: String((emailMeta && emailMeta.subject) || '').slice(0, 300),
     attachments: files.map((f) => ({ filename: f.filename, mimeType: f.mimeType, size: f.size })),
     raw_parsed: parsed,
-    status: unmatched.length || invariantWarnings.length ? 'needs_review' : 'processed',
+    status: (unmatched.length || invariantWarnings.length || unconfirmed.length) ? 'needs_review' : 'processed',
     created_at: now
   };
   await db().collection('tenants').doc(tenantId).collection('invoices')

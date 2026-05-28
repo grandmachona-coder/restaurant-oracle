@@ -1,2 +1,2 @@
-# restaurant-oracle
+# bistro-steward
  LaChona Restaurant Management App

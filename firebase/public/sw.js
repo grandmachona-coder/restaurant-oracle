@@ -9,7 +9,7 @@
  */
 'use strict';
 
-const VERSION = 'v2-2026-05-14';
+const VERSION = 'v12-2026-05-27-wasm-stub-bypass';
 const STATIC_CACHE = 'bs-static-' + VERSION;
 const RUNTIME_CACHE = 'bs-runtime-' + VERSION;
 

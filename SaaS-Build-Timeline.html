@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bistro Steward — 30-Day Build Timeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --purple: #a371f7;
+    --purple-dim: #1e1533;
+    --green: #3fb950;
+    --green-dim: #0f2819;
+    --blue: #58a6ff;
+    --blue-dim: #0d2137;
+    --gold: #e3b341;
+    --gold-dim: #2a1e0a;
+    --red: #f85149;
+    --red-dim: #2a0e0e;
+    --teal: #39d353;
+    --orange: #f0883e;
+    --orange-dim: #2a1600;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 0 0 80px;
+  }
+  /* ── HEADER ── */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #1a0d2e 50%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 40px 40px;
+    text-align: center;
+  }
+  .hero .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--purple);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #e6edf3 0%, #a371f7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 600px;
+    margin: 0 auto 28px;
+  }
+  /* ── GANTT ── */
+  .gantt-wrap {
+    max-width: 960px;
+    margin: 0 auto 8px;
+    padding: 0 40px;
+  }
+  .gantt {
+    display: grid;
+    grid-template-columns: 140px repeat(30, 1fr);
+    gap: 2px;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+  .gantt-label {
+    color: var(--muted);
+    font-size: 10px;
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .gantt-day-header {
+    text-align: center;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 0;
+    font-size: 9px;
+  }
+  .gantt-bar {
+    height: 18px;
+    border-radius: 2px;
+    opacity: 0.85;
+  }
+  .gantt-empty { height: 18px; }
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  /* ── LAYOUT ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 40px; }
+  /* ── PHASE HEADER ── */
+  .phase {
+    margin-top: 48px;
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .phase-meta { flex: 1; }
+  .phase-title { font-size: 20px; font-weight: 700; }
+  .phase-days { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .phase-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  /* ── DAY CARD ── */
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .day-card:hover { border-color: #58a6ff44; }
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .day-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    min-width: 54px;
+    text-align: center;
+  }
+  .day-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .day-goal {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .day-body {
+    padding: 0 18px 16px;
+    border-top: 1px solid var(--border);
+  }
+  /* ── GOAL BOX ── */
+  .goal-box {
+    background: var(--surface2);
+    border-left: 3px solid var(--blue);
+    border-radius: 0 4px 4px 0;
+    padding: 10px 14px;
+    margin: 14px 0 12px;
+    font-size: 13px;
+    color: var(--blue);
+    font-weight: 500;
+  }
+  /* ── TASK LIST ── */
+  .tasks { list-style: none; }
+  .tasks li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 13px;
+    color: #cdd9e5;
+    border-bottom: 1px solid #21262d;
+  }
+  .tasks li:last-child { border-bottom: none; }
+  .tasks li::before {
+    content: '□';
+    color: var(--muted);
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tasks li .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+  /* ── DELIVERABLE ── */
+  .deliverable {
+    margin-top: 14px;
+    background: var(--green-dim);
+    border: 1px solid #3fb95033;
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .deliverable-icon { font-size: 16px; flex-shrink: 0; }
+  .deliverable-text { font-size: 13px; color: var(--green); font-weight: 500; }
+  /* ── CODE SNIPPETS ── */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: #21262d;
+    color: #e6edf3;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: #161b22;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    overflow-x: auto;
+    line-height: 1.7;
+    color: #cdd9e5;
+  }
+  /* ── DEPENDENCY NOTE ── */
+  .dep-note {
+    font-size: 11px;
+    color: var(--gold);
+    background: var(--gold-dim);
+    border: 1px solid #e3b34133;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  /* ── COLORS BY PHASE ── */
+  .p1 .phase-num { background: var(--purple-dim); color: var(--purple); }
+  .p1 .phase-badge { background: var(--purple-dim); color: var(--purple); }
+  .p1 .day-num { background: var(--purple-dim); color: var(--purple); }
+  .p2 .phase-num { background: var(--blue-dim); color: var(--blue); }
+  .p2 .phase-badge { background: var(--blue-dim); color: var(--blue); }
+  .p2 .day-num { background: var(--blue-dim); color: var(--blue); }
+  .p3 .phase-num { background: var(--gold-dim); color: var(--gold); }
+  .p3 .phase-badge { background: var(--gold-dim); color: var(--gold); }
+  .p3 .day-num { background: var(--gold-dim); color: var(--gold); }
+  .p4 .phase-num { background: #1a2d1f; color: var(--green); }
+  .p4 .phase-badge { background: #1a2d1f; color: var(--green); }
+  .p4 .day-num { background: #1a2d1f; color: var(--green); }
+  .p5 .phase-num { background: var(--orange-dim); color: var(--orange); }
+  .p5 .phase-badge { background: var(--orange-dim); color: var(--orange); }
+  .p5 .day-num { background: var(--orange-dim); color: var(--orange); }
+  .p6 .phase-num { background: var(--red-dim); color: var(--red); }
+  .p6 .phase-badge { background: var(--red-dim); color: var(--red); }
+  .p6 .day-num { background: var(--red-dim); color: var(--red); }
+  /* ── MILESTONE BANNER ── */
+  .milestone {
+    text-align: center;
+    padding: 16px;
+    margin: 20px 0;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+  }
+  /* ── CRITICAL PATH ── */
+  .critical {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--red);
+    background: var(--red-dim);
+    border: 1px solid #f8514933;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+  /* ── FILE TAGS ── */
+  .file { color: var(--blue); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  /* ── TOGGLE DETAILS ── */
+  details summary { cursor: pointer; }
+  details summary::-webkit-details-marker { display: none; }
+  /* ── SECTION DIVIDER ── */
+  .phase-end {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 28px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .phase-end::before, .phase-end::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  /* GANTT COLORS */
+  .g-purple { background: #a371f7; }
+  .g-blue   { background: #58a6ff; }
+  .g-gold   { background: #e3b341; }
+  .g-green  { background: #3fb950; }
+  .g-orange { background: #f0883e; }
+  .g-red    { background: #f85149; }
+
+  @media (max-width: 600px) {
+    .hero { padding: 32px 20px; }
+    .container { padding: 0 16px; }
+    .gantt-wrap { padding: 0 16px; }
+    .hero h1 { font-size: 26px; }
+    .stats-bar { gap: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="eyebrow">Bistro Steward SaaS</div>
+  <h1>30-Day Build Timeline</h1>
+  <p class="subtitle">Months compressed to days. One person, six Claude agents, zero to paying customers.</p>
+
+  <!-- Gantt Chart -->
+  <div class="gantt-wrap">
+    <div class="gantt">
+      <!-- Headers -->
+      <div class="gantt-label">Phase</div>
+      <div class="gantt-day-header">1</div><div class="gantt-day-header">2</div><div class="gantt-day-header">3</div><div class="gantt-day-header">4</div><div class="gantt-day-header">5</div>
+      <div class="gantt-day-header">6</div><div class="gantt-day-header">7</div><div class="gantt-day-header">8</div><div class="gantt-day-header">9</div><div class="gantt-day-header">10</div>
+      <div class="gantt-day-header">11</div><div class="gantt-day-header">12</div><div class="gantt-day-header">13</div><div class="gantt-day-header">14</div><div class="gantt-day-header">15</div>
+      <div class="gantt-day-header">16</div><div class="gantt-day-header">17</div><div class="gantt-day-header">18</div><div class="gantt-day-header">19</div><div class="gantt-day-header">20</div>
+      <div class="gantt-day-header">21</div><div class="gantt-day-header">22</div><div class="gantt-day-header">23</div><div class="gantt-day-header">24</div><div class="gantt-day-header">25</div>
+      <div class="gantt-day-header">26</div><div class="gantt-day-header">27</div><div class="gantt-day-header">28</div><div class="gantt-day-header">29</div><div class="gantt-day-header">30</div>
+      <!-- P1: Foundation -->
+      <div class="gantt-label" style="color:#a371f7">P1 Foundation</div>
+      <div class="gantt-bar g-purple"></div><div class="gantt-bar g-purple"></div><div class="gantt-bar g-purple"></div><div class="gantt-bar g-purple"></div><div class="gantt-bar g-purple"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <!-- P2: Signup -->
+      <div class="gantt-label" style="color:#58a6ff">P2 Signup</div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-bar g-blue"></div><div class="gantt-bar g-blue"></div><div class="gantt-bar g-blue"></div><div class="gantt-bar g-blue"></div><div class="gantt-bar g-blue"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <!-- P3: Admin -->
+      <div class="gantt-label" style="color:#e3b341">P3 Admin</div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-bar g-gold"></div><div class="gantt-bar g-gold"></div><div class="gantt-bar g-gold"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <!-- P4: Agents -->
+      <div class="gantt-label" style="color:#3fb950">P4 Agents</div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-bar g-green"></div><div class="gantt-bar g-green"></div><div class="gantt-bar g-green"></div><div class="gantt-bar g-green"></div><div class="gantt-bar g-green"></div><div class="gantt-bar g-green"></div><div class="gantt-bar g-green"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <!-- P5: PWA -->
+      <div class="gantt-label" style="color:#f0883e">P5 PWA</div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-bar g-orange"></div><div class="gantt-bar g-orange"></div><div class="gantt-bar g-orange"></div><div class="gantt-bar g-orange"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <!-- P6: Launch -->
+      <div class="gantt-label" style="color:#f85149">P6 Launch</div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div><div class="gantt-empty"></div>
+      <div class="gantt-bar g-red"></div><div class="gantt-bar g-red"></div><div class="gantt-bar g-red"></div><div class="gantt-bar g-red"></div><div class="gantt-bar g-red"></div><div class="gantt-bar g-red"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" style="color:var(--purple)">30</div><div class="stat-label">Days to Launch</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--blue)">6</div><div class="stat-label">Build Phases</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">6</div><div class="stat-label">Claude Agents</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--gold)">5</div><div class="stat-label">Beta Restaurants</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--orange)">$0</div><div class="stat-label">Upfront Cost</div></div>
+</div>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- PHASE 1 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="phase p1">
+  <div class="phase-header">
+    <div class="phase-num">1</div>
+    <div class="phase-meta">
+      <div class="phase-title">Foundation Architecture</div>
+      <div class="phase-days">Days 1–5 · Multi-tenant data model, subdomain routing, Stripe skeleton</div>
+    </div>
+    <div class="phase-badge">CRITICAL PATH</div>
+  </div>
+
+  <!-- DAY 1 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 1</span>
+      <span class="day-title">Multi-Tenant Firestore Architecture</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Every Firestore path becomes <code>/tenants/{tenantId}/...</code> — full data isolation by design</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">SCHEMA</span> Design <code>tenants</code> root collection: <code>{slug, restaurantName, ownerEmail, stripeCustomerId, plan, status, createdAt, onboardingComplete}</code></li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">SCHEMA</span> Map all 15 existing collections to new paths: <code>/tenants/{id}/ingredients</code>, <code>/tenants/{id}/inventory</code>, etc.</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">RULES</span> Rewrite <code>firestore.rules</code>: all 15 data collections require <code>request.auth.token.tenantId == tenantId</code> path variable match</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">RULES</span> <code>tenants</code> collection: read by <code>tenantId</code> claim match, write only by Cloud Function (admin SDK)</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">PLAN</span> Write migration script for LaChona's existing data: reads from root collections → writes to <code>/tenants/lachona/</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Run migration script on a copy — verify all 13 data tables land at correct tenant paths</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">New <code>firestore.rules</code> deployed. LaChona data migrated to <code>/tenants/lachona/</code> namespace. Direct root collection access returns 403.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 2 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 2</span>
+      <span class="day-title">Cloud Function Multi-Tenant Refactor</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: <code>secureApi</code> Cloud Function reads <code>tenantId</code> from JWT claim and namespaces every Firestore operation</div>
+      <div class="dep-note">⚠ Depends on Day 1: Firestore rules must be in place first</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">AUTH</span> <code>checkApproval()</code> now stamps <code>tenantId</code> + <code>approved: true</code> + <code>role</code> into JWT custom claims simultaneously</li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">REFACTOR</span> Wrap all 15 Firestore collection references: <code>db.collection('ingredients')</code> → <code>db.collection('tenants').doc(tenantId).collection('ingredients')</code></li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">REFACTOR</span> Extract <code>tenantId</code> from <code>req.user.tenantId</code> at top of request handler — propagate to all CRUD helpers</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">NEW OP</span> Add <code>provisionTenant</code> + <code>deprovisionTenant</code> to <code>ALLOWED_OPERATIONS</code> (super-admin only in PERMISSION_MATRIX)</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">NEW OP</span> Add <code>getTenantConfig</code> op: returns tenant doc for logged-in user's tenantId</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Deploy to Functions emulator — run all existing ops as LaChona user — confirm all 13 tables read/write correctly at new paths</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">All existing LaChona operations work via tenant-namespaced paths. JWT now carries <code>tenantId: "lachona"</code>. Cross-tenant access attempt returns 403.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 3 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 3</span>
+      <span class="day-title">Domain + Wildcard Subdomain Routing</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: <code>*.bistrosteward.com</code> live — any subdomain serves the app, subdomain = tenantId</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">DOMAIN</span> Register <code>bistrosteward.com</code> via Google Domains or Cloudflare Registrar (~$12/yr)</li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">DNS</span> Set Cloudflare as nameserver (free tier) — add wildcard <code>CNAME *.bistrosteward.com → bistrosteward.com</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">FIREBASE</span> Add <code>bistrosteward.com</code> as custom domain in Firebase Hosting console — verify TXT record</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">FIREBASE</span> Update <code>firebase.json</code>: CSP headers — change <code>frame-ancestors</code> to allow <code>*.bistrosteward.com</code>, update <code>connect-src</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Deploy stub <code>index.html</code> with <code>alert(location.hostname)</code> — verify <code>test.bistrosteward.com</code> shows the subdomain correctly</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">VERIFY</span> SSL certificates auto-provisioned by Firebase for wildcard — confirm HTTPS on test subdomain (may take 15 min)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text"><code>test.bistrosteward.com</code> loads over HTTPS, <code>location.hostname</code> returns the correct subdomain. Wildcard SSL verified.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 4 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 4</span>
+      <span class="day-title">index.html Tenant Detection + Listener Rewire</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: App reads its tenantId from the subdomain on load — every API call and Firestore listener uses it</div>
+      <div class="dep-note">⚠ Depends on Days 2+3: Cloud Function multi-tenant ops + domain must be live</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">JS</span> Add <code>getTenantSlug()</code> at top of script: <code>hostname.split('.')[0]</code> — returns slug or <code>'demo'</code> for bare domain</li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">JS</span> Add module-level <code>let TENANT_ID = null</code> — set after <code>getTenantConfig</code> resolves (slug → UUID)</li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">JS</span> Inject <code>tenantId</code> into every <code>secureApi()</code> call payload — one-line change to the shared helper</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">JS</span> Update <code>startListeners()</code>: all 15 <code>onSnapshot</code> paths use <code>/tenants/${TENANT_ID}/</code> prefix</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">JS</span> Update <code>loadFromFirebase()</code> fallback: pass <code>tenantId</code> to Cloud Function fallback loader</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">JS</span> Login screen: if <code>getTenantSlug() === 'bistrosteward'</code> (bare domain) → redirect to landing page</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Access <code>lachona.bistrosteward.com</code> — log in as LaChona owner — confirm all 8 tabs load with real data</li>
+      </ul>
+      <pre>// Tenant detection — add near top of DOMContentLoaded
+function getTenantSlug() {
+  const host = location.hostname; // e.g. "lachona.bistrosteward.com"
+  const parts = host.split('.');
+  if (parts.length >= 3) return parts[0]; // subdomain
+  return null; // bare domain → marketing page
+}
+let TENANT_SLUG = getTenantSlug();
+let TENANT_ID = null; // resolved after login via getTenantConfig</pre>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">LaChona logs in at <code>lachona.bistrosteward.com</code>. All 8 tabs work. Different test tenant at different subdomain shows empty/isolated data.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 5 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 5</span>
+      <span class="day-title">Stripe Foundation</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Stripe account live with 3 products, webhook endpoint receiving events</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">STRIPE</span> Create Stripe account, complete business verification (restaurant software / SaaS)</li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">STRIPE</span> Create 3 Products: Starter ($29/mo), Pro ($49/mo), Scale ($99/mo) — add feature descriptions</li>
+        <li><span class="tag" style="background:#1e1533;color:#a371f7">STRIPE</span> Enable Stripe Customer Portal (allow plan change, cancel, update card)</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Add <code>stripeWebhook</code> Cloud Function: Express route with raw body parser (Stripe signature requires it)</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Handle <code>customer.subscription.created</code> → call <code>provisionTenant()</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Handle <code>customer.subscription.deleted</code> → call <code>deprovisionTenant()</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Handle <code>customer.subscription.updated</code> → update <code>tenants/{id}.plan</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Handle <code>invoice.payment_failed</code> → set <code>tenants/{id}.status: 'payment_failed'</code>, send warning email</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Stripe CLI: <code>stripe listen --forward-to localhost:5001/.../stripeWebhook</code> — fire test events, confirm handler logs</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Stripe test event <code>customer.subscription.created</code> → Cloud Function receives it → logs <code>"provisionTenant called"</code>. All 4 webhook events handled.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="milestone" style="background:var(--purple-dim);border:1px solid #a371f744;color:var(--purple)">
+    🏗 Phase 1 Complete — Multi-tenant architecture is live. LaChona works at its subdomain. Stripe receives events.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- PHASE 2 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="phase p2">
+  <div class="phase-header">
+    <div class="phase-num">2</div>
+    <div class="phase-meta">
+      <div class="phase-title">Signup, Provisioning & Customer Experience</div>
+      <div class="phase-days">Days 6–10 · Full signup flow, marketing page, billing portal, onboarding wizard</div>
+    </div>
+    <div class="phase-badge">REVENUE CRITICAL</div>
+  </div>
+
+  <!-- DAY 6 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 6</span>
+      <span class="day-title">Tenant Provisioning Engine</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: One function call creates a complete, ready-to-use tenant in under 3 seconds</div>
+      <div class="dep-note">⚠ Depends on Day 5: Stripe webhook must trigger this</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> <code>provisionTenant(restaurantName, ownerEmail, plan, stripeCustomerId)</code>:
+          generate UUID tenantId, generate unique slug (kebab-case + collision check), create <code>tenants/{id}</code> doc</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Create Firebase Auth user for <code>ownerEmail</code> (or link if exists) → stamp custom claims: <code>{tenantId, approved: true, role: 'owner'}</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Seed default data into <code>/tenants/{id}/</code>: default units (kg, liter, each...), categories (Proteins, Produce...), settings doc</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Send welcome email via Nodemailer/Resend: subject "Your Bistro Steward kitchen is ready", include login URL <code>slug.bistrosteward.com</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Return <code>{tenantId, slug, appUrl, status: 'active'}</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> <code>deprovisionTenant(tenantId)</code>: set <code>status: 'suspended'</code>, revoke JWT claim <code>approved: false</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Call manually via Cloud Function emulator — verify tenant doc created, auth user exists, claims stamped, welcome email arrives</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Manual call to <code>provisionTenant</code> → tenant doc appears in Firestore → login to <code>newslug.bistrosteward.com</code> works → welcome email received.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 7 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 7</span>
+      <span class="day-title">Signup Flow — Stripe Checkout → Provisioned Tenant</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Visitor pays → tenant created → lands in their app — zero human involvement</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">HTML</span> Create <code>signup.html</code> at <code>bistrosteward.com/signup</code>: 3 pricing cards (Starter/Pro/Scale), feature comparison, "Get Started" CTA per tier</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> <code>createCheckoutSession(plan)</code> Cloud Function → creates Stripe Checkout Session, returns URL</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">HTML</span> Create <code>setup.html</code> at <code>bistrosteward.com/setup?session_id=cs_xxx</code>: collects restaurant name, validates slug availability in real-time, submit → calls <code>provisionTenant</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> <code>checkSlugAvailable(slug)</code> op: debounced from setup form, returns <code>{available, suggestion}</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">UX</span> After provisioning: animate "Creating your kitchen…" → redirect to <code>slug.bistrosteward.com</code> (triggers onboarding wizard)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Full end-to-end in Stripe test mode: click "Get Started Pro" → enter card → complete setup → land in app at subdomain</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">End-to-end signup working in Stripe test mode. New tenant provisioned within 3 seconds of payment. Welcome email received. App accessible at subdomain.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 8 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 8</span>
+      <span class="day-title">Marketing Landing Page</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: <code>bistrosteward.com</code> converts cold traffic to paid signups</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">HTML</span> Hero: headline "Kitchen Intelligence for Independent Restaurants", sub "Cut food costs. Run prep from your phone. No training needed." + "Try Free Demo" + "See Pricing"</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">HTML</span> Feature section: 3 cards — AI Inventory Scan (photo → counts), Voice Entry ("add 5kg chicken"), Recipe Costing (live cost %)</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">HTML</span> Social proof bar: "Trusted by kitchens in Portland" + LaChona Bistro logo (real proof)</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">HTML</span> Pricing table: 3 tiers with feature matrix, monthly/annual toggle (annual = 2 months free)</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">HTML</span> FAQ: setup time ("15 min"), data ownership, cancellation, mobile app, multi-location</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">SEO</span> Meta: title, description, OG image (app screenshot on phone mockup), Twitter card</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">LINK</span> "Try Free Demo" → <code>demo.bistrosteward.com</code> (placeholder until Day 25)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Landing page live at <code>bistrosteward.com</code>. All CTAs wired. Lighthouse score &gt;90 performance, &gt;95 SEO.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 9 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 9</span>
+      <span class="day-title">Billing Portal + Subscription Lifecycle</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Customers self-manage billing — zero manual intervention for upgrades, downgrades, cancellations</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Add "Billing" section to Settings modal in <code>index.html</code>: current plan badge, next billing date, "Manage Subscription" button</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> <code>createPortalSession()</code> op: creates Stripe Customer Portal session URL, returns to client for redirect</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">STRIPE</span> Configure Stripe Customer Portal: allow plan change (all 3 tiers), payment method update, cancel (end of period), download invoices</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Webhook: <code>customer.subscription.updated</code> → update <code>tenants/{id}.plan</code> + re-stamp JWT with new plan tier</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Cancellation flow: set <code>status: 'cancelling'</code>, keep app accessible until period end, then <code>deprovisionTenant()</code></li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">CF</span> Data export: on cancellation initiation, generate ZIP of all tenant data → email download link (valid 7 days)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Test upgrade Starter→Pro via portal → <code>tenants/{id}.plan</code> updates within 5 seconds. Test cancel → status becomes 'cancelling'. Data export ZIP received via email.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 10 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 10</span>
+      <span class="day-title">Onboarding Wizard</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: New tenant goes from empty app to first recipe costed in under 10 minutes — no docs needed</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Detect first login: if <code>tenants/{id}.onboardingComplete === false</code> → show wizard modal overlay (blocks main UI)</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Step 1 — Welcome: "What kind of kitchen are you running?" (American, Mexican, Italian, Argentine, Asian, Other) → seeds cuisine-appropriate category suggestions</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Step 2 — First Ingredients: pre-populated list of 8 common ingredients for their cuisine type, editable, one-click add all</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Step 3 — First Recipe: guided recipe creation with the ingredients they just added, live cost % preview</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Step 4 — Invite Team (optional skip): email invite to sous chef/manager → they get viewer role JWT claim</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Step 5 — Done: confetti animation, "Your kitchen is costing recipes in real time. Here's what to explore next." → 3 quick-start links</li>
+        <li><span class="tag" style="background:#0d2137;color:#58a6ff">APP</span> Abandonment: if wizard exits mid-step → store progress in <code>tenants/{id}.onboardingStep</code> → show "Resume Setup" banner on next login</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">CRON</span> 24h after signup: if <code>onboardingComplete</code> still false → send "Finish setting up your kitchen" email with wizard deep-link</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">New tenant completes wizard in &lt;10 min. First recipe costed. Abandonment email fires at 24h mark. Step progress survives refresh.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="milestone" style="background:var(--blue-dim);border:1px solid #58a6ff44;color:var(--blue)">
+    💳 Phase 2 Complete — Full signup funnel live. Customers can pay, onboard, manage billing, and cancel — without you touching anything.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- PHASE 3 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="phase p3">
+  <div class="phase-header">
+    <div class="phase-num">3</div>
+    <div class="phase-meta">
+      <div class="phase-title">Your Admin Console</div>
+      <div class="phase-days">Days 11–13 · Tenant management, revenue visibility, ops tools</div>
+    </div>
+    <div class="phase-badge">OPERATOR CRITICAL</div>
+  </div>
+
+  <!-- DAY 11 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 11</span>
+      <span class="day-title">Admin Console Shell + Tenant List</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: <code>admin.bistrosteward.com</code> gives you a live view of every tenant, revenue, and system status</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">AUTH</span> Create Firebase Auth admin user with <code>superAdmin: true</code> custom claim — different from any tenant account</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Create <code>admin.html</code> deployed at <code>admin.bistrosteward.com</code> — login gate checks <code>superAdmin</code> claim</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Tenant table (real-time <code>onSnapshot</code> on <code>tenants</code> collection): name, slug, plan badge, MRR, status indicator, created date, last active</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Top KPI bar: Total tenants, Active, MRR, New this week, Cancellations this week</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Click tenant row → drill-down panel: owner email, Stripe customer link, storage estimate, last 10 audit log entries</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">CF</span> <code>adminGetTenantStats(tenantId)</code> op: returns collection sizes, last sync timestamp, error count (super-admin only)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text"><code>admin.bistrosteward.com</code> loads. Tenant list populates in real-time. KPIs visible. Drill-down shows LaChona's stats. Non-admin access returns 403.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 12 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 12</span>
+      <span class="day-title">Admin Console — Tenant Operations</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Full tenant lifecycle manageable without touching Firebase console or Stripe dashboard</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Suspend tenant button: sets <code>status: 'suspended'</code>, revokes JWT claim, shows reason input, sends notification email to owner</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Reactivate button: restores <code>status: 'active'</code>, re-stamps claims</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Force plan change: dropdown (Starter/Pro/Scale/Comp) → updates Stripe subscription + Firestore + JWT claims</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Impersonate: generates time-limited (1h) support token → opens <code>slug.bistrosteward.com?support_token=xxx</code> in new tab as read-only view of their app</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Manual provision: form (restaurantName, ownerEmail, plan) → calls <code>provisionTenant</code> directly (for offline/conference sales)</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Delete tenant: two-step confirm, sets 30-day soft-delete timer, hard deletes all <code>/tenants/{id}/</code> Firestore data on day 30</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Test suspend → owner immediately sees "account suspended" screen. Reactivate → immediate access restored. Impersonate → see their app in read-only mode.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 13 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 13</span>
+      <span class="day-title">Admin Console — Revenue + Health</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Everything needed to run the business visible without opening Stripe, Firebase, or GCP dashboards</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> MRR chart: last 90 days, stacked by plan tier (Starter/Pro/Scale) — built from <code>tenants</code> collection + plan change history</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Signup vs cancellation: last 30-day bar chart</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Failed payments: list of <code>status: 'payment_failed'</code> tenants with days since failure + one-click "Send payment reminder" email</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Cloud Function error feed: last 50 errors from <code>audit_log</code> with op type + tenantId + error message</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Gemini quota gauge: reads daily usage from Cloud Function counter → shows % of quota used today</li>
+        <li><span class="tag" style="background:#2a1e0a;color:#e3b341">HTML</span> Agent activity feed: last 20 Claude agent invocations with model, tokens used, cost, outcome</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Revenue, health, and agent activity all visible in one dashboard. No need to open Firebase Console or Stripe for daily operations.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="milestone" style="background:var(--gold-dim);border:1px solid #e3b34144;color:var(--gold)">
+    🖥 Phase 3 Complete — You have full operational control. Every tenant action possible from one console. Revenue visible in real time.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- PHASE 4 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="phase p4">
+  <div class="phase-header">
+    <div class="phase-num">4</div>
+    <div class="phase-meta">
+      <div class="phase-title">Six Claude Agents</div>
+      <div class="phase-days">Days 14–20 · Framework + all 6 agents deployed and integrated</div>
+    </div>
+    <div class="phase-badge">AUTOMATION LAYER</div>
+  </div>
+
+  <!-- DAY 14 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 14</span>
+      <span class="day-title">Agent Framework — Shared Infrastructure</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: All 6 agents share one client, one logger, one scheduler — build once, wire everywhere</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Create <code>firebase/functions/agents/</code> directory. <code>AgentClient.js</code>: wraps Anthropic SDK, 3x exponential backoff, model config per agent type</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> <code>AgentLogger.js</code>: writes every invocation to <code>audit_log</code>: <code>{agentName, tenantId, model, inputTokens, outputTokens, estimatedCost, outcome, timestamp}</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> <code>AgentScheduler.js</code>: cron wrapper — accepts agent function + tenant batch size → runs in chunks to avoid timeout</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Model routing: <code>Haiku</code> for provisioning/deployment/health, <code>Sonnet</code> for onboarding/support/revenue</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Cost cap: if any single agent invocation would exceed $0.50 → log warning + abort (prevents runaway loops)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">TEST</span> Deploy framework with dummy "ping" agent → confirm invocation logged, cost calculated, retry fires on simulated timeout</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Dummy agent invocation logged in <code>audit_log</code> with correct token count + cost estimate. Retry fires on first simulated failure. Cost cap blocks &gt;$0.50 call.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 15 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 15</span>
+      <span class="day-title">Agent 1: Provisioning Agent</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Every new signup automatically audited — bad provisions caught in seconds, not days</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Trigger: called as last step in <code>provisionTenant()</code> after all Firestore writes complete</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">PROMPT</span> System: knows tenant data model, all 15 required collections, seed data requirements, expected JWT claim structure</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Input: tenant snapshot (collection sizes, claim values, status flags)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Output schema: <code>{status: 'ok'|'warning'|'error', issues[], autoFixed[], requiresManualFix[]}</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Auto-fix: missing seed collections → re-seed silently, wrong claim values → re-stamp</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Escalation: any <code>requiresManualFix</code> item → email you with tenant details + agent diagnosis</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">MODEL</span> Claude 3.5 Haiku (structured JSON, deterministic — ~$0.003/invocation)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Provision a test tenant with intentionally missing seed data → agent detects, auto-fixes, logs <code>autoFixed: ["units collection"]</code>. Audit visible in admin console.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 16 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 16</span>
+      <span class="day-title">Agent 2: Onboarding Agent</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: AI concierge guides new tenants through setup — answers questions, suggests data, sends re-engagement</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">APP</span> "Ask AI" button in each of the 5 wizard steps → opens inline chat panel (below step content)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> <code>onboardingChat(tenantId, cuisineType, currentStep, userMessage)</code> op — calls Sonnet</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">PROMPT</span> System prompt: knows all 8 app tabs, typical kitchen workflows, suggests cuisine-specific ingredients/recipes. Max context 200 items.</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">PROMPT</span> Proactive prompts per step: Step 2 → "Here are typical proteins for a [cuisine] kitchen…", Step 3 → "Try naming your signature dish and I'll help cost it"</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CRON</span> 24h abandonment check: tenants with <code>onboardingComplete: false</code> + <code>createdAt > 24h ago</code> → agent generates personalized re-engagement email ("You're 2 steps away from your first recipe cost")</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">MODEL</span> Claude 3.5 Sonnet (~$0.08/session)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Ask "what ingredients should I start with for a Mexican kitchen?" → AI suggests 8 relevant items. Abandon wizard → 24h later personalized re-engagement email arrives.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 17 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 17</span>
+      <span class="day-title">Agent 3: Support Agent</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Tier-1 support fully automated — you only see tickets that truly need human judgment</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">APP</span> Help widget: <code>?</code> button fixed bottom-right in all tabs → opens slide-in chat panel</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> <code>supportChat(tenantId, message, conversationHistory)</code> → Sonnet with full app knowledge base</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">PROMPT</span> System prompt: all 8 tabs documented, common error messages + causes, all Cloud Function ops explained, troubleshooting trees for top-10 issues (sync failures, auth errors, etc.)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Seed <code>help_articles</code> Firestore collection: 30 articles indexed by topic — agent retrieves relevant ones with each query</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Escalation: after 3 turns without resolution OR if user says "human" or "help me" → create ticket in admin console <code>support_tickets</code> collection + email you with full conversation</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Rate limit: 20 support messages/tenant/day (Haiku threshold check before Sonnet call)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">MODEL</span> Claude 3.5 Sonnet (~$0.09/4-turn conversation)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Test 10 common questions (sync not working, how to add recipe, AI scan setup) — all resolved without escalation. Type "talk to human" → ticket appears in admin console within 10 seconds.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 18 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 18</span>
+      <span class="day-title">Agent 4: Health Monitor</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Proactive problem detection — tenants never experience silent failures</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CRON</span> Firebase Scheduled Function: every 4 hours, batches all active tenants (100 per Haiku call)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Health snapshot per tenant: <code>{lastSyncAgo_min, errorCount_24h, listenerFailures_24h, geminiErrors_24h, lastLoginAgo_days}</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">PROMPT</span> Input: batch of 100 health snapshots → output: array of <code>{tenantId, severity, issues[], action}</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Action routing: <code>'notify_tenant'</code> → in-app banner next load; <code>'notify_admin'</code> → email you; <code>'auto_fix'</code> → call specific repair op (force token refresh, clear stuck sync flag)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">APP</span> In-app banner: orange bar at top — "We noticed your kitchen data hasn't synced in a while. <u>Fix this</u>" → triggers token refresh</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">MODEL</span> Claude 3.5 Haiku — batched 100 tenants/call (~$0.0013/tenant/month total)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Simulate stuck sync (set <code>lastSync</code> to 3 hours ago) → next cron detects it → in-app banner appears within 4 hours → auto-fix token refresh fires.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 19 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 19</span>
+      <span class="day-title">Agent 5: Revenue Intelligence</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Weekly churn prediction + upsell nudges — retain customers before they decide to leave</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CRON</span> Firebase Scheduled Function: Sunday 6am PT, staggered 50 tenants/hour (prevents Sonnet rate limit)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Input per tenant: DAU last 30 days (array), feature tab usage counts, last login date, plan tier, account age, support ticket count</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">PROMPT</span> Output schema: <code>{churnRisk: 0-100, churnReasons[], topFeatures[], underusedFeatures[], recommendedAction, personalizedEmail}</code></li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> <code>churnRisk > 70</code>: send personalized win-back email from <code>noreply@bistrosteward.com</code> ("We noticed you haven't run prep this week — here's a 5-min tip...")</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Pro tenant using Scale features 5+ times → send upgrade nudge email with ROI framing</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">HTML</span> Admin console: "Weekly Intelligence" tab → top 10 churn risks, top 10 power users, feature adoption heatmap</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">MODEL</span> Claude 3.5 Sonnet (~$0.034/tenant/month)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Simulate low-engagement tenant (DAU: 1 day in 30) → churn risk &gt;70 → personalized win-back email received within Sunday cron window. Admin console shows weekly digest.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 20 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 20</span>
+      <span class="day-title">Agent 6: Deployment Agent</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Every deploy automatically validated — bad code never reaches production tenants</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">GHA</span> GitHub Action: <code>.github/workflows/deploy.yml</code> — on push to <code>main</code>, calls Deployment Agent pre-deploy</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Pre-deploy checks: run Cloud Function unit tests, Firestore rules validation (<code>firebase emulators:exec</code>), JS lint pass</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">GHA</span> On checks pass → <code>firebase deploy</code> runs. Deployment Agent receives diff summary (changed functions, hosting files)</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Post-deploy: 5-minute monitoring window — polls error rate in <code>audit_log</code> every 60s. Baseline: pre-deploy error rate</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">CF</span> Auto-rollback: if error rate increases &gt;5% over baseline → <code>firebase hosting:rollback</code> + email you with diff of what was deployed</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">HTML</span> Admin console: "Deploys" tab — last 20 deploys with status (success/rolled-back), error delta, timestamp</li>
+        <li><span class="tag" style="background:#0f2819;color:#3fb950">MODEL</span> Claude 3.5 Haiku for pre-deploy analysis (~$0.02/deploy)</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Push a deliberate syntax error in Cloud Function → GHA blocks deploy, CI red. Push clean code → deploys → 5-min health window passes → "Deploy successful" in admin console.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="milestone" style="background:var(--green-dim);border:1px solid #3fb95044;color:var(--green)">
+    🤖 Phase 4 Complete — All 6 agents live. Platform runs itself: self-monitoring, self-healing, self-selling retention emails, CI/CD protected.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- PHASE 5 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="phase p5">
+  <div class="phase-header">
+    <div class="phase-num">5</div>
+    <div class="phase-meta">
+      <div class="phase-title">PWA, Mobile Polish & App Store</div>
+      <div class="phase-days">Days 21–24 · Per-tenant PWA, offline support, mobile UX, Capacitor shell</div>
+    </div>
+    <div class="phase-badge">MOBILE READY</div>
+  </div>
+
+  <!-- DAY 21 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 21</span>
+      <span class="day-title">Per-Tenant PWA Manifest</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Each restaurant installs their own branded app icon — not a generic "Bistro Steward" icon</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">CF</span> <code>manifestEndpoint</code> Cloud Function: reads <code>tenants/{id}</code> → returns dynamic <code>manifest.json</code> with tenant's restaurant name, theme color</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">APP</span> <code>index.html</code> <code>&lt;link rel="manifest"&gt;</code> → points to <code>/manifest.json</code> served by Cloud Function (not static file)</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">ASSETS</span> Generate default icon set: Bistro Steward logo in 72×72, 96×96, 128×128, 144×144, 152×152, 192×192, 384×384, 512×512, maskable variant</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">APP</span> Install prompt: detect <code>beforeinstallprompt</code> → show non-intrusive banner after 3 sessions "Add to home screen for faster access"</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">APP</span> Standalone mode detection: if <code>display-mode: standalone</code> → hide browser-style back button in nav, expand to full viewport</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">TEST</span> iOS Safari: "Add to Home Screen" → verify restaurant name appears (not "Bistro Steward"), icon shows, app opens in standalone mode</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">LaChona Bistro homescreen icon shows "LaChona Bistro" as app name. New test tenant shows their restaurant name. Standalone mode has no browser chrome.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 22 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 22</span>
+      <span class="day-title">Service Worker + Offline Mode</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Kitchen WiFi drops → app still works with last known data, writes queue until reconnected</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">SW</span> Register <code>sw.js</code> service worker in <code>index.html</code>. Cache strategy: cache-first for all static assets (JS/CSS), network-first for API calls</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">SW</span> App shell cache: store last rendered HTML of all 8 tabs in Cache API on each render</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">APP</span> Offline indicator: listen to <code>window.online/offline</code> events → show amber top bar "Working offline — changes will sync when connected"</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">APP</span> Offline write queue: when <code>queueFirebaseSave()</code> is called while offline → push to <code>offlineQueue[]</code> instead of firing → flush on <code>online</code> event, integrates with existing <code>scheduleSync()</code> flow</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">SW</span> Update notification: new service worker available → banner "Update available — tap to refresh"</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">TEST</span> Chrome DevTools → Network: Offline → refresh app → all 8 tabs still load from cache. Reconnect → pending changes sync automatically.</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Toggle offline in DevTools → app loads from cache. Make a change → visible immediately in UI. Toggle online → change syncs to Firestore within 5 seconds.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 23 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 23</span>
+      <span class="day-title">Mobile UI Polish</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Full kitchen workflow completable on iPhone 14 (390px) held in one hand, no pinching</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">UI</span> Audit all 8 tabs at 390×844 using Chrome DevTools responsive mode — screenshot each tab, list issues</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">UI</span> Tap targets: all buttons/icons below 44px height → bump to <code>min-height: 44px; min-width: 44px</code></li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">UI</span> Inventory table: add horizontal scroll container <code>overflow-x: auto</code>, make first column (ingredient name) sticky via <code>position: sticky; left: 0</code></li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">UI</span> Modals: <code>max-height: 90dvh; overflow-y: auto</code> on modal body — prevents modals taller than screen</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">UI</span> Voice button: move to FAB (floating action button) pattern, fixed <code>bottom: 20px; right: 20px</code>, 56px circle</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">UI</span> Number inputs: add <code>inputmode="decimal"</code> to all qty/cost fields → triggers numeric keyboard on iOS</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">UI</span> Tab bar: on mobile, switch from text tabs to icon+label tabs, fit 4 visible + overflow menu</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Complete workflow on actual iPhone: add ingredient, create recipe, run prep list — no pinching, no horizontal overflow, all taps register correctly.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 24 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 24</span>
+      <span class="day-title">Capacitor Shell — App Store Prep</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Native iOS wrapper ready for TestFlight — App Store presence without rebuilding in React Native</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">CAP</span> <code>mkdir restaurant-oracle-mobile && cd restaurant-oracle-mobile && npm init @capacitor/app .</code></li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">CAP</span> <code>capacitor.config.ts</code>: set <code>appId: 'app.bistrosteward'</code>, <code>appName: 'Bistro Steward'</code>, <code>server.url</code> pointing to tenant's subdomain (read from deep link on launch)</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">CAP</span> <code>npx cap add ios</code> → open Xcode → set bundle ID, team, signing certificate</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">CAP</span> Handle <code>App.addListener('appStateChange')</code>: on resume → call <code>user.getIdToken(true)</code> to refresh auth before Firestore reconnects</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">CAP</span> Deep link: app launched with <code>bistrosteward://login?tenant=slug</code> URL scheme → auto-fills tenant context</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">APPLE</span> Enroll Apple Developer Program ($99/yr) — required for TestFlight + App Store</li>
+        <li><span class="tag" style="background:#2a1600;color:#f0883e">XCODE</span> Archive → TestFlight internal test → install on device, smoke test all 8 tabs</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">App installs via TestFlight. Login works. All 8 tabs functional. Auth token refreshes on app resume. Deep link opens correct tenant.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="milestone" style="background:var(--orange-dim);border:1px solid #f0883e44;color:var(--orange)">
+    📱 Phase 5 Complete — PWA installable. Offline works. Mobile polished. iOS TestFlight live. App Store submission queued.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- PHASE 6 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="phase p6">
+  <div class="phase-header">
+    <div class="phase-num">6</div>
+    <div class="phase-meta">
+      <div class="phase-title">Beta, Load Testing & Launch</div>
+      <div class="phase-days">Days 25–30 · Demo tenant, beta recruitment, load testing, docs, go live</div>
+    </div>
+    <div class="phase-badge">LAUNCH SEQUENCE</div>
+  </div>
+
+  <!-- DAY 25 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 25</span>
+      <span class="day-title">Demo Tenant + Read-Only Mode</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Any prospect can explore a real kitchen without signing up — removes signup friction</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">APP</span> Provision <code>demo.bistrosteward.com</code> with anonymized version of LaChona's real data (rename to "Example Kitchen", remove real costs)</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">CF</span> Demo mode: if <code>tenants/{id}.demoMode === true</code> → all mutating ops return <code>{success: true, demo: true}</code> (no actual write)</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">APP</span> Demo banner: gold bar at top "You're exploring a demo kitchen — data won't save. <u>Start your free kitchen →</u>"</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">APP</span> Session timer: after 20 minutes, show "Enjoying the demo? Your kitchen takes 15 minutes to set up." modal with CTA</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">CRON</span> Daily 2am PT: restore demo data to baseline (prevent vandalism / data drift)</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">LINK</span> Update landing page "Try Free Demo" → now points to live <code>demo.bistrosteward.com</code></li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text"><code>demo.bistrosteward.com</code> loads without login. All 8 tabs browseable. "Save" operations appear to work but nothing persists. Daily reset verified.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 26 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 26</span>
+      <span class="day-title">Beta Recruitment</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: 5 paying beta restaurants onboarded — real usage, real feedback, real social proof</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">OPS</span> Identify 5 target restaurants: indie, 1-3 locations, no existing software OR frustrated with current tool — Portland first, then remote</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">OPS</span> Beta offer: 3 months free Pro ($147 value), exchange: 30-min feedback call + written testimonial + permission to use as case study</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">EMAIL</span> Personalized outreach email: "I built this for my family's restaurant (LaChona Bistro, Portland). Wanted to share it with you..." — attach demo link, LaChona as proof</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">OPS</span> Create beta Slack channel (free): direct line for questions, bug reports, feature requests</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">APP</span> In-app feedback: thumbs up/down on each tab → captured to <code>feedback</code> Firestore collection with tab + timestamp</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">OPS</span> Send 5 invitations. Provision accounts manually for any who accept.</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">5 invitations sent. Target: 2+ accepted by Day 28. At least 1 restaurant actively using within 48 hours of onboarding.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 27 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 27</span>
+      <span class="day-title">Load Testing</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: System handles 50 concurrent users cleanly — know the ceiling before customers find it</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">TEST</span> Artillery.io: <code>npm install -g artillery</code> → write load test config: 10 virtual users ramp to 50 over 5 minutes, each maintaining a session for 10 minutes</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">TEST</span> Firestore listener load: 50 concurrent users × 15 listeners = 750 simultaneous <code>onSnapshot</code> connections — verify no throttling</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">TEST</span> Cloud Function throughput: burst 200 <code>secureApi</code> calls in 30 seconds — measure p50/p95/p99 latency, cold start count</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">TEST</span> Gemini voice endpoint: 10 concurrent voice requests — verify rate limit (60 req/min free tier) triggers graceful error, not crash</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">FIX</span> Address any bottlenecks: cold start → bump min instances to 1, latency spikes → add composite Firestore indexes, Gemini limit → add queue/backoff</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">THRESHOLD</span> Target: p95 latency &lt;800ms for all ops, zero crashes at 50 concurrent users</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Artillery report: 50 concurrent users sustained for 10 min. p95 &lt;800ms. Zero 5xx errors. Load test report saved. Gemini rate limit shows 429 + graceful degradation (not crash).</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 28 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 28</span>
+      <span class="day-title">Documentation + Legal</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: Self-serve — no human needed for any standard question. Legal baseline in place before live payments.</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">DOCS</span> Help center at <code>help.bistrosteward.com</code>: 30 articles across 3 sections (Getting Started, Kitchen Management, Account &amp; Billing) — use Notion public or simple static HTML</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">DOCS</span> Quickstart guide: "15 minutes to your first recipe costed" — 5 numbered steps with screenshots</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">VIDEO</span> Screen-record 3-minute walkthrough using LaChona's kitchen (real workflow: add inventory → create recipe → see cost %) → upload to YouTube unlisted → embed on landing page</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">LEGAL</span> Privacy Policy: adapt standard SaaS template — key clauses: data owned by restaurant, no selling to third parties, GDPR deletion on request, Firestore as data processor</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">LEGAL</span> Terms of Service: subscription terms, refund policy (pro-rated), SLA (99% uptime), acceptable use</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">DOCS</span> Link Privacy Policy + ToS in landing page footer, signup flow, and app settings</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Help center live. Quickstart video embedded on landing page. Privacy Policy + ToS linked from signup flow. Support agent seeded with help article content.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 29 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 29</span>
+      <span class="day-title">Soft Launch — Stripe Live Mode</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: System taking real payments, funnel validated — quiet launch before amplification</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">STRIPE</span> Switch all Stripe keys from test → live mode in Firebase Functions config. Verify live webhook endpoint registered in Stripe dashboard.</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">DNS</span> Final DNS audit: all subdomains resolving (<code>bistrosteward.com</code>, <code>demo.*</code>, <code>admin.*</code>, <code>help.*</code>). SSL green on all.</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">MONITOR</span> Sentry integration in Cloud Functions: <code>npm install @sentry/node</code> → wrap all function handlers → unhandled errors alert you via email</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">ANALYTICS</span> Add Plausible Analytics to landing page + <code>setup.html</code> — track: page views, signup clicks, checkout starts, checkout completions (funnel)</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">SMOKE</span> Run complete end-to-end as a real customer using a real credit card: browse landing → signup Pro → onboard → use app → access billing portal → cancel → receive data export</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">DRAFT</span> ProductHunt submission draft: title "Bistro Steward", tagline, description, media (screenshots + demo video) — do NOT submit yet</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">Real $49 Pro charge processed. Tenant provisioned. Full workflow works. Sentry receiving events. ProductHunt draft complete. System is live.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 30 -->
+  <div class="day-card">
+    <div class="day-header">
+      <span class="day-num">DAY 30</span>
+      <span class="day-title">Launch Day</span>
+    </div>
+    <div class="day-body">
+      <div class="goal-box">Goal: First 20 paying customers. The system was built for one person to run — today that starts.</div>
+      <ul class="tasks">
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">PH</span> Submit to ProductHunt at 12:01am PT (Tuesday or Wednesday — highest traffic days)</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">REDDIT</span> Post in r/restaurantowners: "I built kitchen management software for my mom's Argentine restaurant. Now it's for yours." — honest founder story, demo link, offer 1 month free for redditors</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">SOCIAL</span> LinkedIn post: "We've been running LaChona Bistro's kitchen on this for [X] months. Cut food cost 8%. Here's the link." — tag Portland food scene accounts</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">EMAIL</span> Cold email: 50 independent Portland restaurants sourced from Yelp/Google Maps — personal, 3 sentences, demo link, no attachments</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">OUTREACH</span> DM 10 food/restaurant industry newsletter writers — pitch "indie founder built kitchen software for family restaurant, now going SaaS"</li>
+        <li><span class="tag" style="background:#2a0e0e;color:#f85149">MONITOR</span> Watch admin console all day: signups, onboarding completions, support tickets, payment failures — respond to everything within 1 hour</li>
+      </ul>
+      <div class="deliverable">
+        <span class="deliverable-icon">✓</span>
+        <span class="deliverable-text">ProductHunt live. 50 cold emails sent. Monitoring dashboard open. Target: 5 signups by end of day, 20 by end of week.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="milestone" style="background:var(--red-dim);border:1px solid #f8514944;color:var(--red)">
+    🚀 Phase 6 Complete — Bistro Steward SaaS is live. Payments processing. Agents running. You are a solo SaaS operator.
+  </div>
+</div>
+
+<!-- ── CRITICAL PATH SUMMARY ── -->
+<div style="margin-top:48px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;">
+  <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text)">Critical Path — These Block Everything After Them</h3>
+  <div style="display:grid;gap:8px;">
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--purple);background:var(--purple-dim);padding:2px 8px;border-radius:3px;white-space:nowrap">DAY 1</span>
+      <span>Multi-tenant Firestore rules — must land before any Cloud Function refactor</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--purple);background:var(--purple-dim);padding:2px 8px;border-radius:3px;white-space:nowrap">DAY 3</span>
+      <span>Domain + wildcard SSL — must be live before you can test subdomain routing</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--blue);background:var(--blue-dim);padding:2px 8px;border-radius:3px;white-space:nowrap">DAY 6</span>
+      <span>Provisioning Engine — Stripe webhook is useless without this completing successfully</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--blue);background:var(--blue-dim);padding:2px 8px;border-radius:3px;white-space:nowrap">DAY 7</span>
+      <span>Signup flow end-to-end — everything customer-facing depends on this working</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);background:var(--green-dim);padding:2px 8px;border-radius:3px;white-space:nowrap">DAY 14</span>
+      <span>Agent framework — all 6 agents depend on shared client, logger, and scheduler</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);background:var(--red-dim);padding:2px 8px;border-radius:3px;white-space:nowrap">DAY 29</span>
+      <span>Stripe live mode switch — do NOT do this before full smoke test with real card passes</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── WHAT YOU NEED TO BUY ── -->
+<div style="margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;">
+  <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text)">Required Purchases Before Day 1</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="border-bottom:1px solid var(--border);">
+        <th style="text-align:left;padding:8px 0;color:var(--muted);font-weight:500">Item</th>
+        <th style="text-align:right;padding:8px 0;color:var(--muted);font-weight:500">Cost</th>
+        <th style="text-align:right;padding:8px 0;color:var(--muted);font-weight:500">When</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #21262d"><td style="padding:8px 0"><code>bistrosteward.com</code> domain</td><td style="text-align:right">$12/yr</td><td style="text-align:right;color:var(--muted)">Day 3</td></tr>
+      <tr style="border-bottom:1px solid #21262d"><td style="padding:8px 0">Apple Developer Account (TestFlight + App Store)</td><td style="text-align:right">$99/yr</td><td style="text-align:right;color:var(--muted)">Day 24</td></tr>
+      <tr style="border-bottom:1px solid #21262d"><td style="padding:8px 0">Anthropic API credits (Claude agents)</td><td style="text-align:right">$20 prepay</td><td style="text-align:right;color:var(--muted)">Day 14</td></tr>
+      <tr style="border-bottom:1px solid #21262d"><td style="padding:8px 0">Sentry error monitoring (free tier sufficient)</td><td style="text-align:right">$0</td><td style="text-align:right;color:var(--muted)">Day 29</td></tr>
+      <tr><td style="padding:8px 0">Plausible Analytics (privacy-first)</td><td style="text-align:right">$9/mo</td><td style="text-align:right;color:var(--muted)">Day 29</td></tr>
+    </tbody>
+    <tfoot>
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:8px 0;font-weight:600">Total upfront</td>
+        <td style="text-align:right;font-weight:600;color:var(--green)">$140</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+</div><!-- /container -->
+
+<script>
+  // Make day cards expandable/collapsible
+  document.querySelectorAll('.day-header').forEach(header => {
+    const body = header.nextElementSibling;
+    // Start all expanded
+    header.addEventListener('click', () => {
+      const isOpen = body.style.display !== 'none';
+      body.style.display = isOpen ? 'none' : 'block';
+      header.style.borderBottom = isOpen ? 'none' : '';
+    });
+  });
+</script>
+</body>
+</html>

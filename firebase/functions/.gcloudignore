@@ -1,0 +1,24 @@
+# Keep deploy bundle small + free of test code.
+# .gcloudignore must NOT exclude .js source files that index.js requires
+# at runtime — `billing-state.js` (and any future siblings) MUST ship.
+
+# Default firebase tooling ignores
+.git
+.gitignore
+node_modules
+firebase-debug.log
+firebase-debug.*.log
+.firebase
+
+# Local dev / test artifacts
+_test_*.js
+__tests__
+*.test.js
+*.spec.js
+coverage
+.nyc_output
+
+# Editor / OS
+.DS_Store
+.vscode
+.idea

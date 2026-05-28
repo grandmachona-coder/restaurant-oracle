@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bistro Steward Audit Pass A — Visual Explainer</title>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --card: #131820;
+    --border: #1e2a3a;
+    --text: #e0e8f0;
+    --muted: #5a6a7a;
+    --dim: #3a4a5a;
+    --green: #00e676;
+    --red: #ff1744;
+    --yellow: #ffd600;
+    --ghost: #546e7a;
+    --blue: #40c4ff;
+    --purple: #bb86fc;
+    --orange: #ff9100;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    padding: 30px 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  h1 .pop-green { color: var(--green); }
+  h1 .pop-yellow { color: var(--yellow); }
+  h1 .pop-red { color: var(--red); }
+  .hero-sub {
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 1rem;
+  }
+
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .toc-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 8px 20px;
+  }
+  .toc-item {
+    color: var(--text);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .toc-num {
+    color: var(--muted);
+    font-weight: 700;
+    width: 26px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 40px 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-icon { font-size: 1.6rem; }
+  .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .section-desc {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-left: auto;
+  }
+
+  .seq {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px 18px 24px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .seq::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .seq.frontend::before { background: var(--blue); }
+  .seq.security::before { background: var(--red); }
+  .seq.auth::before { background: var(--purple); }
+  .seq.pwa::before { background: var(--orange); }
+  .seq.migration::before { background: var(--yellow); }
+  .seq.indexes::before { background: var(--green); }
+
+  .seq-num {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--dim);
+    opacity: 0.35;
+    line-height: 1;
+  }
+  .seq-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 10px;
+  }
+  .tag-frontend { background: rgba(64,196,255,0.15); color: var(--blue); }
+  .tag-security { background: rgba(255,23,68,0.15); color: var(--red); }
+  .tag-auth { background: rgba(187,134,252,0.15); color: var(--purple); }
+  .tag-pwa { background: rgba(255,145,0,0.15); color: var(--orange); }
+  .tag-migration { background: rgba(255,214,0,0.15); color: var(--yellow); }
+  .tag-indexes { background: rgba(0,230,118,0.15); color: var(--green); }
+
+  .seq-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .seq-subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+  }
+
+  .steps {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    padding: 6px 0 18px 0;
+  }
+  .step {
+    flex-shrink: 0;
+    width: 168px;
+    margin-right: 36px;
+    position: relative;
+    text-align: center;
+  }
+  .step:last-child { margin-right: 0; }
+  .step:not(:last-child)::after {
+    content: '▶';
+    position: absolute;
+    right: -28px;
+    top: 60px;
+    color: var(--dim);
+    font-size: 1.1rem;
+  }
+
+  .step-num-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: var(--bg);
+    font-weight: 800;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 6px auto;
+  }
+  .snb-1 { background: var(--blue); }
+  .snb-2 { background: var(--yellow); color: var(--bg); }
+  .snb-3 { background: var(--orange); color: var(--bg); }
+  .snb-4 { background: var(--purple); color: var(--bg); }
+  .snb-5 { background: var(--green); color: var(--bg); }
+  .snb-6 { background: var(--red); color: white; }
+
+  .mini-chart {
+    width: 150px;
+    height: 120px;
+    background: #0d1218;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    margin: 0 auto 8px auto;
+    overflow: hidden;
+  }
+  .chart-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-bug { background: rgba(255,23,68,0.2); color: var(--red); }
+  .badge-fix { background: rgba(0,230,118,0.2); color: var(--green); }
+  .badge-warn { background: rgba(255,214,0,0.2); color: var(--yellow); }
+  .badge-info { background: rgba(64,196,255,0.2); color: var(--blue); }
+  .badge-state { background: rgba(187,134,252,0.2); color: var(--purple); }
+
+  .chart-icon {
+    position: absolute;
+    font-size: 2.4rem;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -45%);
+  }
+  .chart-text {
+    position: absolute;
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-align: center;
+    width: 100%;
+    bottom: 10px;
+  }
+  .chart-line {
+    position: absolute;
+    height: 1px;
+    background: var(--dim);
+  }
+  .chart-pill {
+    position: absolute;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.55rem;
+    font-weight: 700;
+  }
+
+  .step-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.25;
+    min-height: 2.4em;
+  }
+  .step-detail {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.3;
+    font-family: 'SF Mono', Menlo, monospace;
+  }
+
+  .outcome {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-size: 0.88rem;
+  }
+  .outcome-fixed {
+    background: rgba(0,230,118,0.08);
+    border: 1px solid rgba(0,230,118,0.4);
+    color: var(--green);
+  }
+  .outcome-hardened {
+    background: rgba(187,134,252,0.08);
+    border: 1px solid rgba(187,134,252,0.4);
+    color: var(--purple);
+  }
+  .outcome-warn {
+    background: rgba(255,214,0,0.08);
+    border: 1px solid rgba(255,214,0,0.4);
+    color: var(--yellow);
+  }
+  .outcome strong { color: inherit; }
+  .outcome-icon { font-size: 1.4rem; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .summary-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .summary-card.before h3 { color: var(--red); }
+  .summary-card.after h3 { color: var(--green); }
+  .summary-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .summary-card li {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+    display: flex;
+    gap: 8px;
+  }
+  .summary-card li:last-child { border-bottom: none; }
+  .summary-card li::before {
+    content: '•';
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .insight {
+    background: linear-gradient(135deg, rgba(64,196,255,0.08), rgba(187,134,252,0.08));
+    border: 1px solid var(--purple);
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin-top: 20px;
+    text-align: center;
+  }
+  .insight-label {
+    color: var(--purple);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .insight-text {
+    font-size: 1.1rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .insight-text .h { color: var(--green); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1><span class="pop-yellow">Bistro Steward</span> Audit Pass A — <span class="pop-green">~50 bugs squashed</span></h1>
+<p class="hero-sub">Seven parallel auditor agents. Six batches of fixes. One commit (5f28d40). Story below.</p>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-title">All 14 Sequences</div>
+  <div class="toc-grid">
+    <div class="toc-item"><span class="toc-num">1.</span><span class="toc-dot" style="background:var(--blue)"></span>Toast that nobody could see</div>
+    <div class="toc-item"><span class="toc-num">2.</span><span class="toc-dot" style="background:var(--blue)"></span>"First user becomes owner" trap</div>
+    <div class="toc-item"><span class="toc-num">3.</span><span class="toc-dot" style="background:var(--blue)"></span>Conversions vanish on next reload</div>
+    <div class="toc-item"><span class="toc-num">4.</span><span class="toc-dot" style="background:var(--blue)"></span>nid collision after import</div>
+    <div class="toc-item"><span class="toc-num">5.</span><span class="toc-dot" style="background:var(--red)"></span>Gemini call hangs forever</div>
+    <div class="toc-item"><span class="toc-num">6.</span><span class="toc-dot" style="background:var(--red)"></span>e.message leaks to client</div>
+    <div class="toc-item"><span class="toc-num">7.</span><span class="toc-dot" style="background:var(--red)"></span>deprovisionTenant suspends wrong tenant</div>
+    <div class="toc-item"><span class="toc-num">8.</span><span class="toc-dot" style="background:var(--purple)"></span>Stale token bypasses approval</div>
+    <div class="toc-item"><span class="toc-num">9.</span><span class="toc-dot" style="background:var(--purple)"></span>Signout leaves data behind</div>
+    <div class="toc-item"><span class="toc-num">10.</span><span class="toc-dot" style="background:var(--purple)"></span>Wrong claim key skips super-admin</div>
+    <div class="toc-item"><span class="toc-num">11.</span><span class="toc-dot" style="background:var(--orange)"></span>Offline app fallback misses</div>
+    <div class="toc-item"><span class="toc-num">12.</span><span class="toc-dot" style="background:var(--orange)"></span>PWA install icon wrong size</div>
+    <div class="toc-item"><span class="toc-num">13.</span><span class="toc-dot" style="background:var(--yellow)"></span>Migration script needs SA key</div>
+    <div class="toc-item"><span class="toc-num">14.</span><span class="toc-dot" style="background:var(--yellow)"></span>Re-run breaks tenant doc</div>
+  </div>
+</div>
+
+<!-- ─────────── FRONTEND ─────────── -->
+<div class="section-header">
+  <span class="section-icon">🖥️</span>
+  <h2>Frontend State Bugs</h2>
+  <span class="section-desc">index.html — what users actually saw break</span>
+</div>
+
+<!-- SEQ 1 -->
+<div class="seq frontend">
+  <div class="seq-num">1</div>
+  <div class="seq-title"><span class="seq-tag tag-frontend">FRONTEND</span>Toast that nobody could see</div>
+  <div class="seq-subtitle">User triggers action → toast fires with old class name → CSS finds no match → message invisible.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">CALL</div>
+        <div class="chart-icon">📞</div>
+      </div>
+      <div class="step-label">Code calls toast</div>
+      <div class="step-detail">showToast('Saved!', 'ok')</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">BUG</div>
+        <div class="chart-icon">❓</div>
+        <div class="chart-text">.toast-ok ❌</div>
+      </div>
+      <div class="step-label">CSS class missing</div>
+      <div class="step-detail">CSS only knows .toast-success</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">GHOST</div>
+        <div class="chart-icon" style="opacity:0.3">👻</div>
+      </div>
+      <div class="step-label">Toast invisible</div>
+      <div class="step-detail">User sees nothing. Confused.</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">FIX</div>
+        <div class="chart-icon">🔄</div>
+        <div class="chart-text">'ok' → 'success'</div>
+      </div>
+      <div class="step-label">Normalize at entry</div>
+      <div class="step-detail">index.html:532 mapping shim</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> Legacy 'err'/'ok'/'warn' callers now map to 'error'/'success'/'warning' before render. Old code keeps working.</div>
+  </div>
+</div>
+
+<!-- SEQ 2 -->
+<div class="seq frontend">
+  <div class="seq-num">2</div>
+  <div class="seq-title"><span class="seq-tag tag-frontend">FRONTEND</span>"First user becomes owner" trap</div>
+  <div class="seq-subtitle">New user signs up → no role yet → fallback says "owner" → privilege escalation in multi-tenant land.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">USER</div>
+        <div class="chart-icon">👤</div>
+      </div>
+      <div class="step-label">Brand-new user</div>
+      <div class="step-detail">No role claim yet</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">BUG</div>
+        <div class="chart-icon">👑</div>
+        <div class="chart-text">return 'owner'</div>
+      </div>
+      <div class="step-label">Fallback gives crown</div>
+      <div class="step-detail">getCurrentUserRole():615</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">RISK</div>
+        <div class="chart-icon">🚨</div>
+        <div class="chart-text">writes allowed</div>
+      </div>
+      <div class="step-label">Owner powers granted</div>
+      <div class="step-detail">Pre approved-emails seed</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">FIX</div>
+        <div class="chart-icon">🛡️</div>
+        <div class="chart-text">→ 'employee'</div>
+      </div>
+      <div class="step-label">Default to least-priv</div>
+      <div class="step-detail">Owner only via real claim</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> No more bootstrap "first user = owner". Role comes from server JWT claim only.</div>
+  </div>
+</div>
+
+<!-- SEQ 3 -->
+<div class="seq frontend">
+  <div class="seq-num">3</div>
+  <div class="seq-title"><span class="seq-tag tag-frontend">FRONTEND</span>Conversions vanish on next reload</div>
+  <div class="seq-subtitle">User adds unit conversion → state mutates → never marked dirty → never synced to Firestore → reload = gone.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">ADD</div>
+        <div class="chart-icon">➕</div>
+        <div class="chart-text">1 cup = 16 tbsp</div>
+      </div>
+      <div class="step-label">Add conversion</div>
+      <div class="step-detail">D.conversions.push(...)</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">SKIP</div>
+        <div class="chart-icon">⏭️</div>
+        <div class="chart-text">no markChanged</div>
+      </div>
+      <div class="step-label">No dirty flag</div>
+      <div class="step-detail">3 sites: 3328, 3347, 3362</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">RAM</div>
+        <div class="chart-icon">💾</div>
+        <div class="chart-text">memory only</div>
+      </div>
+      <div class="step-label">Lives in browser RAM</div>
+      <div class="step-detail">scheduleSync never called</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-6">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">LOSS</div>
+        <div class="chart-icon">💨</div>
+        <div class="chart-text">refresh = gone</div>
+      </div>
+      <div class="step-label">User reloads. Wiped.</div>
+      <div class="step-detail">Firestore never knew</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">5</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">FIX</div>
+        <div class="chart-icon">📌</div>
+        <div class="chart-text">markChanged()</div>
+      </div>
+      <div class="step-label">Mark + schedule</div>
+      <div class="step-detail">Now persists per push</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> All 3 D.conversions.push sites capture newConvId and call markChanged('conversions', newConvId).</div>
+  </div>
+</div>
+
+<!-- SEQ 4 -->
+<div class="seq frontend">
+  <div class="seq-num">4</div>
+  <div class="seq-title"><span class="seq-tag tag-frontend">FRONTEND</span>nid collision after import</div>
+  <div class="seq-subtitle">Excel import loads ids 1-200 into D.conversions → updateNextId scans only old arrays → next nid = 50 → boom, dup.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">IMPORT</div>
+        <div class="chart-icon">📥</div>
+        <div class="chart-text">ids 1..200</div>
+      </div>
+      <div class="step-label">Bulk Excel import</div>
+      <div class="step-detail">D.conversions, D.log filled</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">SKIP</div>
+        <div class="chart-icon">🔍</div>
+        <div class="chart-text">arr scan misses 3</div>
+      </div>
+      <div class="step-label">updateNextId blind</div>
+      <div class="step-detail">Did not scan conversions/log/users</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">DUP</div>
+        <div class="chart-icon">⚠️</div>
+        <div class="chart-text">nid = 50</div>
+      </div>
+      <div class="step-label">nid lower than max</div>
+      <div class="step-detail">Next insert collides</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">FIX</div>
+        <div class="chart-icon">🧮</div>
+        <div class="chart-text">scan all 15</div>
+      </div>
+      <div class="step-label">Full collision scan</div>
+      <div class="step-detail">+conversions, log, users</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> updateNextId now walks every D.* array including conversions, log, users — nid = max(all ids) + 1.</div>
+  </div>
+</div>
+
+<!-- ─────────── BACKEND SECURITY ─────────── -->
+<div class="section-header">
+  <span class="section-icon">🔒</span>
+  <h2>Backend Security</h2>
+  <span class="section-desc">firebase/functions/index.js — server-side hardening</span>
+</div>
+
+<!-- SEQ 5 -->
+<div class="seq security">
+  <div class="seq-num">5</div>
+  <div class="seq-title"><span class="seq-tag tag-security">SECURITY</span>Gemini call hangs forever</div>
+  <div class="seq-subtitle">User submits voice/scan/insight → Gemini API stalls → no timeout → function ties up until cold-start cap → cost + tail latency.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">CALL</div>
+        <div class="chart-icon">🎤</div>
+        <div class="chart-text">voice / scan / AI</div>
+      </div>
+      <div class="step-label">User asks AI</div>
+      <div class="step-detail">3 entry points</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">WAIT</div>
+        <div class="chart-icon">⏳</div>
+        <div class="chart-text">no timeout</div>
+      </div>
+      <div class="step-label">await with no clock</div>
+      <div class="step-detail">model.generateContent(...)</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">HUNG</div>
+        <div class="chart-icon">💸</div>
+        <div class="chart-text">540s burn</div>
+      </div>
+      <div class="step-label">Function caps out</div>
+      <div class="step-detail">Bill = full cold-start cap</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">RACE</div>
+        <div class="chart-icon">⏱️</div>
+        <div class="chart-text">withTimeout()</div>
+      </div>
+      <div class="step-label">Promise.race timer</div>
+      <div class="step-detail">20s voice / 45s scan / 25s AI</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">5</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">504</div>
+        <div class="chart-icon">📤</div>
+        <div class="chart-text">e.code TIMEOUT</div>
+      </div>
+      <div class="step-label">Clean 504 to user</div>
+      <div class="step-detail">Logged to geminiUsage</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> Helper at index.js:385. All 3 sites wrapped (871/1044/1480). Errors classified as 'timeout' / 'rate_limit' / 'gemini_error'.</div>
+  </div>
+</div>
+
+<!-- SEQ 6 -->
+<div class="seq security">
+  <div class="seq-num">6</div>
+  <div class="seq-title"><span class="seq-tag tag-security">SECURITY</span>e.message leaks to client</div>
+  <div class="seq-subtitle">Square API fails → catch block returns 'X failed: ' + e.message → stack trace details land in JSON response → info disclosure.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">CALL</div>
+        <div class="chart-icon">💳</div>
+        <div class="chart-text">Square refund</div>
+      </div>
+      <div class="step-label">Super-admin op</div>
+      <div class="step-detail">refund / cancel / revoke</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">FAIL</div>
+        <div class="chart-icon">💥</div>
+        <div class="chart-text">throw e</div>
+      </div>
+      <div class="step-label">Upstream errors</div>
+      <div class="step-detail">e.message has internals</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">LEAK</div>
+        <div class="chart-icon">📰</div>
+        <div class="chart-text">+ e.message</div>
+      </div>
+      <div class="step-label">Raw msg in JSON body</div>
+      <div class="step-detail">9 sites, all visible</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">SCRUB</div>
+        <div class="chart-icon">🧼</div>
+        <div class="chart-text">generic msg</div>
+      </div>
+      <div class="step-label">Sanitize response</div>
+      <div class="step-detail">'Square cancel failed'</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">5</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">LOG</div>
+        <div class="chart-icon">📜</div>
+        <div class="chart-text">console.error</div>
+      </div>
+      <div class="step-label">Detail stays server-side</div>
+      <div class="step-detail">e.message → console only</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> 9 sites scrubbed: 3071, 4174, 4208, 4221, 4233, 4256, 4296, 5217, 5268. Operators still see detail in Cloud Logs.</div>
+  </div>
+</div>
+
+<!-- SEQ 7 -->
+<div class="seq security">
+  <div class="seq-num">6</div>
+  <div class="seq-title"><span class="seq-tag tag-security">SECURITY</span>deprovisionTenant suspends wrong tenant</div>
+  <div class="seq-subtitle">Super-admin call with empty body → fallback to caller's token tenantId → suspends their HOME tenant by accident.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">CALL</div>
+        <div class="chart-icon">🔧</div>
+        <div class="chart-text">deprovisionTenant</div>
+      </div>
+      <div class="step-label">Super-admin acts</div>
+      <div class="step-detail">Forgot body.tenantId</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">FALL</div>
+        <div class="chart-icon">↩️</div>
+        <div class="chart-text">|| tenantId</div>
+      </div>
+      <div class="step-label">Fallback to token</div>
+      <div class="step-detail">Caller's home tenant</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">SUSP</div>
+        <div class="chart-icon">⛔</div>
+        <div class="chart-text">status:suspended</div>
+      </div>
+      <div class="step-label">Wrong tenant down</div>
+      <div class="step-detail">Cascading user lockout</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">REQ</div>
+        <div class="chart-icon">📋</div>
+        <div class="chart-text">400 if missing</div>
+      </div>
+      <div class="step-label">Require body explicit</div>
+      <div class="step-detail">+ 404 if not exists</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> Empty body now returns 400. Missing tenant returns 404. No more silent self-suspend.</div>
+  </div>
+</div>
+
+<!-- ─────────── AUTH ─────────── -->
+<div class="section-header">
+  <span class="section-icon">🔐</span>
+  <h2>Auth & Multi-Tenant</h2>
+  <span class="section-desc">app.html / admin.html / super-admin.html</span>
+</div>
+
+<!-- SEQ 8 -->
+<div class="seq auth">
+  <div class="seq-num">8</div>
+  <div class="seq-title"><span class="seq-tag tag-auth">AUTH</span>Stale token bypasses approval</div>
+  <div class="seq-subtitle">Owner approves user → claim flips approved:true → user's browser still has old token → app trusts cached approved:false.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">JOIN</div>
+        <div class="chart-icon">🙋</div>
+        <div class="chart-text">approved:false</div>
+      </div>
+      <div class="step-label">User signs up</div>
+      <div class="step-detail">Pending owner approval</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-state">CLAIM</div>
+        <div class="chart-icon">🔄</div>
+        <div class="chart-text">→ true</div>
+      </div>
+      <div class="step-label">Owner approves</div>
+      <div class="step-detail">setCustomUserClaims</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">CACHE</div>
+        <div class="chart-icon">💤</div>
+        <div class="chart-text">old token</div>
+      </div>
+      <div class="step-label">Browser still cached</div>
+      <div class="step-detail">getIdTokenResult() no refresh</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">FORCE</div>
+        <div class="chart-icon">🔃</div>
+        <div class="chart-text">true flag</div>
+      </div>
+      <div class="step-label">Force refresh</div>
+      <div class="step-detail">getIdTokenResult(true)</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">5</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">GATE</div>
+        <div class="chart-icon">🚪</div>
+        <div class="chart-text">approved===true</div>
+      </div>
+      <div class="step-label">Block if still false</div>
+      <div class="step-detail">App entry guarded</div>
+    </div>
+  </div>
+  <div class="outcome outcome-hardened">
+    <span class="outcome-icon">🛡️</span>
+    <div><strong>HARDENED.</strong> Token re-fetched every auth state change. App-entry gate denies if approved !== true (super-admin bypass via camelCase superAdmin claim).</div>
+  </div>
+</div>
+
+<!-- SEQ 9 -->
+<div class="seq auth">
+  <div class="seq-num">9</div>
+  <div class="seq-title"><span class="seq-tag tag-auth">AUTH</span>Signout leaves data behind</div>
+  <div class="seq-subtitle">External signout (token revoked) skips reload → D.* arrays still in memory → next account-switch sees prior tenant data.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">USER</div>
+        <div class="chart-icon">🚪</div>
+        <div class="chart-text">tenant A signed in</div>
+      </div>
+      <div class="step-label">Active session</div>
+      <div class="step-detail">D.ings, D.inv full</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">REVOKE</div>
+        <div class="chart-icon">🚨</div>
+        <div class="chart-text">token killed</div>
+      </div>
+      <div class="step-label">Server revokes</div>
+      <div class="step-detail">No location.reload()</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">LEAK</div>
+        <div class="chart-icon">👁️</div>
+        <div class="chart-text">D.* still set</div>
+      </div>
+      <div class="step-label">RAM holds prior tenant</div>
+      <div class="step-detail">Next user can see flash</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">CLEAR</div>
+        <div class="chart-icon">🧹</div>
+        <div class="chart-text">D=[] IDX.clear</div>
+      </div>
+      <div class="step-label">Wipe all state</div>
+      <div class="step-detail">External signout branch</div>
+    </div>
+  </div>
+  <div class="outcome outcome-hardened">
+    <span class="outcome-icon">🛡️</span>
+    <div><strong>HARDENED.</strong> External signout now zeros D.ings/inv/areas/recs and IDX.clear() before showing login. Super-admin path forces location.reload().</div>
+  </div>
+</div>
+
+<!-- SEQ 10 -->
+<div class="seq auth">
+  <div class="seq-num">10</div>
+  <div class="seq-title"><span class="seq-tag tag-auth">AUTH</span>Wrong claim key skips super-admin</div>
+  <div class="seq-subtitle">Initial fix tested with `super_admin` snake_case → Functions actually emits camelCase `superAdmin` boolean → real super-admins denied.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">CHECK</div>
+        <div class="chart-icon">🔑</div>
+        <div class="chart-text">isSuper?</div>
+      </div>
+      <div class="step-label">Admin gate runs</div>
+      <div class="step-detail">admin.html load</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">MISS</div>
+        <div class="chart-icon">❌</div>
+        <div class="chart-text">super_admin</div>
+      </div>
+      <div class="step-label">Wrong key tested</div>
+      <div class="step-detail">snake_case never set</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">DENY</div>
+        <div class="chart-icon">🛑</div>
+        <div class="chart-text">gate-not-owner</div>
+      </div>
+      <div class="step-label">Real super-admin blocked</div>
+      <div class="step-detail">Cannot reach console</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">BOTH</div>
+        <div class="chart-icon">🎯</div>
+        <div class="chart-text">superAdmin || role</div>
+      </div>
+      <div class="step-label">Check both keys</div>
+      <div class="step-detail">camelCase bool + snake role</div>
+    </div>
+  </div>
+  <div class="outcome outcome-hardened">
+    <span class="outcome-icon">🛡️</span>
+    <div><strong>HARDENED.</strong> isSuper = claims.superAdmin === true || claims.role === 'super_admin'. Matches what Functions actually writes.</div>
+  </div>
+</div>
+
+<!-- ─────────── PWA ─────────── -->
+<div class="section-header">
+  <span class="section-icon">📱</span>
+  <h2>PWA / Service Worker</h2>
+  <span class="section-desc">sw.js / manifest.json / posthog-init.js</span>
+</div>
+
+<!-- SEQ 11 -->
+<div class="seq pwa">
+  <div class="seq-num">11</div>
+  <div class="seq-title"><span class="seq-tag tag-pwa">PWA</span>Offline app fallback misses</div>
+  <div class="seq-subtitle">User goes offline mid-session → SW falls back to /app.html → /app.html never precached → match fails → blank screen.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">NAV</div>
+        <div class="chart-icon">🌐</div>
+        <div class="chart-text">offline navigate</div>
+      </div>
+      <div class="step-label">Offline page request</div>
+      <div class="step-detail">network fails</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">FALL</div>
+        <div class="chart-icon">↩️</div>
+        <div class="chart-text">match('/app.html')</div>
+      </div>
+      <div class="step-label">SW fallback runs</div>
+      <div class="step-detail">sw.js:79</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">EMPTY</div>
+        <div class="chart-icon">⬜</div>
+        <div class="chart-text">cache miss</div>
+      </div>
+      <div class="step-label">Not in PRECACHE</div>
+      <div class="step-detail">Blank/error screen</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">PIN</div>
+        <div class="chart-icon">📌</div>
+        <div class="chart-text">+ /app.html</div>
+      </div>
+      <div class="step-label">Add to PRECACHE</div>
+      <div class="step-detail">sw.js:22, bump v2-2026-05-14</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> /app.html precached on install. VERSION bumped to drop old caches. Hard refresh required after deploy.</div>
+  </div>
+</div>
+
+<!-- SEQ 12 -->
+<div class="seq pwa">
+  <div class="seq-num">12</div>
+  <div class="seq-title"><span class="seq-tag tag-pwa">PWA</span>PWA install icon wrong size</div>
+  <div class="seq-subtitle">Android install prompt looks for 192x192 icon → manifest declares only 512x512 → upscaled blur OR install denied.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">INSTALL</div>
+        <div class="chart-icon">📲</div>
+        <div class="chart-text">"Add to home"</div>
+      </div>
+      <div class="step-label">Android prompt</div>
+      <div class="step-detail">Wants 192px icon</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">ONE</div>
+        <div class="chart-icon">🖼️</div>
+        <div class="chart-text">512x512 only</div>
+      </div>
+      <div class="step-label">Manifest underspec</div>
+      <div class="step-detail">Single entry, any/maskable</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">BLUR</div>
+        <div class="chart-icon">😵</div>
+        <div class="chart-text">downscaled</div>
+      </div>
+      <div class="step-label">Blurry home icon</div>
+      <div class="step-detail">Or install denied entirely</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">3X</div>
+        <div class="chart-icon">🎨</div>
+        <div class="chart-text">192 + 512 + mask</div>
+      </div>
+      <div class="step-label">Three icon entries</div>
+      <div class="step-detail">scope:/, start:/app.html</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> manifest now has 192x192 + 512x512 + maskable variant. start_url set to /app.html so PWA opens authenticated app, not landing.</div>
+  </div>
+</div>
+
+<!-- ─────────── MIGRATION ─────────── -->
+<div class="section-header">
+  <span class="section-icon">⚙️</span>
+  <h2>Migration & Admin Scripts</h2>
+  <span class="section-desc">migrate-to-multitenant.js / scripts/*</span>
+</div>
+
+<!-- SEQ 13 -->
+<div class="seq migration">
+  <div class="seq-num">13</div>
+  <div class="seq-title"><span class="seq-tag tag-migration">MIGRATION</span>Migration script needs SA key</div>
+  <div class="seq-subtitle">Operator runs migrate → script tries gcp-key.json → org policy blocks SA keys → script crashes before any work.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">RUN</div>
+        <div class="chart-icon">▶️</div>
+        <div class="chart-text">node migrate-...</div>
+      </div>
+      <div class="step-label">Operator runs script</div>
+      <div class="step-detail">Production migration</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">SEEK</div>
+        <div class="chart-icon">🔑</div>
+        <div class="chart-text">require('gcp-key')</div>
+      </div>
+      <div class="step-label">Looks for SA file</div>
+      <div class="step-detail">14-line fallback chain</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">404</div>
+        <div class="chart-icon">🚫</div>
+        <div class="chart-text">org policy</div>
+      </div>
+      <div class="step-label">No SA key allowed</div>
+      <div class="step-detail">Policy bans key creation</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">ADC</div>
+        <div class="chart-icon">🌟</div>
+        <div class="chart-text">applicationDefault</div>
+      </div>
+      <div class="step-label">Use ADC only</div>
+      <div class="step-detail">gcloud auth login</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">5</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">DRY</div>
+        <div class="chart-icon">👀</div>
+        <div class="chart-text">--execute opt-in</div>
+      </div>
+      <div class="step-label">DRY_RUN by default</div>
+      <div class="step-detail">No accidental writes</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> migrate-to-multitenant.js + cleanup-root-collections.js init via ADC only. DRY_RUN guards on every destructive op. Run with --execute to commit.</div>
+  </div>
+</div>
+
+<!-- SEQ 14 -->
+<div class="seq migration">
+  <div class="seq-num">14</div>
+  <div class="seq-title"><span class="seq-tag tag-migration">MIGRATION</span>Re-run breaks tenant doc</div>
+  <div class="seq-subtitle">Migration partially fails → operator re-runs → .add() creates new random doc → owner now has 2 tenant memberships → chaos.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num-badge snb-1">1</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-info">RUN1</div>
+        <div class="chart-icon">🏃</div>
+        <div class="chart-text">creates owner1</div>
+      </div>
+      <div class="step-label">First run</div>
+      <div class="step-detail">.add() picks random ID</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">2</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">FAIL</div>
+        <div class="chart-icon">⚡</div>
+        <div class="chart-text">network blip</div>
+      </div>
+      <div class="step-label">Partial failure</div>
+      <div class="step-detail">Halfway through batch</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-2">3</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-bug">RUN2</div>
+        <div class="chart-icon">🔁</div>
+        <div class="chart-text">creates owner2</div>
+      </div>
+      <div class="step-label">Re-run, dup created</div>
+      <div class="step-detail">Two owner docs same email</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-3">4</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-warn">DUAL</div>
+        <div class="chart-icon">👥</div>
+        <div class="chart-text">2 memberships</div>
+      </div>
+      <div class="step-label">Conflicting state</div>
+      <div class="step-detail">Auth race undefined</div>
+    </div>
+    <div class="step">
+      <div class="step-num-badge snb-5">5</div>
+      <div class="mini-chart">
+        <div class="chart-badge badge-fix">SET</div>
+        <div class="chart-icon">🔒</div>
+        <div class="chart-text">.doc(id).set merge</div>
+      </div>
+      <div class="step-label">Deterministic ID</div>
+      <div class="step-detail">Idempotent rerun</div>
+    </div>
+  </div>
+  <div class="outcome outcome-fixed">
+    <span class="outcome-icon">✅</span>
+    <div><strong>FIXED.</strong> Owner doc now uses deterministic ownerDocId + .set({...}, {merge:true}). Re-run = no-op or completes interrupted work.</div>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="section-header">
+  <span class="section-icon">📊</span>
+  <h2>Before / After</h2>
+</div>
+
+<div class="summary-grid">
+  <div class="summary-card before">
+    <h3>Before Pass A</h3>
+    <ul>
+      <li>Toasts invisible for half the call sites</li>
+      <li>First-user fallback granted owner powers</li>
+      <li>Conversion changes lost on every reload</li>
+      <li>Gemini calls could hang for 540s</li>
+      <li>Square errors leaked stack details to client</li>
+      <li>Empty deprovisionTenant body suspended caller's home tenant</li>
+      <li>Stale tokens bypassed approval gate</li>
+      <li>External signout left tenant data in RAM</li>
+      <li>Super-admin gate keyed wrong claim name</li>
+      <li>Offline fallback resolved to nothing</li>
+      <li>PWA install used blurry/missing icon</li>
+      <li>Migration scripts required forbidden SA keys</li>
+      <li>Re-run created duplicate owner docs</li>
+    </ul>
+  </div>
+  <div class="summary-card after">
+    <h3>After Pass A (commit 5f28d40)</h3>
+    <ul>
+      <li>showToast normalizes legacy classes</li>
+      <li>Default role = 'employee', server claim wins</li>
+      <li>markChanged() on every conversion mutation</li>
+      <li>withTimeout(20/45/25s) on all 3 Gemini calls</li>
+      <li>Generic error messages, full detail to console only</li>
+      <li>Body.tenantId required, 400 if missing, 404 if absent</li>
+      <li>getIdTokenResult(true) forces refresh</li>
+      <li>D.* + IDX cleared before login screen reappears</li>
+      <li>superAdmin || role === 'super_admin' check</li>
+      <li>/app.html in PRECACHE, cache version bumped</li>
+      <li>192 + 512 + maskable icon entries</li>
+      <li>ADC-only init, DRY_RUN by default</li>
+      <li>Deterministic ownerDocId + merge:true</li>
+    </ul>
+  </div>
+</div>
+
+<div class="insight">
+  <div class="insight-label">Key Insight</div>
+  <div class="insight-text">
+    Most bugs were not "wrong logic" — they were <span class="h">missing rails</span>:
+    no timeout on AI, no force-refresh on claims, no precache for offline, no idempotency on migration.
+    The fixes don't add features. They add the guardrails the original code skipped.
+  </div>
+</div>
+
+</body>
+</html>

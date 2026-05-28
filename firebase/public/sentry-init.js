@@ -25,7 +25,11 @@
   }
 
   var host = (location && location.hostname) || '';
-  var env  = (host === 'restaurantoracle.app' || host === 'www.restaurantoracle.app')
+  // P2 fix — restaurantoracle.app is the rebrand target; its CORS + CSP wiring
+  // was added but this Sentry env detector still tagged it 'staging'. Treat
+  // both apex domains (and their www) as production.
+  var env  = (host === 'bistrosteward.com'    || host === 'www.bistrosteward.com'
+            || host === 'restaurantoracle.app' || host === 'www.restaurantoracle.app')
     ? 'production'
     : (host === 'localhost' || host === '127.0.0.1' ? 'development' : 'staging');
 
@@ -91,6 +95,13 @@
     },
   });
 
+  // I-17 (Inspector): tag EVERY event with an auth phase from the moment Sentry
+  // initializes. Errors thrown before Firebase Auth resolves (CDN load, login
+  // screen, signup flow) otherwise carry no tenant/user context and are
+  // indistinguishable from authenticated-session errors in the dashboard.
+  // roSentryIdentify flips this to 'authenticated'; roSentryReset flips it back.
+  try { Sentry.setTag('auth_phase', 'pre-auth'); } catch(_) {}
+
   /**
    * Attach user identity + tenant tags to all future events.
    * Mirror of window.roIdentify (PostHog). Call after Firebase Auth claims are loaded.
@@ -102,6 +113,7 @@
     extra  = extra  || {};
     try {
       Sentry.setUser({ id: user.uid, email: user.email || undefined });
+      Sentry.setTag('auth_phase', 'authenticated');
       if (claims.tenantId)   Sentry.setTag('tenantId',   claims.tenantId);
       if (claims.tenantSlug) Sentry.setTag('tenantSlug', claims.tenantSlug);
       if (claims.role)       Sentry.setTag('role',       claims.role);
@@ -115,6 +127,7 @@
   window.roSentryReset = function(){
     try {
       Sentry.setUser(null);
+      Sentry.setTag('auth_phase', 'pre-auth');
       Sentry.setTag('tenantId',   undefined);
       Sentry.setTag('tenantSlug', undefined);
       Sentry.setTag('role',       undefined);

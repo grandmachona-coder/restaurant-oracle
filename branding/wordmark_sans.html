@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bistro Steward — Sans Wordmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;500;700;800&family=Bebas+Neue&family=Archivo+Narrow:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-2: #161922;
+    --ink: #ffffff;
+    --ink-dim: #8a93a6;
+    --accent: #00d4a3;     /* mint signal */
+    --accent-2: #5b8def;   /* electric blue */
+    --line: #232734;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Inter Tight', sans-serif; }
+  body { min-height: 100vh; padding: 64px 48px; display: flex; flex-direction: column; gap: 48px; }
+  .stage {
+    background: radial-gradient(ellipse at top, #1a1f2e 0%, #0f1117 70%);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 96px 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 80% 20%, rgba(0,212,163,0.08), transparent 40%);
+    pointer-events: none;
+  }
+  .wordmark {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 800;
+    font-size: 112px;
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+    color: var(--ink);
+    position: relative;
+  }
+  .wordmark .dot {
+    color: var(--accent);
+  }
+  .tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-top: 28px;
+  }
+  .tagline .sep { color: var(--accent); margin: 0 10px; }
+  .alt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .alt {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .alt h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 24px;
+    font-weight: 400;
+  }
+  .alt .wordmark { font-size: 56px; }
+  .alt .tagline { font-size: 11px; margin-top: 16px; }
+  .palette { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .swatch {
+    width: 96px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .swatch .chip { height: 64px; }
+  .swatch .meta { padding: 8px; background: var(--bg-2); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+  .swatch .meta .name { color: var(--ink); }
+  .swatch .meta .hex { color: var(--ink-dim); margin-top: 2px; }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="stage">
+    <div class="wordmark">BISTRO STEWARD<span class="dot">.</span></div>
+    <div class="tagline">Restaurant Inventory<span class="sep">/</span>Recipe Costing</div>
+  </div>
+
+  <div class="alt-row">
+    <div class="alt">
+      <h3>// Bebas Neue · Display</h3>
+      <div class="wordmark" style="font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:0.02em;">BISTRO STEWARD</div>
+      <div class="tagline">Inventory<span class="sep">·</span>Costing<span class="sep">·</span>Margin</div>
+    </div>
+    <div class="alt">
+      <h3>// Archivo Narrow · Stack</h3>
+      <div class="wordmark" style="font-family:'Archivo Narrow',sans-serif; font-weight:700; font-size:48px; line-height:0.9; letter-spacing:0.01em;">
+        BISTRO<br><span style="color:var(--accent);">STEWARD</span>
+      </div>
+      <div class="tagline">v1.0<span class="sep">/</span>Recipe Cost Engine</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">// Palette · SaaS Signal</div>
+    <div class="palette">
+      <div class="swatch"><div class="chip" style="background:#0f1117;"></div><div class="meta"><div class="name">bg</div><div class="hex">#0F1117</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#161922;"></div><div class="meta"><div class="name">surface</div><div class="hex">#161922</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ffffff;"></div><div class="meta"><div class="name">ink</div><div class="hex">#FFFFFF</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#00d4a3;"></div><div class="meta"><div class="name">mint</div><div class="hex">#00D4A3</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#5b8def;"></div><div class="meta"><div class="name">blue</div><div class="hex">#5B8DEF</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ff6b6b;"></div><div class="meta"><div class="name">alert</div><div class="hex">#FF6B6B</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#8a93a6;"></div><div class="meta"><div class="name">muted</div><div class="hex">#8A93A6</div></div></div>
+    </div>
+  </div>
+
+</body>
+</html>

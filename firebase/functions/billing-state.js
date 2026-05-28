@@ -88,6 +88,15 @@ function checkTenantAccessByStatus(tenantStatus, isSuperAdmin) {
   if (tenantStatus === 'canceled' || tenantStatus === 'cancelled') {
     return { allowed: false, reason: 'Subscription is cancelled. Reactivate from Billing to continue.' };
   }
+  // Cashier recon K-2 (P1): trial_expired must block API access at the gate,
+  // matching the Firestore-rules block. Previously the status flag was set by
+  // dailyTrialCheck but the gate let traffic through because trial_expired
+  // wasn't enumerated here. Now an expired trial converts to a hard read/write
+  // block until the customer updates billing or the next Square charge
+  // succeeds (which flips status back to 'active').
+  if (tenantStatus === 'trial_expired') {
+    return { allowed: false, reason: 'Your free trial has ended. Please update billing to continue.' };
+  }
   if (tenantStatus === 'unknown') {
     return { allowed: false, reason: 'Account status unknown. Contact support@bistrosteward.com.' };
   }

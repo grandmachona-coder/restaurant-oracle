@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bistro Steward — Grand Agent Team Proposal</title>
+<style>
+  :root{
+    --bg:#0f1226; --panel:#171a35; --panel2:#1f2347; --ink:#eef0ff; --muted:#a7adcf;
+    --accent:#ffb84d; --accent2:#7aa2ff; --ok:#6dd6a3; --warn:#ffd166; --bad:#ff7a87;
+    --line:rgba(255,255,255,.08); --shadow:0 8px 30px rgba(0,0,0,.35);
+    --chip:#262b58; --chip2:#2a3170;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:linear-gradient(180deg,#0b0e22 0%,#0f1226 40%,#10142e 100%);color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:36px 28px 80px}
+  header.hero{padding:28px;border-radius:18px;background:radial-gradient(800px 240px at 20% 0%,rgba(255,184,77,.15),transparent 60%),radial-gradient(900px 260px at 90% 10%,rgba(122,162,255,.18),transparent 60%),var(--panel);box-shadow:var(--shadow);border:1px solid var(--line);}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:34px;line-height:1.15;margin:8px 0 6px}
+  .sub{color:var(--muted);max-width:820px}
+  .meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--chip);border:1px solid var(--line);color:var(--ink);padding:6px 10px;border-radius:999px;font-size:12px}
+  .chip.kbd{background:var(--chip2)}
+  h2{font-size:22px;margin:36px 0 12px;letter-spacing:.2px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--accent);color:#1a1a2e;border-radius:8px;font-size:14px;font-weight:800;margin-right:10px;vertical-align:1px}
+  p.lead{color:var(--muted);max-width:920px}
+  .grid{display:grid;gap:14px}
+  .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media (max-width: 900px){.grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 4px;font-size:16px}
+  .card .role{font-size:12px;color:var(--accent2);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .card p{color:var(--muted);margin:8px 0 10px}
+  .tag{display:inline-block;font-size:11px;background:var(--chip2);color:#dfe5ff;padding:3px 8px;border-radius:6px;margin:3px 4px 0 0}
+
+  /* Org chart */
+  .org{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow);overflow-x:auto}
+  .org-inner{min-width:1080px}
+  .row{display:flex;justify-content:center;gap:14px;flex-wrap:nowrap}
+  .node{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:150px;text-align:center;position:relative}
+  .node .title{font-weight:700;font-size:13px}
+  .node .sub-t{font-size:11px;color:var(--muted)}
+  .node.orch{background:linear-gradient(180deg,#3b2a78,#2a2154);border-color:#5a4bb5}
+  .node.branch{background:linear-gradient(180deg,#1d2a55,#172046);border-color:#3a4892}
+  .node.sub{background:#141838;border-color:#2a2f5e;min-width:120px;font-size:11px;padding:8px 8px}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;color:var(--muted);font-size:12px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:1px}
+  .branch-block{margin-top:14px}
+  .branch-head{display:flex;justify-content:center;margin-bottom:8px}
+  .branch-subs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  hr.sep{border:0;border-top:1px solid var(--line);margin:14px 0}
+  .table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .table th,.table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;font-size:13px}
+  .table th{background:#181c3b;color:#cfd5ff;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  .table tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;font-size:11px;padding:3px 8px;border-radius:999px;background:var(--chip2);color:#e8edff;margin-right:6px}
+  .pill.f{background:#1f4633;color:#b9f1d3}
+  .pill.x{background:#5c3b1e;color:#ffd8a8}
+  .pill.s{background:#4a1f2d;color:#ffc1cf}
+  .pill.c{background:#1d3a5a;color:#b9d2ff}
+  .callout{background:linear-gradient(180deg,rgba(122,162,255,.08),rgba(122,162,255,.02));border:1px solid rgba(122,162,255,.25);border-radius:12px;padding:14px 16px;color:#dfe6ff}
+  footer{margin-top:34px;color:var(--muted);font-size:12px;text-align:center}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+  .kpi .k{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kpi .k b{display:block;font-size:20px;color:var(--accent)}
+  .kpi .k span{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Bistro Steward · Audit Engagement</div>
+    <h1>Grand Agent Team — Proposal</h1>
+    <p class="sub">A two-tier review crew for the live multi-tenant Firebase PWA at <b>bistrosteward.com</b>. One orchestrator owns cross-branch contracts; eight branch agents own one functional surface each, and every branch fields a four-person sub-team (Functionality, Error-Handling, Security, Connectivity).</p>
+    <div class="meta">
+      <span class="chip">Stack: Firebase Hosting · Functions (Node 22) · Firestore · Gemini 2.5 Flash</span>
+      <span class="chip">Billing: Square</span>
+      <span class="chip">Email: Resend + SendGrid Inbound Parse</span>
+      <span class="chip">Obs: Sentry · PostHog</span>
+      <span class="chip kbd">1 orchestrator</span>
+      <span class="chip kbd">8 branches</span>
+      <span class="chip kbd">32 sub-agents</span>
+    </div>
+    <div class="kpi">
+      <div class="k"><b>~9.6k</b><span>lines in app.html (main PWA)</span></div>
+      <div class="k"><b>~5.2k</b><span>lines in functions/index.js</span></div>
+      <div class="k"><b>22</b><span>tabs in tenant drawer</span></div>
+      <div class="k"><b>54</b><span>operator dispatcher ops</span></div>
+    </div>
+  </header>
+
+  <h2><span class="num">1</span>Org chart</h2>
+  <p class="lead">The orchestrator sits above the branches and only intervenes at boundaries — the JWT/tenant claim shape, the secureApi contract, Firestore namespace conventions, and any data that crosses surfaces (e.g. impersonation tokens flowing from operator console into the tenant app). Every branch agent runs an identical sub-team shape so reports compose cleanly upward.</p>
+
+  <div class="org">
+    <div class="org-inner">
+      <div class="row" style="margin-bottom:14px">
+        <div class="node orch">
+          <div class="title">Maître d' — Orchestrator</div>
+          <div class="sub-t">Branch-to-branch contracts · arbitration · final report</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="node branch"><div class="title">Concierge</div><div class="sub-t">Identity &amp; Tenancy</div></div>
+        <div class="node branch"><div class="title">Line Cook</div><div class="sub-t">Kitchen Ops PWA</div></div>
+        <div class="node branch"><div class="title">Sommelier</div><div class="sub-t">AI &amp; Invoice Intake</div></div>
+        <div class="node branch"><div class="title">Cashier</div><div class="sub-t">Billing &amp; Revenue</div></div>
+        <div class="node branch"><div class="title">Expediter</div><div class="sub-t">Operator Console</div></div>
+        <div class="node branch"><div class="title">Engineer</div><div class="sub-t">Platform Infra</div></div>
+        <div class="node branch"><div class="title">Host</div><div class="sub-t">Marketing &amp; Signup</div></div>
+        <div class="node branch"><div class="title">Inspector</div><div class="sub-t">Observability &amp; Compliance</div></div>
+      </div>
+
+      <div class="legend">
+        <span><span class="dot" style="background:#5a4bb5"></span>Orchestrator</span>
+        <span><span class="dot" style="background:#3a4892"></span>Branch agent</span>
+        <span><span class="dot" style="background:#2a2f5e"></span>Sub-agent (F · X · S · C)</span>
+      </div>
+
+      <hr class="sep" />
+
+      <!-- One sample expanded branch — Concierge -->
+      <div class="branch-block">
+        <div class="branch-head"><div class="node branch" style="min-width:220px"><div class="title">Concierge · Identity &amp; Tenancy</div><div class="sub-t">Auth · JWT claims · RBAC · impersonation</div></div></div>
+        <div class="branch-subs">
+          <div class="node sub"><b>F</b> · Functionality<br/><span style="color:var(--muted)">login, signup, claim minting, slug bootstrap</span></div>
+          <div class="node sub"><b>X</b> · Error-Handling<br/><span style="color:var(--muted)">expired tokens, slug mismatch, suspended tenants</span></div>
+          <div class="node sub"><b>S</b> · Security<br/><span style="color:var(--muted)">RBAC matrix, readOnly enforcement, claim spoofing</span></div>
+          <div class="node sub"><b>C</b> · Connectivity<br/><span style="color:var(--muted)">claim propagation into secureApi + Firestore rules</span></div>
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:8px">…every branch fields the same four-person sub-team. Detailed roles below.</div>
+    </div>
+  </div>
+
+  <h2><span class="num">2</span>The orchestrator</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <div class="role">Orchestrator</div>
+      <h3>Maître d' — cross-branch integrity</h3>
+      <p>Owns everything that crosses two or more branches. Does not re-do branch work; instead, audits the seams.</p>
+      <div>
+        <span class="tag">JWT claim contract (tenantId / role / readOnly / impersonating)</span>
+        <span class="tag">secureApi request/response shape</span>
+        <span class="tag">Firestore namespace convention /tenants/{id}/...</span>
+        <span class="tag">CORS allowlist regex</span>
+        <span class="tag">Impersonation token lifecycle</span>
+        <span class="tag">Audit-log schema across surfaces</span>
+        <span class="tag">Scheduled-job → live-UI freshness</span>
+        <span class="tag">Final consolidated report</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="role">Operating rules</div>
+      <h3>How the team runs</h3>
+      <p>Branches work in parallel against a frozen production snapshot. Sub-agents report up to their branch; branches report up to the orchestrator. Findings carry a severity (P0/P1/P2) and a branch tag so the orchestrator can route cross-branch defects to the right pair.</p>
+      <div>
+        <span class="tag">Read-only against prod (impersonation off)</span>
+        <span class="tag">Parallel branch execution</span>
+        <span class="tag">Severity-tagged findings</span>
+        <span class="tag">Cross-branch defects routed by orchestrator</span>
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="num">3</span>The eight branches</h2>
+  <p class="lead">Each branch owns one primary surface of the app and is accountable for intra-branch coherence — that the parts inside its surface fit together. Below: the branch's scope, the sub-team's focus, and the highest-value seams the branch reviews.</p>
+
+  <div class="grid cols-2">
+
+    <!-- 1 Concierge -->
+    <div class="card">
+      <div class="role">Branch 1 · Concierge</div>
+      <h3>Identity &amp; Tenancy</h3>
+      <p>Auth, JWT claim issuance and verification, tenant resolution (slug + claim), RBAC matrix, impersonation read-only enforcement, approved-emails bootstrap.</p>
+      <div>
+        <span class="pill f">F</span> Sign-in, signup, claim mint, slug resolve, role grants
+        <br/><span class="pill x">X</span> Expired tokens, mismatched slugs, missing claims, suspended/cancelled tenants, replayed impersonation tokens
+        <br/><span class="pill s">S</span> Claim spoof attempts, readOnly bypass on writes, ownerEmail bootstrap window, JWT tampering, RBAC drift vs. PERMISSION_MATRIX
+        <br/><span class="pill c">C</span> Hand-off to Firestore rules, secureApi gating, operator console impersonation banner
+      </div>
+    </div>
+
+    <!-- 2 Line Cook -->
+    <div class="card">
+      <div class="role">Branch 2 · Line Cook</div>
+      <h3>Kitchen Operations PWA (/app)</h3>
+      <p>The ~9.6k-line app.html: recipes, ingredients, inventory, prep sheets, vendor orders, areas/categories, unit conversions, voice/scan entry points, Excel import/export.</p>
+      <div>
+        <span class="pill f">F</span> CRUD across 16 per-tenant collections, multi-shift shopping, prep math, Excel round-trip
+        <br/><span class="pill x">X</span> Offline → re-sync races, conflicting writes, unit-conversion edge cases, negative inventory
+        <br/><span class="pill s">S</span> Per-tenant scoping in every Firestore call, XSS in user-entered names/notes, file-upload validation
+        <br/><span class="pill c">C</span> Voice + scan into AI branch, invoice OCR into ingredient costs, settings → billing plan limits
+      </div>
+    </div>
+
+    <!-- 3 Sommelier -->
+    <div class="card">
+      <div class="role">Branch 3 · Sommelier</div>
+      <h3>AI &amp; Invoice Intake</h3>
+      <p>Gemini 2.5 Flash for voice (<code>op:voice</code>) and inventory scan (<code>op:scan</code>); SendGrid Inbound Parse → Gemini Vision OCR for invoices; per-call token logging into <code>geminiUsage</code>.</p>
+      <div>
+        <span class="pill f">F</span> Voice round-trip, scan accuracy, invoice OCR end-to-end, token meter
+        <br/><span class="pill x">X</span> Hallucinated SKUs, OCR low-confidence, malformed PDFs/images, SendGrid retries, token-meter overcounting
+        <br/><span class="pill s">S</span> Prompt-injection from invoice content, MIME spoofing, address-token forgery (<code>&lt;token&gt;@invoices…</code>), PII in attachments
+        <br/><span class="pill c">C</span> Writes into Line Cook ingredient prices, daily-cost rollup into Engineer's schedulers
+      </div>
+    </div>
+
+    <!-- 4 Cashier -->
+    <div class="card">
+      <div class="role">Branch 4 · Cashier</div>
+      <h3>Billing &amp; Revenue</h3>
+      <p>Square subscriptions (Starter $29 / Pro $49 / Enterprise $99), 30-day trial w/ card capture, plan switch, Square webhook, refund/comp/plan-adjust ops, trial reminders.</p>
+      <div>
+        <span class="pill f">F</span> Signup → trial → first charge, plan switch up/down, card update, refund path
+        <br/><span class="pill x">X</span> Webhook replay, out-of-order events, idempotency keys, failed payments, mid-cycle proration
+        <br/><span class="pill s">S</span> Webhook signature verification, secret rotation, PCI surface (Square-hosted card forms), refund authorization checks
+        <br/><span class="pill c">C</span> Tenant status gate (Concierge), plan feature flags (Engineer), refund audit log (Inspector)
+      </div>
+    </div>
+
+    <!-- 5 Expediter -->
+    <div class="card">
+      <div class="role">Branch 5 · Expediter</div>
+      <h3>Operator Console (/super-admin)</h3>
+      <p>Single-file 8-tab console + 22-tab tenant drawer, 54-op dispatcher, tickets/feedback/health/announce/flags, 30-min read-only impersonation.</p>
+      <div>
+        <span class="pill f">F</span> Each of 54 ops, ticket lifecycle, announcement publish, flag scoping
+        <br/><span class="pill x">X</span> Dispatcher routing on unknown op, partial drawer loads, stale KPI cache
+        <br/><span class="pill s">S</span> <code>superAdmin</code> claim re-verified server-side, impersonation auto-expiry, writes blocked under readOnly, audit completeness
+        <br/><span class="pill c">C</span> Impersonation token → tenant PWA, announcements → all tenants, flags → Engineer flag resolver
+      </div>
+    </div>
+
+    <!-- 6 Engineer -->
+    <div class="card">
+      <div class="role">Branch 6 · Engineer</div>
+      <h3>Platform Infrastructure</h3>
+      <p>Cloud Functions (<code>secureApi</code>, <code>superAdmin</code>, <code>adminBilling</code>, <code>inboundInvoice</code>, <code>squareWebhook</code>, <code>signupTenant</code>), 5 scheduled jobs, Firestore rules, hosting, CORS.</p>
+      <div>
+        <span class="pill f">F</span> Each Gen-1 function cold/warm, daily rollups (cost/usage/health/trial/reminders)
+        <br/><span class="pill x">X</span> Scheduler skew, partial rollup failures, region pinning, retry/backoff
+        <br/><span class="pill s">S</span> Firestore rules vs. claims, CORS regex anchoring, env/secret hygiene, deploy.sh safety
+        <br/><span class="pill c">C</span> Function ↔ rules ↔ claims triple-lock, scheduler output → Expediter KPIs
+      </div>
+    </div>
+
+    <!-- 7 Host -->
+    <div class="card">
+      <div class="role">Branch 7 · Host</div>
+      <h3>Marketing, Signup &amp; Onboarding</h3>
+      <p>Landing (<code>index.html</code>), <code>/signup</code> Square-card flow, <code>/terms</code> &amp; <code>/privacy</code>, design-partner pipeline, branding assets.</p>
+      <div>
+        <span class="pill f">F</span> Signup happy path → tenant provisioned, legal pages reachable, design-partner outreach assets
+        <br/><span class="pill x">X</span> Signup mid-flow drop-off recovery, duplicate signup, email collision
+        <br/><span class="pill s">S</span> Honeypot/rate-limit on signup, privacy claims vs. actual data flows, no PII leaked in marketing analytics
+        <br/><span class="pill c">C</span> Signup → Cashier (Square sub created) and Concierge (tenant + owner claim minted)
+      </div>
+    </div>
+
+    <!-- 8 Inspector -->
+    <div class="card">
+      <div class="role">Branch 8 · Inspector</div>
+      <h3>Observability &amp; Compliance</h3>
+      <p>Sentry, PostHog (identified-only, DNT respected, no session replay), audit log integrity, secret hygiene, legal alignment.</p>
+      <div>
+        <span class="pill f">F</span> Errors land in Sentry w/ tenant tag, PostHog events identify cleanly, audit entries present for every super-admin op
+        <br/><span class="pill x">X</span> Dropped events under burst, audit gaps on failure paths, DNT not honored
+        <br/><span class="pill s">S</span> PII scrubbing in Sentry, no secrets in client bundles, audit log immutability
+        <br/><span class="pill c">C</span> Audit hooks across every branch — this branch is the conscience of the others
+      </div>
+    </div>
+
+  </div>
+
+  <h2><span class="num">4</span>Sub-team shape (every branch fields one)</h2>
+  <table class="table">
+    <thead>
+      <tr><th style="width:18%">Sub-agent</th><th style="width:32%">Focus</th><th>What it produces</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="pill f">F</span> Functionality</td><td>Walk the happy paths and documented features of the branch.</td><td>Pass/fail per feature, screenshots/log excerpts, list of undocumented behavior.</td></tr>
+      <tr><td><span class="pill x">X</span> Error-Handling</td><td>Stress failure modes — bad inputs, partial failures, retries, idempotency.</td><td>Repro steps for each fault, severity tag, suggested guard.</td></tr>
+      <tr><td><span class="pill s">S</span> Security</td><td>AuthN/Z, input validation, secret exposure, PII handling, abuse paths.</td><td>Threat list mapped to OWASP-style categories, mitigations.</td></tr>
+      <tr><td><span class="pill c">C</span> Connectivity</td><td>How the branch's pieces talk to each other and to neighboring branches.</td><td>Seam diagram, contract violations, escalations to the orchestrator.</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="num">5</span>Cross-branch seams the orchestrator owns</h2>
+  <div class="grid cols-2">
+    <div class="card"><h3>Concierge ↔ Engineer</h3><p>Claims minted by auth must match what Firestore rules expect. Drift here silently breaks RBAC.</p></div>
+    <div class="card"><h3>Cashier ↔ Concierge</h3><p>Subscription status (active/trial/past_due/cancelled) must drive the tenant status gate. A cancelled tenant must read-only immediately.</p></div>
+    <div class="card"><h3>Sommelier ↔ Line Cook</h3><p>OCR'd invoices update real ingredient prices. Wrong vendor mapping = wrong recipe cost = wrong margin.</p></div>
+    <div class="card"><h3>Expediter ↔ Concierge</h3><p>Impersonation tokens carry <code>readOnly</code>. Every write path must honor it; every audit entry must record the operator.</p></div>
+    <div class="card"><h3>Host ↔ Cashier ↔ Concierge</h3><p>Signup is a three-way handshake: Square sub + tenant doc + owner claim. Partial completion is the highest-risk failure mode.</p></div>
+    <div class="card"><h3>Inspector ↔ all</h3><p>Audit log is the cross-cutting source of truth. Every branch must emit, never mutate.</p></div>
+  </div>
+
+  <h2><span class="num">6</span>Deliverables</h2>
+  <div class="callout">
+    Each branch returns: <b>(1)</b> a one-page summary keyed to F/X/S/C, <b>(2)</b> a defect list with severity + repro, <b>(3)</b> a seam diagram showing what it touches in neighboring branches. The orchestrator returns: <b>(1)</b> a cross-branch defect roll-up sorted by severity, <b>(2)</b> a contracts ledger (what each surface promises every other surface), <b>(3)</b> a prioritized punch list ready for engineering.
+  </div>
+
+  <footer>
+    Bistro Steward · Grand Agent Team proposal · prepared 2026-05-19
+  </footer>
+</div>
+</body>
+</html>

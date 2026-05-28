@@ -4,14 +4,23 @@
     {
       "name": "signup-preview",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "5000", "--directory", "firebase/public"],
+      "runtimeArgs": ["-m", "http.server", "5000"],
+      "cwd": "/Users/mulefamily/Claude/Bistro-Steward/firebase/public",
       "port": 5000
     },
     {
       "name": "app-preview",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "5050"],
+      "cwd": "/Users/mulefamily/Claude/Bistro-Steward/firebase/public",
       "port": 5050
+    },
+    {
+      "name": "operator-console",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5060"],
+      "cwd": "/Users/mulefamily/Claude/Bistro-Steward/firebase/public",
+      "port": 5060
     }
   ]
 }

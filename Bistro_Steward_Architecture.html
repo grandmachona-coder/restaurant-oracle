@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bistro Steward — Technical Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   CSS DESIGN SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg: #0f1117;
+  --card: #161b22;
+  --card-hover: #1c2129;
+  --border: #21262d;
+  --border-accent: #30363d;
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --primary: #58a6ff;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --info: #79c0ff;
+  --purple: #bc8cff;
+  --coral: #ff7b72;
+  --teal: #56d4dd;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════ */
+.mono {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.body-text {
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.detail-text {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.caption-text {
+  font-size: 0.65rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.section {
+  padding: 80px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.section-number {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.section-title {
+  margin-bottom: 48px;
+}
+
+.section-title h2 {
+  margin-bottom: 8px;
+}
+
+.section-title p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  max-width: 680px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARDS
+   ═══════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+}
+
+.card-primary::before { background: var(--primary); }
+.card-success::before { background: var(--success); }
+.card-warning::before { background: var(--warning); }
+.card-danger::before { background: var(--danger); }
+.card-purple::before { background: var(--purple); }
+.card-teal::before { background: var(--teal); }
+.card-coral::before { background: var(--coral); }
+.card-info::before { background: var(--info); }
+
+.card + .card {
+  margin-top: 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAGS
+   ═══════════════════════════════════════════════════════════════ */
+.tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: transparent;
+  border: 1px solid;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.tag-primary { border-color: var(--primary); color: var(--primary); }
+.tag-success { border-color: var(--success); color: var(--success); }
+.tag-warning { border-color: var(--warning); color: var(--warning); }
+.tag-danger { border-color: var(--danger); color: var(--danger); }
+.tag-purple { border-color: var(--purple); color: var(--purple); }
+.tag-teal { border-color: var(--teal); color: var(--teal); }
+.tag-coral { border-color: var(--coral); color: var(--coral); }
+.tag-info { border-color: var(--info); color: var(--info); }
+
+/* ═══════════════════════════════════════════════════════════════
+   METRIC CARDS
+   ═══════════════════════════════════════════════════════════════ */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.metric-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+}
+
+.metric-value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.metric-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FLOW CARDS
+   ═══════════════════════════════════════════════════════════════ */
+.flow-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px 36px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.flow-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+}
+
+.flow-watermark {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--border);
+  line-height: 1;
+  user-select: none;
+}
+
+.flow-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.flow-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STEP DIAGRAMS
+   ═══════════════════════════════════════════════════════════════ */
+.step-diagram {
+  display: flex;
+  overflow-x: auto;
+  gap: 0;
+  padding: 16px 0;
+  align-items: center;
+  margin-bottom: 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.step-diagram::-webkit-scrollbar {
+  height: 4px;
+}
+
+.step-diagram::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 2px;
+}
+
+.step-diagram::-webkit-scrollbar-thumb {
+  background: var(--border-accent);
+  border-radius: 2px;
+}
+
+.arch-panel {
+  width: 170px;
+  min-width: 170px;
+  height: 130px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+
+.arch-panel-label {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  right: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.arch-panel-badge {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.arch-panel-detail {
+  position: absolute;
+  top: 36px;
+  left: 12px;
+  right: 12px;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.arch-panel-icon {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.arrow-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.arrow-solid {
+  width: 40px;
+  height: 2px;
+  background: var(--border-accent);
+  position: relative;
+}
+
+.arrow-solid::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid var(--border-accent);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+
+.arrow-dashed {
+  width: 40px;
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--border-accent) 0px,
+    var(--border-accent) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  position: relative;
+}
+
+.arrow-dashed::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid var(--border-accent);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   IMPACT BANNERS
+   ═══════════════════════════════════════════════════════════════ */
+.impact-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2);
+  border-left: 3px solid;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.impact-success {
+  border-left-color: var(--success);
+  color: var(--text-secondary);
+}
+
+.impact-warning {
+  border-left-color: var(--warning);
+  color: var(--text-secondary);
+}
+
+.impact-danger {
+  border-left-color: var(--danger);
+  color: var(--text-secondary);
+}
+
+.impact-info {
+  border-left-color: var(--info);
+  color: var(--text-secondary);
+}
+
+.impact-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.impact-icon-success { background: var(--success); color: var(--bg); }
+.impact-icon-warning { background: var(--warning); color: var(--bg); }
+.impact-icon-danger { background: var(--danger); color: var(--bg); }
+.impact-icon-info { background: var(--info); color: var(--bg); }
+
+/* ═══════════════════════════════════════════════════════════════
+   TITLE SLIDE
+   ═══════════════════════════════════════════════════════════════ */
+.title-slide {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 60px 40px;
+}
+
+.title-slide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 30% 40%, rgba(88,166,255,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 350px at 70% 60%, rgba(188,140,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.title-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 24px rgba(88,166,255,0.2);
+}
+
+.title-logo-inner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,0.9);
+  border-radius: 50%;
+  position: relative;
+}
+
+.title-logo-inner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.title-main {
+  font-size: 3.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.title-subtitle {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  max-width: 540px;
+}
+
+.title-meta {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.title-meta-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+}
+
+.title-scroll-hint {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.title-scroll-line {
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(to bottom, var(--text-muted), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLE OF CONTENTS
+   ═══════════════════════════════════════════════════════════════ */
+.toc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .toc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.toc-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.toc-item:hover {
+  border-color: var(--border-accent);
+  background: var(--card-hover);
+}
+
+.toc-number {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 28px;
+}
+
+.toc-label {
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DECISION MATRIX TABLE
+   ═══════════════════════════════════════════════════════════════ */
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+}
+
+.matrix-table th {
+  text-align: left;
+  padding: 14px 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+  background: var(--bg);
+}
+
+.matrix-table td {
+  padding: 16px 20px;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.matrix-table td:first-child {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 160px;
+}
+
+.matrix-table td:nth-child(2) {
+  color: var(--text-secondary);
+}
+
+.matrix-table td:nth-child(3) {
+  color: var(--text);
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.status-green { background: var(--success); }
+.status-amber { background: var(--warning); }
+.status-red { background: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════════
+   TWO COLUMNS
+   ═══════════════════════════════════════════════════════════════ */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col-list {
+  list-style: none;
+  padding: 0;
+}
+
+.col-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.col-list li:last-child {
+  border-bottom: none;
+}
+
+.list-marker {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 7px;
+}
+
+.marker-green { background: var(--success); }
+.marker-amber { background: var(--warning); }
+.marker-red { background: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════════
+   RECOMMENDATION CARD
+   ═══════════════════════════════════════════════════════════════ */
+.rec-card {
+  background: var(--card);
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  padding: 32px 36px;
+  margin-top: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.rec-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary);
+}
+
+.rec-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse 400px 200px at 0% 0%, rgba(88,166,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+.footer {
+  padding: 40px 0;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.footer p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FILE PATH STYLING
+   ═══════════════════════════════════════════════════════════════ */
+.filepath {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: rgba(0,0,0,0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SYSTEM OVERVIEW FILE LIST
+   ═══════════════════════════════════════════════════════════════ */
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+
+.file-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.file-list li:last-child {
+  border-bottom: none;
+}
+
+.file-name {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: var(--primary);
+  min-width: 200px;
+  flex-shrink: 0;
+}
+
+.file-desc {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.file-lines {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TITLE SLIDE
+     ═══════════════════════════════════════════════════════════════ -->
+<header class="title-slide">
+  <div class="title-logo">
+    <div class="title-logo-inner"></div>
+  </div>
+  <h1 class="title-main">Bistro Steward</h1>
+  <p class="title-subtitle">Smart Kitchen Management Platform — Technical Architecture &amp; Optimization Report</p>
+  <div class="title-meta">
+    <span>March 2026</span>
+    <span class="title-meta-divider"></span>
+    <span>LaChona Engineering</span>
+    <span class="title-meta-divider"></span>
+    <span>Technical Architecture Review</span>
+  </div>
+  <div class="title-scroll-hint">
+    <span>Scroll</span>
+    <div class="title-scroll-line"></div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     EXECUTIVE SUMMARY
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="executive-summary">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Overview</span>
+      <h2>Executive Summary</h2>
+      <p>Key metrics from the Bistro Steward platform — a monolithic vanilla JS PWA backed by Firebase with Gemini AI integration, managing the LaChona Bistro kitchen end-to-end.</p>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card" style="--accent: var(--primary);">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary);border-radius:12px 0 0 12px;"></div>
+        <div class="metric-value" style="color: var(--primary);">8,300</div>
+        <div class="metric-label">Lines of Code</div>
+      </div>
+      <div class="metric-card">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--success);border-radius:12px 0 0 12px;"></div>
+        <div class="metric-value" style="color: var(--success);">15</div>
+        <div class="metric-label">Real-time Listeners</div>
+      </div>
+      <div class="metric-card">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--purple);border-radius:12px 0 0 12px;"></div>
+        <div class="metric-value" style="color: var(--purple);">17</div>
+        <div class="metric-label">Data Collections</div>
+      </div>
+      <div class="metric-card">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal);border-radius:12px 0 0 12px;"></div>
+        <div class="metric-value" style="color: var(--teal);">8</div>
+        <div class="metric-label">UI Modules</div>
+      </div>
+      <div class="metric-card">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--coral);border-radius:12px 0 0 12px;"></div>
+        <div class="metric-value" style="color: var(--coral);">2</div>
+        <div class="metric-label">AI Integrations</div>
+      </div>
+      <div class="metric-card">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--warning);border-radius:12px 0 0 12px;"></div>
+        <div class="metric-value" style="color: var(--warning);">27</div>
+        <div class="metric-label">Audit Fixes Applied</div>
+      </div>
+      <div class="metric-card">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--success);border-radius:12px 0 0 12px;"></div>
+        <div class="metric-value" style="color: var(--success);">4</div>
+        <div class="metric-label">Optimizations Shipped</div>
+      </div>
+    </div>
+
+    <!-- System Overview Card -->
+    <div class="card card-primary" style="margin-top: 40px;">
+      <h3 style="margin-bottom: 16px;">System Overview</h3>
+      <p class="body-text" style="color: var(--text-secondary); margin-bottom: 20px;">Bistro Steward is a vanilla JS PWA (~8,300 lines in <span class="filepath">index.html</span>) backed by Firebase (Auth, Firestore, Cloud Functions) with Gemini 2.5 Flash AI for voice commands and inventory scanning. It manages the LaChona Bistro kitchen: inventory, ingredients, recipes, menus, prep status, shopping lists, and activity logging. <span style="color: var(--success);">Post-optimization: render() decoupled from persistence, O(1) Map indexes, lazy-loaded SheetJS, dead code removed, auth race condition fixed with listener fallback.</span></p>
+      <ul class="file-list">
+        <li>
+          <span class="file-name">index.html</span>
+          <span class="file-desc">Entire SPA: HTML + CSS + JS</span>
+          <span class="file-lines">~8,300 lines</span>
+        </li>
+        <li>
+          <span class="file-name">firebase-config.js</span>
+          <span class="file-desc">Firebase project config + Cloud Function URL</span>
+          <span class="file-lines">29 lines</span>
+        </li>
+        <li>
+          <span class="file-name" style="text-decoration: line-through; color: var(--text-muted);">firebase-adapter.js</span>
+          <span class="file-desc" style="color: var(--success);">DELETED — dead code removed</span>
+          <span class="file-lines" style="color: var(--success);">-477 lines</span>
+        </li>
+        <li>
+          <span class="file-name">firebase/functions/index.js</span>
+          <span class="file-desc">Cloud Function: CRUD, RBAC, voice, scan</span>
+          <span class="file-lines">784 lines</span>
+        </li>
+        <li>
+          <span class="file-name">firebase/firestore.rules</span>
+          <span class="file-desc">Deny-all writes, auth-read for listeners</span>
+          <span class="file-lines">103 lines</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="toc">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Navigation</span>
+      <h2>Table of Contents</h2>
+    </div>
+    <div class="toc-grid">
+      <a href="#section-01" class="toc-item">
+        <span class="toc-number">01</span>
+        <span class="toc-label">System Architecture</span>
+      </a>
+      <a href="#section-02" class="toc-item">
+        <span class="toc-number">02</span>
+        <span class="toc-label">Authentication &amp; Authorization</span>
+      </a>
+      <a href="#section-03" class="toc-item">
+        <span class="toc-number">03</span>
+        <span class="toc-label">Real-time Data Sync</span>
+      </a>
+      <a href="#section-04" class="toc-item">
+        <span class="toc-number">04</span>
+        <span class="toc-label">Differential Cloud Sync</span>
+      </a>
+      <a href="#section-05" class="toc-item">
+        <span class="toc-number">05</span>
+        <span class="toc-label">AI-Powered Operations</span>
+      </a>
+      <a href="#section-06" class="toc-item">
+        <span class="toc-number">06</span>
+        <span class="toc-label">Data Domain Model</span>
+      </a>
+      <a href="#section-07" class="toc-item">
+        <span class="toc-number">07</span>
+        <span class="toc-label">Security Architecture</span>
+      </a>
+      <a href="#section-08" class="toc-item">
+        <span class="toc-number">08</span>
+        <span class="toc-label">Summary &amp; Recommendations</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 01: SYSTEM ARCHITECTURE
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-01">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 01</span>
+      <h2>System Architecture</h2>
+      <p>High-level platform topology and frontend component structure powering the Bistro Steward PWA.</p>
+    </div>
+
+    <!-- Flow 1 -->
+    <div class="flow-card card-primary">
+      <div class="flow-watermark">01</div>
+      <div class="flow-header">
+        <span class="tag tag-primary">Infrastructure</span>
+        <h3 class="flow-title">High-Level Architecture</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Client</span>
+          <span class="arch-panel-detail">Service Worker<br>Offline Cache</span>
+          <span class="arch-panel-label">Browser PWA</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Hosting</span>
+          <span class="arch-panel-detail">Static Assets<br>CDN Edge</span>
+          <span class="arch-panel-label">Firebase Hosting</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Frontend</span>
+          <span class="arch-panel-detail">~8,200 lines<br>Vanilla JS</span>
+          <span class="arch-panel-label">index.html SPA</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Gateway</span>
+          <span class="arch-panel-detail">POST + JWT<br>Rate Limited</span>
+          <span class="arch-panel-label">secureApi()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">Backend</span>
+          <span class="arch-panel-detail">Node 22<br>1st Gen</span>
+          <span class="arch-panel-label">Cloud Function</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Database</span>
+          <span class="arch-panel-detail">17 Collections<br>Real-time</span>
+          <span class="arch-panel-label">Firestore</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">+</div>
+        <span>All database writes enforced server-side via Cloud Function. Zero direct client writes. Firestore rules deny all write operations from the client SDK.</span>
+      </div>
+    </div>
+
+    <!-- Flow 2 -->
+    <div class="flow-card card-teal">
+      <div class="flow-watermark">02</div>
+      <div class="flow-header">
+        <span class="tag tag-teal">Frontend</span>
+        <h3 class="flow-title">Frontend Component Map</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Auth</span>
+          <span class="arch-panel-detail">Google<br>Email/Pass</span>
+          <span class="arch-panel-label">Login Screen</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">State</span>
+          <span class="arch-panel-detail">onAuthState<br>Changed</span>
+          <span class="arch-panel-label">Auth State</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Router</span>
+          <span class="arch-panel-detail">8 Tabs<br>Role-Filtered</span>
+          <span class="arch-panel-label">Tab Router</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Render</span>
+          <span class="arch-panel-detail">innerHTML<br>Rebuild</span>
+          <span class="arch-panel-label">8 Render Functions</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">UI</span>
+          <span class="arch-panel-detail">Modal Overlay<br>Forms</span>
+          <span class="arch-panel-label">Modal System</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Data</span>
+          <span class="arch-panel-detail">D.ings, D.inv<br>D.recs, ...</span>
+          <span class="arch-panel-label">Global State (D)</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">&#10003;</div>
+        <span><strong>RESOLVED:</strong> Monkey-patch removed. <span class="mono">render()</span> is now pure UI — persistence triggered by <span class="mono">markChanged()</span>/<span class="mono">markDeleted()</span> via <span class="mono">scheduleSync()</span>. O(1) lookups via <span class="mono">IDX</span> Map indexes replace 174 Array.find() calls.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 02: AUTHENTICATION & AUTHORIZATION
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-02">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 02</span>
+      <h2>Authentication &amp; Authorization</h2>
+      <p>Multi-layer identity verification and role-based access control ensuring secure access to kitchen management features.</p>
+    </div>
+
+    <!-- Flow 3 -->
+    <div class="flow-card card-success">
+      <div class="flow-watermark">03</div>
+      <div class="flow-header">
+        <span class="tag tag-success">Security</span>
+        <span class="tag tag-primary">Auth</span>
+        <h3 class="flow-title">Authentication Pipeline</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Identity</span>
+          <span class="arch-panel-detail">Google OAuth<br>Email/Pass</span>
+          <span class="arch-panel-label">Sign-In Provider</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Firebase</span>
+          <span class="arch-panel-detail">ID Token<br>Claims</span>
+          <span class="arch-panel-label">Firebase Auth</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Verify</span>
+          <span class="arch-panel-detail">JWT Decode<br>Signature</span>
+          <span class="arch-panel-label">verifyIdToken</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--danger); color: var(--danger);">ACL</span>
+          <span class="arch-panel-detail">approved_emails<br>Collection</span>
+          <span class="arch-panel-label">Email Whitelist</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">RBAC</span>
+          <span class="arch-panel-detail">team_members<br>owner/employee</span>
+          <span class="arch-panel-label">Role Lookup</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Session</span>
+          <span class="arch-panel-detail">30-min timer<br>Auto-logout</span>
+          <span class="arch-panel-label">Session Timer</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">+</div>
+        <span>Backend enforces email whitelist and RBAC. First user bootstraps as owner automatically. Session expires after 30 minutes of inactivity with automatic sign-out.</span>
+      </div>
+    </div>
+
+    <!-- Flow 4 -->
+    <div class="flow-card card-purple">
+      <div class="flow-watermark">04</div>
+      <div class="flow-header">
+        <span class="tag tag-purple">Authorization</span>
+        <span class="tag tag-warning">RBAC</span>
+        <h3 class="flow-title">Role-Based Access Control</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Identity</span>
+          <span class="arch-panel-detail">owner<br>employee</span>
+          <span class="arch-panel-label">User Role</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Matrix</span>
+          <span class="arch-panel-detail">PERMISSION<br>_MATRIX{}</span>
+          <span class="arch-panel-label">Permission Matrix</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Scope</span>
+          <span class="arch-panel-detail">Per Collection<br>CRUD Ops</span>
+          <span class="arch-panel-label">Collection ACL</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">UI</span>
+          <span class="arch-panel-detail">FOH: 3 tabs<br>BOH: 4 tabs</span>
+          <span class="arch-panel-label">Tab Visibility</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Gates</span>
+          <span class="arch-panel-detail">Buttons<br>Actions</span>
+          <span class="arch-panel-label">Feature Gates</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-info">
+        <div class="impact-icon impact-icon-info">i</div>
+        <span>Employees see 3-4 tabs (FOH: inventory, log, recipes; BOH: +prep). Owner sees all 8 tabs including admin functions. Sub-roles determine kitchen area access.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 03: REAL-TIME DATA SYNC
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-03">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 03</span>
+      <h2>Real-time Data Sync</h2>
+      <p>Firestore listener infrastructure enabling multi-user collaboration with conflict resolution for concurrent edits.</p>
+    </div>
+
+    <!-- Flow 5 -->
+    <div class="flow-card card-info">
+      <div class="flow-watermark">05</div>
+      <div class="flow-header">
+        <span class="tag tag-info">Sync</span>
+        <span class="tag tag-success">Real-time</span>
+        <h3 class="flow-title">Firestore Listener Pipeline</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Init</span>
+          <span class="arch-panel-detail">15 Subscriptions<br>Auth-Gated</span>
+          <span class="arch-panel-label">startListeners()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Watch</span>
+          <span class="arch-panel-detail">Firestore SDK<br>onSnapshot</span>
+          <span class="arch-panel-label">15 onSnapshot</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Merge</span>
+          <span class="arch-panel-detail">Remote to<br>Local State</span>
+          <span class="arch-panel-label">mergeListener<br>Update()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Resolve</span>
+          <span class="arch-panel-detail">changeLog<br>deleteLog</span>
+          <span class="arch-panel-label">Conflict<br>Resolution</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Debounce</span>
+          <span class="arch-panel-detail">300ms<br>Throttle</span>
+          <span class="arch-panel-label">debouncedListener<br>Render()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">Output</span>
+          <span class="arch-panel-detail">Full DOM<br>innerHTML</span>
+          <span class="arch-panel-label">render()</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">+</div>
+        <span>Multi-user real-time sync. Local pending changes preserved during remote updates via <span class="mono">changeLog</span>/<span class="mono">deleteLog</span> conflict resolution. Debouncing prevents render storms from rapid snapshot updates.</span>
+      </div>
+    </div>
+
+    <!-- Flow 6 -->
+    <div class="flow-card card-warning">
+      <div class="flow-watermark">06</div>
+      <div class="flow-header">
+        <span class="tag tag-warning">Data</span>
+        <span class="tag tag-teal">Mapping</span>
+        <h3 class="flow-title">Data Mapping Layer</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Source</span>
+          <span class="arch-panel-detail">snake_case<br>17 collections</span>
+          <span class="arch-panel-label">Firestore</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Transform</span>
+          <span class="arch-panel-detail">13 types<br>mapXxxFromDb</span>
+          <span class="arch-panel-label">mapXxxFromDb()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">State</span>
+          <span class="arch-panel-detail">camelCase<br>Global D</span>
+          <span class="arch-panel-label">Local State D</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Transform</span>
+          <span class="arch-panel-detail">13 types<br>mapXxxToDb</span>
+          <span class="arch-panel-label">mapXxxToDb()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Write</span>
+          <span class="arch-panel-detail">secureApi<br>upsert op</span>
+          <span class="arch-panel-label">secureApi upsert</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Target</span>
+          <span class="arch-panel-detail">snake_case<br>Persisted</span>
+          <span class="arch-panel-label">Firestore</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-info">
+        <div class="impact-icon impact-icon-info">i</div>
+        <span>Bidirectional camelCase/snake_case transformation across 13 collection types. 26 mapping functions total ensure consistent data representation between client and server.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 04: DIFFERENTIAL CLOUD SYNC
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-04">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 04</span>
+      <h2>Differential Cloud Sync</h2>
+      <p>Change-tracking and debounced persistence pipeline that syncs only modified records to Firestore.</p>
+    </div>
+
+    <!-- Flow 7 -->
+    <div class="flow-card card-coral">
+      <div class="flow-watermark">07</div>
+      <div class="flow-header">
+        <span class="tag tag-coral">Persistence</span>
+        <span class="tag tag-warning">Debounced</span>
+        <h3 class="flow-title">Change Tracking &amp; Debounced Sync</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Trigger</span>
+          <span class="arch-panel-detail">User Edit<br>Form Submit</span>
+          <span class="arch-panel-label">User Mutation</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Track</span>
+          <span class="arch-panel-detail">markChanged()<br>markDeleted()</span>
+          <span class="arch-panel-label">Change Tracking</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Buffer</span>
+          <span class="arch-panel-detail">Set objects<br>table:id pairs</span>
+          <span class="arch-panel-label">changeLog /<br>deleteLog</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Check</span>
+          <span class="arch-panel-detail">hasChanges()<br>Guard</span>
+          <span class="arch-panel-label">Dirty Check</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Sync</span>
+          <span class="arch-panel-detail">2s debounce<br>isSyncing mutex</span>
+          <span class="arch-panel-label">queueFirebase<br>Save()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">Resolve</span>
+          <span class="arch-panel-detail">Partial OK<br>Snapshot</span>
+          <span class="arch-panel-label">Promise.all<br>Settled</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">+</div>
+        <span>Only modified records sync to cloud. <span class="mono">isSyncing</span> mutex prevents race conditions. <span class="mono">Promise.allSettled</span> ensures partial failures do not block successful writes. <span class="mono">takeSyncSnapshot()</span> records the last synced state.</span>
+      </div>
+    </div>
+
+    <!-- Flow 8 -->
+    <div class="flow-card card-purple">
+      <div class="flow-watermark">08</div>
+      <div class="flow-header">
+        <span class="tag tag-purple">Undo</span>
+        <span class="tag tag-info">State</span>
+        <h3 class="flow-title">Undo System</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Capture</span>
+          <span class="arch-panel-detail">Action Label<br>Pre-mutation</span>
+          <span class="arch-panel-label">saveState(action)</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Clone</span>
+          <span class="arch-panel-detail">13 Tables<br>Deep Copy</span>
+          <span class="arch-panel-label">Deep-copy<br>13 Tables</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Stack</span>
+          <span class="arch-panel-detail">Max 5<br>Entries</span>
+          <span class="arch-panel-label">undoHistory<br>Stack</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Restore</span>
+          <span class="arch-panel-detail">Pop &amp; Assign<br>All Tables</span>
+          <span class="arch-panel-label">undoAction()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Render</span>
+          <span class="arch-panel-detail">Full State<br>Rebuild</span>
+          <span class="arch-panel-label">render()</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-info">
+        <div class="impact-icon impact-icon-info">i</div>
+        <span>Covers 13 tables: areas, cats, menuCats, recCats, units, conversions, inv, shopping, preps, ings, recs, menus, log. Maximum 5 undo states retained in memory.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 05: AI-POWERED OPERATIONS
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-05">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 05</span>
+      <h2>AI-Powered Operations</h2>
+      <p>Gemini 2.5 Flash integrations for voice command processing and vision-based inventory scanning.</p>
+    </div>
+
+    <!-- Flow 9 -->
+    <div class="flow-card card-coral">
+      <div class="flow-watermark">09</div>
+      <div class="flow-header">
+        <span class="tag tag-coral">AI</span>
+        <span class="tag tag-teal">Voice</span>
+        <h3 class="flow-title">Voice Assistant Pipeline</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Input</span>
+          <span class="arch-panel-detail">Web Speech<br>API</span>
+          <span class="arch-panel-label">Speech<br>Recognition</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Text</span>
+          <span class="arch-panel-detail">Raw Text<br>Transcript</span>
+          <span class="arch-panel-label">Transcript</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Gateway</span>
+          <span class="arch-panel-detail">op: 'voice'<br>JWT Auth</span>
+          <span class="arch-panel-label">secureApi('voice')</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">AI</span>
+          <span class="arch-panel-detail">JSON Mode<br>Temp 0.1</span>
+          <span class="arch-panel-label">Gemini 2.5<br>Flash</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--danger); color: var(--danger);">Validate</span>
+          <span class="arch-panel-detail">7 Action<br>Types</span>
+          <span class="arch-panel-label">Action Whitelist<br>Validation</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Execute</span>
+          <span class="arch-panel-detail">navigate, add<br>search, info</span>
+          <span class="arch-panel-label">Execute Action</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">+</div>
+        <span>7 validated action types: navigate, search, add_inventory, add_shopping, update_prep, info, error. Temperature 0.1 for deterministic output. Context includes all ingredient, area, and prep names for accurate matching.</span>
+      </div>
+    </div>
+
+    <!-- Flow 10 -->
+    <div class="flow-card card-teal">
+      <div class="flow-watermark">10</div>
+      <div class="flow-header">
+        <span class="tag tag-teal">Vision</span>
+        <span class="tag tag-coral">AI</span>
+        <h3 class="flow-title">Inventory Scan (Vision AI)</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Capture</span>
+          <span class="arch-panel-detail">Device<br>Camera</span>
+          <span class="arch-panel-label">Camera Capture</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Resize</span>
+          <span class="arch-panel-detail">1200x1600<br>Max Canvas</span>
+          <span class="arch-panel-label">Canvas Resize</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Encode</span>
+          <span class="arch-panel-detail">JPEG<br>Base64</span>
+          <span class="arch-panel-label">Base64 Encode</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">AI</span>
+          <span class="arch-panel-detail">Multimodal<br>Vision</span>
+          <span class="arch-panel-label">Gemini 2.5<br>Flash Vision</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">Review</span>
+          <span class="arch-panel-detail">Confidence<br>Levels</span>
+          <span class="arch-panel-label">Review Modal</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Apply</span>
+          <span class="arch-panel-detail">Confirm &amp;<br>Update D.inv</span>
+          <span class="arch-panel-label">Apply to D.inv</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-info">
+        <div class="impact-icon impact-icon-info">i</div>
+        <span>Reads handwritten quantities from printed count sheets. Confidence levels: high, medium, low. 2MB maximum image payload (<span class="mono">MAX_SCAN_PAYLOAD_SIZE</span>). Review modal allows user to accept, reject, or modify scanned values before applying.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 06: DATA DOMAIN MODEL
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-06">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 06</span>
+      <h2>Data Domain Model</h2>
+      <p>Entity relationships and organizational taxonomy underpinning the kitchen management data layer.</p>
+    </div>
+
+    <!-- Flow 11 -->
+    <div class="flow-card card-primary">
+      <div class="flow-watermark">11</div>
+      <div class="flow-header">
+        <span class="tag tag-primary">Domain</span>
+        <span class="tag tag-success">Entities</span>
+        <h3 class="flow-title">Core Entity Relationships</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Base</span>
+          <span class="arch-panel-detail">144 Defaults<br>9 Categories</span>
+          <span class="arch-panel-label">Ingredients<br>(D.ings)</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Compose</span>
+          <span class="arch-panel-detail">Sub-recipes<br>Yield Calc</span>
+          <span class="arch-panel-label">Recipes<br>(D.recs)</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Serve</span>
+          <span class="arch-panel-detail">11 Categories<br>Aggregation</span>
+          <span class="arch-panel-label">Menu Items<br>(D.menus)</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Prep</span>
+          <span class="arch-panel-detail">Status Track<br>Daily Tasks</span>
+          <span class="arch-panel-label">Prep Status<br>(D.preps)</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Stock</span>
+          <span class="arch-panel-detail">By Area<br>SubArea</span>
+          <span class="arch-panel-label">Inventory<br>(D.inv)</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">Order</span>
+          <span class="arch-panel-detail">Auto-gen<br>From Stock</span>
+          <span class="arch-panel-label">Shopping List<br>(D.shopping)</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-info">
+        <div class="impact-icon impact-icon-info">i</div>
+        <span>144 default ingredients across 9 categories. Recipes reference ingredients, other recipes (sub-recipes), and prep items. Menu items aggregate recipes and ingredients into serveable dishes.</span>
+      </div>
+    </div>
+
+    <!-- Flow 12 -->
+    <div class="flow-card card-success">
+      <div class="flow-watermark">12</div>
+      <div class="flow-header">
+        <span class="tag tag-success">Taxonomy</span>
+        <span class="tag tag-purple">Organization</span>
+        <h3 class="flow-title">Storage &amp; Organization</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Physical</span>
+          <span class="arch-panel-detail">13 Locations<br>Kitchen Map</span>
+          <span class="arch-panel-label">Areas</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">Divide</span>
+          <span class="arch-panel-detail">Shelves<br>Drawers</span>
+          <span class="arch-panel-label">Sections<br>(Sub-areas)</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Classify</span>
+          <span class="arch-panel-detail">9 Ing / 11 Menu<br>9 Recipe</span>
+          <span class="arch-panel-label">Categories</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Measure</span>
+          <span class="arch-panel-detail">52 Units<br>Vol/Wt/Count</span>
+          <span class="arch-panel-label">Units</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">Convert</span>
+          <span class="arch-panel-detail">Storage to<br>Recipe Units</span>
+          <span class="arch-panel-label">Conversions</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-info">
+        <div class="impact-icon impact-icon-info">i</div>
+        <span>Physical kitchen topology modeled: fridges, prep tables, freezer, wine displays with section subdivisions. 52 measurement units with conversion factors between storage and recipe units.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 07: SECURITY ARCHITECTURE
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-07">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 07</span>
+      <h2>Security Architecture</h2>
+      <p>Defense-in-depth security model spanning server-side request validation, client-side protections, and Firestore access control.</p>
+    </div>
+
+    <!-- Flow 13 -->
+    <div class="flow-card card-danger">
+      <div class="flow-watermark">13</div>
+      <div class="flow-header">
+        <span class="tag tag-danger">Security</span>
+        <span class="tag tag-warning">Pipeline</span>
+        <h3 class="flow-title">Request Security Pipeline</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--danger); color: var(--danger);">CORS</span>
+          <span class="arch-panel-detail">Origin<br>Validation</span>
+          <span class="arch-panel-label">CORS Check</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Method</span>
+          <span class="arch-panel-detail">POST Only<br>JSON Body</span>
+          <span class="arch-panel-label">POST + Content<br>Type</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Auth</span>
+          <span class="arch-panel-detail">JWT Verify<br>Signature</span>
+          <span class="arch-panel-label">JWT Verify</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Limit</span>
+          <span class="arch-panel-detail">100/min<br>Per User</span>
+          <span class="arch-panel-label">Rate Limit</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--purple); color: var(--purple);">ACL</span>
+          <span class="arch-panel-detail">Whitelist +<br>Role Check</span>
+          <span class="arch-panel-label">Email +<br>Permission</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--success); color: var(--success);">Clean</span>
+          <span class="arch-panel-detail">HTML Strip<br>Sanitize</span>
+          <span class="arch-panel-label">Input Sanitize<br>+ Audit Log</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">+</div>
+        <span>10-layer security pipeline. Firestore rules deny all direct writes. Server-side HTML sanitization strips tags. Rate limiting at 100 requests per minute per user per Cloud Function instance. Security headers include HSTS and X-Frame-Options.</span>
+      </div>
+    </div>
+
+    <!-- Flow 14 -->
+    <div class="flow-card card-warning">
+      <div class="flow-watermark">14</div>
+      <div class="flow-header">
+        <span class="tag tag-warning">Client</span>
+        <span class="tag tag-danger">Defense</span>
+        <h3 class="flow-title">Client-Side Security</h3>
+      </div>
+
+      <div class="step-diagram">
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--danger); color: var(--danger);">XSS</span>
+          <span class="arch-panel-detail">169 Call Sites<br>HTML Escape</span>
+          <span class="arch-panel-label">escHtml()</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--primary); color: var(--primary);">Headers</span>
+          <span class="arch-panel-detail">CSP, HSTS<br>X-Frame</span>
+          <span class="arch-panel-label">Security<br>Headers</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--warning); color: var(--warning);">Timeout</span>
+          <span class="arch-panel-detail">30 Minutes<br>Inactivity</span>
+          <span class="arch-panel-label">Session<br>Timeout</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-solid"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--teal); color: var(--teal);">UX</span>
+          <span class="arch-panel-detail">Click Guard<br>Debounce</span>
+          <span class="arch-panel-label">Double-click<br>Guard</span>
+        </div>
+        <div class="arrow-connector"><div class="arrow-dashed"></div></div>
+        <div class="arch-panel">
+          <span class="arch-panel-badge" style="border-color: var(--coral); color: var(--coral);">Warning</span>
+          <span class="arch-panel-detail">Unsaved<br>Changes</span>
+          <span class="arch-panel-label">beforeunload</span>
+        </div>
+      </div>
+
+      <div class="impact-banner impact-success">
+        <div class="impact-icon impact-icon-success">+</div>
+        <span>Defense-in-depth. <span class="mono">escHtml()</span> applied at 169 call sites for XSS prevention. Firestore client-side: authenticate-to-read, deny-all-writes. <span class="mono">approved_emails</span> and <span class="mono">audit_log</span> collections locked to server-only access.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 08: SUMMARY & RECOMMENDATIONS
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="section" id="section-08">
+  <div class="container">
+    <div class="section-title">
+      <span class="section-number">Section 08</span>
+      <h2>Summary &amp; Recommendations</h2>
+      <p>Platform assessment with identified strengths, architectural risks, and prioritized improvement recommendations.</p>
+    </div>
+
+    <!-- Strengths & Risks -->
+    <div class="two-col">
+      <div class="card card-success">
+        <h3 style="margin-bottom: 20px; color: var(--success);">Strengths</h3>
+        <ul class="col-list">
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span>Backend-first security model — all writes enforced through Cloud Function with 10-layer validation pipeline</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span>Real-time multi-user sync via 15 Firestore listeners with conflict resolution preserving local pending changes</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span>AI augmentation through Gemini 2.5 Flash — voice commands and vision-based inventory scanning</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span>Comprehensive undo system covering 13 data tables with 5-state history stack</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span>Differential sync — only modified records persist to cloud via debounced batching with mutex protection</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span>27 fixes applied (23 audit + 4 optimizations) — render decoupled, O(1) indexes, lazy SheetJS, dead code removed</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span>Auth resilience — forced token refresh + Cloud Function fallback when Firestore listeners fail</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card card-success">
+        <h3 style="margin-bottom: 20px; color: var(--success);">Risks (4 of 5 Resolved)</h3>
+        <ul class="col-list">
+          <li>
+            <span class="list-marker marker-amber"></span>
+            <span>Monolithic 8,300-line <span class="filepath">index.html</span> — high cognitive load, difficult to navigate (deferred: extract ES modules incrementally)</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span><s>O(n) array lookups</s> — <strong>RESOLVED:</strong> <span class="mono">IDX</span> Map indexes provide O(1) lookups for all 11 collections, replacing 174 Array.find() calls</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span><s>Render/persistence coupling</s> — <strong>RESOLVED:</strong> Monkey-patch deleted. <span class="mono">render()</span> is pure UI; persistence via <span class="mono">scheduleSync()</span> in mutation functions</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span><s>477-line dead code</s> — <strong>RESOLVED:</strong> <span class="filepath">firebase-adapter.js</span> deleted from both root and deploy directories</span>
+          </li>
+          <li>
+            <span class="list-marker marker-green"></span>
+            <span><s>SheetJS eager load (~500KB)</s> — <strong>RESOLVED:</strong> Dynamic <span class="mono">loadXLSX()</span> loads library on-demand when Admin tab Excel import is used</span>
+          </li>
+          <li>
+            <span class="list-marker marker-amber"></span>
+            <span>Full DOM rebuild per <span class="mono">render()</span> — innerHTML still used, but deferred as performance is adequate at current data volumes</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Decision Matrix -->
+    <div class="card card-primary" style="margin-top: 40px;">
+      <h3 style="margin-bottom: 8px;">Decision Matrix</h3>
+      <p class="detail-text" style="margin-bottom: 16px;">Current architecture assessment against recommended improvements</p>
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>Criteria</th>
+            <th>Before</th>
+            <th>After</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data Lookups</td>
+            <td><span class="status-indicator status-red"></span>O(n) Array.find()</td>
+            <td><span class="status-indicator status-green"></span>O(1) IDX Map indexes</td>
+            <td><span class="tag tag-success" style="font-size:0.6rem;">SHIPPED</span></td>
+          </tr>
+          <tr>
+            <td>Render/Persistence</td>
+            <td><span class="status-indicator status-amber"></span>Monkey-patched render()</td>
+            <td><span class="status-indicator status-green"></span>scheduleSync() via mutations</td>
+            <td><span class="tag tag-success" style="font-size:0.6rem;">SHIPPED</span></td>
+          </tr>
+          <tr>
+            <td>External Libraries</td>
+            <td><span class="status-indicator status-amber"></span>Eager load (SheetJS ~500KB)</td>
+            <td><span class="status-indicator status-green"></span>Dynamic loadXLSX() on demand</td>
+            <td><span class="tag tag-success" style="font-size:0.6rem;">SHIPPED</span></td>
+          </tr>
+          <tr>
+            <td>Dead Code</td>
+            <td><span class="status-indicator status-amber"></span>firebase-adapter.js (477 lines)</td>
+            <td><span class="status-indicator status-green"></span>Deleted entirely</td>
+            <td><span class="tag tag-success" style="font-size:0.6rem;">SHIPPED</span></td>
+          </tr>
+          <tr>
+            <td>Auth Resilience</td>
+            <td><span class="status-indicator status-red"></span>Listeners fail on token race</td>
+            <td><span class="status-indicator status-green"></span>Token refresh + CF fallback</td>
+            <td><span class="tag tag-success" style="font-size:0.6rem;">SHIPPED</span></td>
+          </tr>
+          <tr>
+            <td>DOM Updates</td>
+            <td><span class="status-indicator status-amber"></span>Full innerHTML rebuild</td>
+            <td><span class="status-indicator status-amber"></span>Adequate at current scale</td>
+            <td><span class="tag tag-warning" style="font-size:0.6rem;">DEFERRED</span></td>
+          </tr>
+          <tr>
+            <td>File Structure</td>
+            <td><span class="status-indicator status-amber"></span>Single 8,300-line file</td>
+            <td><span class="status-indicator status-amber"></span>ES Modules (future)</td>
+            <td><span class="tag tag-warning" style="font-size:0.6rem;">DEFERRED</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Key Recommendation -->
+    <div class="rec-card">
+      <div style="position: relative; z-index: 1;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <span class="tag tag-primary">Key Recommendation</span>
+        </div>
+        <h3 style="margin-bottom: 12px; font-size: 1.1rem;">Platform Status: Production-Hardened</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7;">5 of 7 architectural issues have been resolved: render() decoupled from persistence, O(1) Map indexes replace 174 Array.find() calls, SheetJS lazy-loaded (~500KB saved from initial load), 477 lines of dead code deleted, and auth race condition fixed with Cloud Function fallback. The remaining investment is modularizing <span class="filepath">index.html</span> into ES modules — this can be pursued incrementally by extracting one tab's render logic at a time. DOM patching is deferred as innerHTML performance is adequate at current data volumes (100-200 items per collection).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="container">
+    <p>Bistro Steward Architecture &amp; Optimization Report — Generated by Claude Agent Swarm — Updated March 12, 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>

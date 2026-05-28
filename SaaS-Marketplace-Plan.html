@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bistro Steward — SaaS Marketplace Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2333;
+    --border: #30363d;
+    --border2: #21262d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --purple: #7c5cbf;
+    --purple-bright: #a78bfa;
+    --purple-bg: rgba(124,92,191,.12);
+    --gold: #f0b429;
+    --gold-bg: rgba(240,180,41,.1);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,.1);
+    --blue: #58a6ff;
+    --blue-bg: rgba(88,166,255,.1);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,.1);
+    --orange: #d29922;
+    --orange-bg: rgba(210,153,34,.1);
+    --teal: #39d0b5;
+    --teal-bg: rgba(57,208,181,.1);
+    --pink: #f778ba;
+    --pink-bg: rgba(247,120,186,.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0;
+    padding: 0 24px;
+    overflow-x: auto;
+  }
+  .nav-logo {
+    font-size: 13px; font-weight: 700; letter-spacing: .05em;
+    color: var(--purple-bright); white-space: nowrap;
+    padding: 14px 24px 14px 0;
+    border-right: 1px solid var(--border);
+    margin-right: 8px;
+  }
+  nav a {
+    color: var(--muted); text-decoration: none;
+    font-size: 12px; font-weight: 500;
+    padding: 14px 14px;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  nav a:hover { color: var(--text); border-bottom-color: var(--border); }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(160deg, #0d1117 0%, #1a1030 50%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 64px 40px 48px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,92,191,.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--purple-bg);
+    border: 1px solid rgba(124,92,191,.4);
+    color: var(--purple-bright);
+    font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+    padding: 4px 14px; border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: 42px; font-weight: 700; letter-spacing: -.02em;
+    background: linear-gradient(135deg, #e6edf3 0%, #a78bfa 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 12px; line-height: 1.1;
+  }
+  .hero-sub {
+    color: var(--muted); font-size: 16px; max-width: 620px; margin: 0 auto 32px;
+  }
+  .hero-stats {
+    display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+    margin-top: 36px;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat .val {
+    font-size: 28px; font-weight: 700;
+    background: linear-gradient(135deg, #f0b429, #ff9f43);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    display: block;
+  }
+  .hero-stat .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── SECTIONS ── */
+  .section {
+    max-width: 1100px; margin: 0 auto;
+    padding: 56px 32px;
+    border-bottom: 1px solid var(--border2);
+  }
+  .section:last-child { border-bottom: none; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 32px;
+  }
+  .section-icon {
+    width: 36px; height: 36px;
+    background: var(--purple-bg);
+    border: 1px solid rgba(124,92,191,.3);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .section h2 {
+    font-size: 22px; font-weight: 700; letter-spacing: -.01em;
+    color: var(--text);
+  }
+  .section-note {
+    font-size: 13px; color: var(--muted);
+    margin-top: -20px; margin-bottom: 28px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .card-grid { display: grid; gap: 16px; }
+  .card-grid-2 { grid-template-columns: 1fr 1fr; }
+  .card-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 768px) {
+    .card-grid-2, .card-grid-3 { grid-template-columns: 1fr; }
+  }
+  .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .card p { font-size: 13px; color: var(--muted); }
+
+  /* ── TABLES ── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--bg3); color: var(--muted);
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+    padding: 11px 16px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border2); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody td { padding: 12px 16px; vertical-align: top; }
+  .td-num { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .td-center { text-align: center; }
+
+  /* ── CHIPS ── */
+  .chip {
+    display: inline-block;
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+    letter-spacing: .03em;
+  }
+  .chip-green  { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(63,185,80,.25); }
+  .chip-red    { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(248,81,73,.25); }
+  .chip-gold   { background: var(--gold-bg);   color: var(--gold);   border: 1px solid rgba(240,180,41,.25); }
+  .chip-blue   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(88,166,255,.25); }
+  .chip-purple { background: var(--purple-bg); color: var(--purple-bright); border: 1px solid rgba(124,92,191,.3); }
+  .chip-orange { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(210,153,34,.25); }
+  .chip-teal   { background: var(--teal-bg);   color: var(--teal);   border: 1px solid rgba(57,208,181,.25); }
+  .chip-muted  { background: #21262d; color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── AGENT CARDS ── */
+  .agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .agent-grid { grid-template-columns: 1fr; } }
+  .agent-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+  }
+  .agent-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .agent-num {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .agent-title { font-size: 14px; font-weight: 600; }
+  .agent-trigger { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .agent-body { padding: 16px 20px; }
+  .agent-row {
+    display: flex; gap: 10px; margin-bottom: 6px;
+    font-size: 12px; color: var(--muted);
+    align-items: flex-start;
+  }
+  .agent-row:last-child { margin-bottom: 0; }
+  .agent-icon { flex-shrink: 0; margin-top: 1px; }
+  .agent-row span { color: var(--text); }
+  .agent-footer {
+    padding: 10px 20px;
+    background: var(--bg3);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .agent-footer .lbl { font-size: 11px; color: var(--muted); }
+
+  /* ── PRICING TIERS ── */
+  .tier-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .tier-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .tier-grid { grid-template-columns: 1fr; } }
+  .tier-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+    position: relative;
+  }
+  .tier-card.featured {
+    border-color: var(--purple);
+    background: linear-gradient(135deg, var(--bg2) 0%, #1c1530 100%);
+  }
+  .tier-card.featured::before {
+    content: 'RECOMMENDED';
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--purple);
+    color: white; font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    padding: 3px 10px; border-radius: 10px;
+  }
+  .tier-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; }
+  .tier-price { font-size: 36px; font-weight: 700; letter-spacing: -.02em; }
+  .tier-price span { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .tier-desc { font-size: 12px; color: var(--muted); margin: 8px 0 16px; }
+  .tier-features { list-style: none; }
+  .tier-features li { font-size: 12px; color: var(--muted); padding: 5px 0; display: flex; gap: 8px; }
+  .tier-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+  /* ── ARCH DIAGRAM ── */
+  .arch-diagram {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr 60px 1fr;
+    gap: 0;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .arch-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .arch-box .icon { font-size: 28px; display: block; margin-bottom: 8px; }
+  .arch-box h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .arch-box p { font-size: 11px; color: var(--muted); }
+  .arch-arrow {
+    text-align: center;
+    color: var(--purple-bright);
+    font-size: 22px;
+  }
+
+  /* ── FLOW STEPS ── */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step {
+    display: flex; gap: 16px; align-items: flex-start;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border2);
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--purple-bg);
+    border: 1px solid rgba(124,92,191,.4);
+    color: var(--purple-bright);
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .flow-content h4 { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .flow-content p { font-size: 12px; color: var(--muted); }
+
+  /* ── SCALE TABLE special ── */
+  .scale-winner { color: var(--green); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .scale-row-highlight td { background: rgba(124,92,191,.07); }
+
+  /* ── ROADMAP ── */
+  .roadmap { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; }
+  @media (max-width: 900px) { .roadmap { grid-template-columns: 1fr 1fr; } }
+  .roadmap-month {
+    padding: 20px 16px;
+    border: 1px solid var(--border);
+    border-right: none; border-bottom: none;
+    position: relative;
+  }
+  .roadmap-month:nth-child(n+5) { border-bottom: 1px solid var(--border); }
+  .roadmap-month:last-child, .roadmap-month:nth-child(6) { border-right: 1px solid var(--border); }
+  @media (max-width: 900px) {
+    .roadmap-month { border-right: none; border-bottom: none; }
+    .roadmap-month:nth-child(even) { border-right: 1px solid var(--border); }
+    .roadmap-month:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+  }
+  .roadmap { border-top: 1px solid var(--border); border-left: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .roadmap-month:first-child { border-radius: 12px 0 0 0; }
+  .roadmap-month-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--purple-bright);
+    margin-bottom: 10px;
+  }
+  .roadmap-item {
+    font-size: 12px; color: var(--muted);
+    padding: 4px 0;
+    display: flex; gap: 6px;
+  }
+  .roadmap-item.key { color: var(--text); font-weight: 500; }
+  .roadmap-item::before { content: '·'; color: var(--purple-bright); flex-shrink: 0; }
+  .roadmap-item.key::before { content: '★'; font-size: 10px; }
+
+  /* ── COST BAR ── */
+  .cost-bar-wrap { display: flex; gap: 8px; align-items: center; margin: 4px 0; }
+  .cost-bar { height: 6px; border-radius: 3px; background: var(--purple); }
+  .cost-bar-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 8px; padding: 14px 18px;
+    margin: 16px 0;
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: 13px;
+  }
+  .info-box-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+  .info-box.gold { background: var(--gold-bg); border: 1px solid rgba(240,180,41,.25); color: #d4a017; }
+  .info-box.green { background: var(--green-bg); border: 1px solid rgba(63,185,80,.25); color: var(--green); }
+  .info-box.blue { background: var(--blue-bg); border: 1px solid rgba(88,166,255,.25); color: var(--blue); }
+  .info-box.purple { background: var(--purple-bg); border: 1px solid rgba(124,92,191,.3); color: var(--purple-bright); }
+
+  /* ── MARGIN HIGHLIGHT ── */
+  .margin-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--green-bg);
+    border: 1px solid rgba(63,185,80,.25);
+    color: var(--green);
+    font-size: 13px; font-weight: 700;
+    padding: 6px 14px; border-radius: 20px;
+    margin: 0 4px;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    text-align: center; padding: 32px;
+    color: var(--muted); font-size: 12px;
+    border-top: 1px solid var(--border2);
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 4px;
+    color: var(--purple-bright);
+  }
+  strong { font-weight: 600; color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🍽 Bistro Steward</div>
+  <a href="#architecture">Architecture</a>
+  <a href="#hosting">Hosting</a>
+  <a href="#setup">Customer Setup</a>
+  <a href="#costs">Costs</a>
+  <a href="#scale">Scale Economics</a>
+  <a href="#competition">Competition</a>
+  <a href="#pricing">Pricing</a>
+  <a href="#agents">Multi-Agent Plan</a>
+  <a href="#ops">Day-to-Day Ops</a>
+  <a href="#roadmap">Roadmap</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">SaaS Marketplace Plan · April 2026</div>
+  <h1>Bistro Steward<br>Goes to Market</h1>
+  <p class="hero-sub">
+    Full architecture, cost breakdown, competitive analysis, and Claude multi-agent operating plan
+    for one person to run a restaurant inventory SaaS at any scale.
+  </p>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="val">$49–$69</span><span class="lbl">/ month per restaurant</span></div>
+    <div class="hero-stat"><span class="val">~90%</span><span class="lbl">gross margin</span></div>
+    <div class="hero-stat"><span class="val">$3–6</span><span class="lbl">infrastructure cost / customer</span></div>
+    <div class="hero-stat"><span class="val">6</span><span class="lbl">Claude agents run the ops</span></div>
+    <div class="hero-stat"><span class="val">1 hr/wk</span><span class="lbl">your time at 1,000 customers</span></div>
+  </div>
+</div>
+
+
+<!-- 1. ARCHITECTURE -->
+<div class="section" id="architecture">
+  <div class="section-header">
+    <div class="section-icon">🏗</div>
+    <h2>Architecture: Web + Mobile, Multi-Tenant</h2>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="arch-box">
+      <span class="icon">🌐</span>
+      <h4>Web App</h4>
+      <p>Same index.html<br>served at customer subdomain</p>
+    </div>
+    <div class="arch-arrow">⟷</div>
+    <div class="arch-box" style="border-color: var(--purple); background: rgba(124,92,191,.08);">
+      <span class="icon">🔥</span>
+      <h4>Firebase Firestore</h4>
+      <p><code>/tenants/{tenantId}/...</code><br>onSnapshot real-time sync</p>
+    </div>
+    <div class="arch-arrow">⟷</div>
+    <div class="arch-box">
+      <span class="icon">📱</span>
+      <h4>Mobile App</h4>
+      <p>Same HTML · PWA install<br>or Capacitor shell</p>
+    </div>
+  </div>
+
+  <div class="info-box purple">
+    <div class="info-box-icon">💡</div>
+    <div><strong>Core decision: Single Firebase project, multi-tenant namespacing.</strong> Do NOT create a separate Firebase project per customer — that collapses at 100 customers. Every customer gets a <code>tenantId</code> (UUID) in their Firebase Auth JWT custom claim. Firestore security rules enforce that they can only read their own path.</div>
+  </div>
+
+  <div class="card-grid card-grid-2" style="margin-top:20px;">
+    <div class="card">
+      <h3 style="color:var(--blue)">🔒 Data Isolation (Firestore Rules)</h3>
+      <pre style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a78bfa;background:var(--bg3);padding:14px;border-radius:6px;margin-top:10px;line-height:1.6;overflow-x:auto;">match /tenants/{tenantId}/{col}/{doc=**} {
+  allow read: if
+    request.auth.token.tenantId == tenantId
+    &amp;&amp; request.auth.token.approved == true;
+  allow write: if false; // Cloud Function only
+}</pre>
+      <p style="margin-top:10px;">Each customer's data is physically in the same Firebase project but logically isolated. Zero cross-tenant data leakage possible with these rules.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--green)">⚡ Real-Time Sync: Already Solved</h3>
+      <p style="margin-bottom:10px;">Firestore <code>onSnapshot</code> listeners are already the core of Bistro Steward. The web browser tab and the mobile PWA both subscribe to the same tenant namespace.</p>
+      <p style="margin-bottom:10px;">A change made on the iPad in the kitchen appears on the laptop at the bar in <strong>100–300ms</strong>.</p>
+      <p>No additional architecture needed. This is the existing system, just namespaced per tenant.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;" class="card-grid card-grid-2">
+    <div class="card">
+      <h3 style="color:var(--gold)">📱 Mobile App Strategy</h3>
+      <p style="margin-bottom:10px;"><strong>Phase 1 — PWA (launch immediately, $0 App Store fees):</strong><br>Add <code>manifest.json</code> + service worker to existing HTML. iOS: "Add to Home Screen" from Safari → full-screen, no browser chrome. Android: native install prompt.</p>
+      <p><strong>Phase 2 — Capacitor shell (optional):</strong><br>Wrap same HTML in Capacitor → submit to App Store + Google Play. Zero code changes. Bill via Stripe on web, Apple never touches the money.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--teal)">🔑 Authentication Flow</h3>
+      <div class="flow" style="gap:0;">
+        <div class="flow-step" style="padding:10px 0;">
+          <div class="flow-num">1</div>
+          <div class="flow-content"><h4>Google OAuth sign-in</h4><p>Firebase Auth handles everything</p></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;">
+          <div class="flow-num">2</div>
+          <div class="flow-content"><h4>Provisioning Agent stamps claims</h4><p><code>{tenantId, approved: true, tier}</code> on JWT</p></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;">
+          <div class="flow-num">3</div>
+          <div class="flow-content"><h4>Force token refresh</h4><p><code>user.getIdToken(true)</code> — new claims active</p></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0; border:none;">
+          <div class="flow-num">4</div>
+          <div class="flow-content"><h4>onSnapshot listeners start</h4><p>Tenant-scoped data loads instantly</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 2. HOSTING -->
+<div class="section" id="hosting">
+  <div class="section-header">
+    <div class="section-icon">🌐</div>
+    <h2>Hosting Strategy</h2>
+  </div>
+  <p class="section-note">Firebase Hosting wildcard subdomains — one deploy reaches all customers simultaneously.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tier</th>
+          <th>Customer URL</th>
+          <th>How It Works</th>
+          <th>Cost</th>
+          <th>Setup</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="chip chip-green">Standard</span></td>
+          <td><code>luigi.bistrosteward.com</code></td>
+          <td>Firebase Hosting wildcard <code>*.bistrosteward.com</code>. Single index.html deploy. <code>tenantId</code> resolved from subdomain on load.</td>
+          <td class="td-num">$0</td>
+          <td>Provisioning Agent sets it in 5 seconds</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-gold">Premium upsell</span></td>
+          <td><code>kitchen.luigisbistro.com</code></td>
+          <td>Customer adds CNAME to their DNS pointing to Firebase. Firebase Hosting custom domain + auto SSL cert via Let's Encrypt.</td>
+          <td class="td-num">+$20/mo</td>
+          <td>1 email, Provisioning Agent completes in 5 min</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-purple">White-label</span></td>
+          <td>Fully branded domain + custom login screen</td>
+          <td>Modify manifest.json + login branding per tenant. Same Firebase Hosting.</td>
+          <td class="td-num">+$50/mo</td>
+          <td>One-time setup by you (~30 min)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-box blue" style="margin-top:20px;">
+    <div class="info-box-icon">⚡</div>
+    <div><strong>One deploy = all 10,000 customers updated.</strong> Firebase Hosting CDN distributes the same index.html globally. When you push a new version, every customer gets it within minutes. No per-customer deploy pipeline, no Kubernetes, no containers.</div>
+  </div>
+</div>
+
+
+<!-- 3. CUSTOMER SETUP -->
+<div class="section" id="setup">
+  <div class="section-header">
+    <div class="section-icon">🚀</div>
+    <h2>Customer Setup Requirements</h2>
+  </div>
+  <p class="section-note">Target: fully self-service in 30–60 minutes. Zero involvement from you.</p>
+
+  <div class="card-grid card-grid-2" style="margin-bottom:24px;">
+    <div class="card" style="border-color:rgba(63,185,80,.3);">
+      <h3 style="color:var(--green)">✅ What Customer Does (30–60 min)</h3>
+      <div class="flow" style="margin-top:12px;">
+        <div class="flow-step" style="padding:10px 0;">
+          <div class="flow-num" style="font-size:11px;">1</div>
+          <div class="flow-content"><h4>Sign up on website</h4><p>Name, restaurant name, email, Stripe payment card</p></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;">
+          <div class="flow-num" style="font-size:11px;">2</div>
+          <div class="flow-content"><h4>Receive login email</h4><p>Click link → lands at their subdomain already configured</p></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;">
+          <div class="flow-num" style="font-size:11px;">3</div>
+          <div class="flow-content"><h4>Connect POS (optional)</h4><p>Toast or Square OAuth → menu imports automatically. Or upload CSV template.</p></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;">
+          <div class="flow-num" style="font-size:11px;">4</div>
+          <div class="flow-content"><h4>Configure storage areas</h4><p>Drag-and-drop template: Walk-in, Kitchen, Dry Storage, Bar</p></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;border:none;">
+          <div class="flow-num" style="font-size:11px;">5</div>
+          <div class="flow-content"><h4>Start using it</h4><p>Voice commands, photo scanning, inventory counts — live from day 1</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-color:rgba(248,81,73,.2);">
+      <h3 style="color:var(--red)">⚙️ What You (Provisioning Agent) Does</h3>
+      <div style="margin-top:12px;">
+        <div class="flow-step" style="padding:10px 0;display:flex;gap:12px;border-bottom:1px solid var(--border2);">
+          <div style="color:var(--purple-bright);font-size:16px;flex-shrink:0;">→</div>
+          <div><strong>Stripe webhook fires</strong> on payment confirmation</div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;display:flex;gap:12px;border-bottom:1px solid var(--border2);">
+          <div style="color:var(--purple-bright);font-size:16px;flex-shrink:0;">→</div>
+          <div>Generate UUID <code>tenantId</code>, create Firestore namespace with seed areas</div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;display:flex;gap:12px;border-bottom:1px solid var(--border2);">
+          <div style="color:var(--purple-bright);font-size:16px;flex-shrink:0;">→</div>
+          <div>Stamp Firebase Auth custom claims: <code>{tenantId, approved: true, tier}</code></div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;display:flex;gap:12px;border-bottom:1px solid var(--border2);">
+          <div style="color:var(--purple-bright);font-size:16px;flex-shrink:0;">→</div>
+          <div>Reserve subdomain on Firebase Hosting</div>
+        </div>
+        <div class="flow-step" style="padding:10px 0;display:flex;gap:12px;">
+          <div style="color:var(--purple-bright);font-size:16px;flex-shrink:0;">→</div>
+          <div>Send welcome email with login URL + onboarding video</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:var(--green-bg);border:1px solid rgba(63,185,80,.2);border-radius:8px;">
+        <strong style="color:var(--green);">Total time: ~30 seconds. Your involvement: Zero.</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 4. COSTS -->
+<div class="section" id="costs">
+  <div class="section-header">
+    <div class="section-icon">💰</div>
+    <h2>Per-Customer Cost Breakdown</h2>
+  </div>
+  <p class="section-note">Monthly infrastructure cost per active restaurant customer on Firebase Blaze (pay-as-you-go).</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Cost Item</th>
+          <th>Low Activity</th>
+          <th>High Activity</th>
+          <th>Basis</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Firestore reads</td>
+          <td class="td-num">$0.40</td>
+          <td class="td-num">$2.00</td>
+          <td>50k–250k reads/day @ $0.06/100k</td>
+        </tr>
+        <tr>
+          <td>Firestore writes</td>
+          <td class="td-num">$0.30</td>
+          <td class="td-num">$1.50</td>
+          <td>5k–25k writes/day @ $0.18/100k</td>
+        </tr>
+        <tr>
+          <td>Firebase Hosting (CDN)</td>
+          <td class="td-num">$0.01</td>
+          <td class="td-num">$0.05</td>
+          <td>~10MB HTML, global CDN served</td>
+        </tr>
+        <tr>
+          <td>Cloud Functions</td>
+          <td class="td-num">$0.00</td>
+          <td class="td-num">$0.20</td>
+          <td>First 2M invocations/month free</td>
+        </tr>
+        <tr>
+          <td>Firebase Auth</td>
+          <td class="td-num">$0.00</td>
+          <td class="td-num">$0.00</td>
+          <td>Free up to 10k MAU</td>
+        </tr>
+        <tr>
+          <td>Gemini 2.5 Flash (voice + scan AI)</td>
+          <td class="td-num">$0.02</td>
+          <td class="td-num">$0.25</td>
+          <td>50 voice commands + 20 photo scans/month<br><span style="color:var(--muted);font-size:11px;">$0.075/1M input tokens, $0.30/1M output</span></td>
+        </tr>
+        <tr style="background:var(--bg3);">
+          <td><strong>Firebase/GCP Subtotal</strong></td>
+          <td class="td-num"><strong>$0.73</strong></td>
+          <td class="td-num"><strong>$4.00</strong></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Stripe processing (2.9% + $0.30)</td>
+          <td class="td-num">$1.72</td>
+          <td class="td-num">$2.30</td>
+          <td>On $49–$69/month subscription</td>
+        </tr>
+        <tr>
+          <td>Cloudflare (proxy + CDN)</td>
+          <td class="td-num">$0.00</td>
+          <td class="td-num">$0.00</td>
+          <td>Free plan more than sufficient</td>
+        </tr>
+        <tr style="background:rgba(63,185,80,.05);">
+          <td><strong>Total per customer / month</strong></td>
+          <td class="td-num scale-winner">$2.45</td>
+          <td class="td-num scale-winner">$6.30</td>
+          <td><span class="chip chip-green">90%+ gross margin at $69/mo</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:20px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+    <div style="flex:1;min-width:280px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Fixed Monthly Costs (You)</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border2);"><span>Apple Developer Program</span><span class="td-num">$8/mo</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border2);"><span><code>bistrosteward.com</code> domain</span><span class="td-num">$1/mo</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border2);"><span>Resend email (up to 3k/day)</span><span class="td-num">$0/mo</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;"><span>Firebase project (no base fee)</span><span class="td-num">$0/mo</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0 0;border-top:1px solid var(--border);margin-top:6px;"><strong>Total fixed</strong><strong class="td-num" style="color:var(--green);">~$9/mo</strong></div>
+    </div>
+    <div style="flex:1;min-width:280px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Apple Store Note</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Apple's <strong style="color:var(--red);">30% cut</strong> only applies to in-app purchases and subscriptions sold through the App Store payment system.</p>
+      <p style="font-size:13px;color:var(--muted);">Strategy: bill via <strong>Stripe on your website</strong>. The app is a free download. Apple gets $0 from your subscription revenue. This is fully compliant — many SaaS apps do this (Basecamp, etc.).</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- 5. SCALE ECONOMICS -->
+<div class="section" id="scale">
+  <div class="section-header">
+    <div class="section-icon">📈</div>
+    <h2>Scale Economics</h2>
+  </div>
+  <p class="section-note">Pricing at $69/month Starter tier. Infrastructure scales linearly; your time does not.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Customers</th>
+          <th>Monthly Revenue</th>
+          <th>Infra Cost</th>
+          <th>Stripe Fees</th>
+          <th>Fixed</th>
+          <th>Net MRR</th>
+          <th>Margin</th>
+          <th>ARR</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-num">100</td>
+          <td class="td-num">$6,900</td>
+          <td class="td-num">$400</td>
+          <td class="td-num">$300</td>
+          <td class="td-num">$9</td>
+          <td class="td-num scale-winner">$6,191</td>
+          <td><span class="chip chip-green">90%</span></td>
+          <td class="td-num">$74k</td>
+        </tr>
+        <tr class="scale-row-highlight">
+          <td class="td-num"><strong>500</strong></td>
+          <td class="td-num"><strong>$34,500</strong></td>
+          <td class="td-num">$2,000</td>
+          <td class="td-num">$1,500</td>
+          <td class="td-num">$9</td>
+          <td class="td-num scale-winner"><strong>$30,991</strong></td>
+          <td><span class="chip chip-green">90%</span></td>
+          <td class="td-num"><strong>$414k</strong></td>
+        </tr>
+        <tr>
+          <td class="td-num">1,000</td>
+          <td class="td-num">$69,000</td>
+          <td class="td-num">$4,000</td>
+          <td class="td-num">$3,000</td>
+          <td class="td-num">$9</td>
+          <td class="td-num scale-winner">$61,991</td>
+          <td><span class="chip chip-green">90%</span></td>
+          <td class="td-num">$828k</td>
+        </tr>
+        <tr class="scale-row-highlight">
+          <td class="td-num"><strong>5,000</strong></td>
+          <td class="td-num"><strong>$345,000</strong></td>
+          <td class="td-num">$20,000</td>
+          <td class="td-num">$15,000</td>
+          <td class="td-num">$9</td>
+          <td class="td-num scale-winner"><strong>$309,991</strong></td>
+          <td><span class="chip chip-green">90%</span></td>
+          <td class="td-num"><strong>$4.1M</strong></td>
+        </tr>
+        <tr>
+          <td class="td-num">10,000</td>
+          <td class="td-num">$690,000</td>
+          <td class="td-num">$40,000</td>
+          <td class="td-num">$30,000</td>
+          <td class="td-num">$9</td>
+          <td class="td-num scale-winner">$619,991</td>
+          <td><span class="chip chip-green">90%</span></td>
+          <td class="td-num">$7.4M</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-box gold" style="margin-top:20px;">
+    <div class="info-box-icon">💡</div>
+    <div>The margin stays at ~90% at every scale tier because Firebase is pure pay-as-you-go with no base fee, and Gemini 2.5 Flash is inexpensive at restaurant-level usage volumes. Your biggest cost as you grow is Stripe fees, not infrastructure.</div>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:20px;">
+    <div class="card" style="flex:1;min-width:200px;border-color:rgba(240,180,41,.3);text-align:center;">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Break-even</div>
+      <div style="font-size:28px;font-weight:700;color:var(--gold);">7 customers</div>
+      <div style="font-size:12px;color:var(--muted);">cover all fixed monthly costs</div>
+    </div>
+    <div class="card" style="flex:1;min-width:200px;border-color:rgba(124,92,191,.3);text-align:center;">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Solo-founder ceiling</div>
+      <div style="font-size:28px;font-weight:700;color:var(--purple-bright);">None</div>
+      <div style="font-size:12px;color:var(--muted);">Claude agents handle ops at any scale</div>
+    </div>
+    <div class="card" style="flex:1;min-width:200px;border-color:rgba(63,185,80,.3);text-align:center;">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Your time at 1k customers</div>
+      <div style="font-size:28px;font-weight:700;color:var(--green);">~1 hr/wk</div>
+      <div style="font-size:12px;color:var(--muted);">read digests + handle escalations</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 6. COMPETITION -->
+<div class="section" id="competition">
+  <div class="section-header">
+    <div class="section-icon">🥊</div>
+    <h2>Competitive Landscape</h2>
+  </div>
+  <p class="section-note">Live research conducted April 2026. Sources: company pricing pages, research.com, G2.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Price/Month</th>
+          <th>Mobile</th>
+          <th>AI Features</th>
+          <th>Target Market</th>
+          <th>Critical Weakness</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>MarketMan</strong></td>
+          <td class="td-num">$199–$429<br><span style="color:var(--muted);font-size:11px;">+ $500 setup fee</span></td>
+          <td><span class="chip chip-green">iOS + Android</span></td>
+          <td>AI invoice scanning, AI recipe creation</td>
+          <td>Independent + small chains</td>
+          <td>Mobile lags desktop; expensive setup fee</td>
+        </tr>
+        <tr>
+          <td><strong>BlueCart</strong></td>
+          <td class="td-num">$10–$200<br><span style="color:var(--muted);font-size:11px;">month-to-month</span></td>
+          <td><span class="chip chip-green">iOS + Android</span></td>
+          <td>Predictive ordering, AI invoice processing</td>
+          <td>Independent restaurants</td>
+          <td>Ordering-focused; limited inventory counting</td>
+        </tr>
+        <tr>
+          <td><strong>Craftable</strong></td>
+          <td class="td-num">Custom<br><span style="color:var(--muted);font-size:11px;">annual contract required</span></td>
+          <td><span class="chip chip-blue">Tablet/web</span></td>
+          <td>Auto recipe costing, BI integration</td>
+          <td>Multi-unit groups (5+)</td>
+          <td>No pricing transparency; forced annual</td>
+        </tr>
+        <tr>
+          <td><strong>Restaurant365</strong></td>
+          <td class="td-num">$90–$469<br><span style="color:var(--muted);font-size:11px;">accounting-focused</span></td>
+          <td><span class="chip chip-green">iOS + Android</span></td>
+          <td>Mobile inventory counts, barcode scanning</td>
+          <td>Chains + accounting-focused</td>
+          <td>Overkill for independents; accounting focus</td>
+        </tr>
+        <tr>
+          <td><strong>Toast xtraChef</strong></td>
+          <td class="td-num">$149–$349<br><span style="color:var(--muted);font-size:11px;">recipe costing: Pro only</span></td>
+          <td><span class="chip chip-blue">Web-based only</span></td>
+          <td>Invoice automation, recipe costing</td>
+          <td>Toast POS customers</td>
+          <td>Locked to Toast ecosystem; no mobile app</td>
+        </tr>
+        <tr>
+          <td><strong>Upserve</strong></td>
+          <td class="td-num">$59–$359<br><span style="color:var(--muted);font-size:11px;">+$99 for inventory</span></td>
+          <td><span class="chip chip-green">iOS + Android</span></td>
+          <td>—</td>
+          <td>SMB to mid-market</td>
+          <td>Inventory is a paid add-on; transaction fees</td>
+        </tr>
+        <tr>
+          <td><strong>MarginEdge</strong></td>
+          <td class="td-num">$330–$480</td>
+          <td><span class="chip chip-blue">Mobile-accessible</span></td>
+          <td>Auto-updating ingredient prices</td>
+          <td>Independent + multi-unit</td>
+          <td>High price; cost control focus only</td>
+        </tr>
+        <tr>
+          <td><strong>Optimum Control</strong></td>
+          <td class="td-num">Custom<br><span style="color:var(--muted);font-size:11px;">+ $250 setup</span></td>
+          <td><span class="chip chip-red">Windows desktop ONLY</span></td>
+          <td>—</td>
+          <td>Enterprise / chains</td>
+          <td>No mobile app whatsoever; legacy feel</td>
+        </tr>
+        <tr>
+          <td><strong>Apicbase</strong></td>
+          <td class="td-num">$160+</td>
+          <td><span class="chip chip-green">iOS + Android</span></td>
+          <td>Barcode scanning, real-time recipe updates</td>
+          <td>Multi-unit, European-focused</td>
+          <td>European focus; no voice features</td>
+        </tr>
+        <tr>
+          <td><strong>Crunchtime</strong></td>
+          <td class="td-num">Enterprise custom<br><span style="color:var(--muted);font-size:11px;">100+ locations</span></td>
+          <td><span class="chip chip-green">iOS + Android</span></td>
+          <td><strong style="color:var(--gold);">Voice-based inventory counting</strong>, photo intelligence</td>
+          <td>Enterprise chains only</td>
+          <td>Not available to independent restaurants</td>
+        </tr>
+        <tr style="background:rgba(124,92,191,.07);">
+          <td><strong style="color:var(--purple-bright);">Bistro Steward</strong></td>
+          <td class="td-num" style="color:var(--green);font-weight:700;">$49–$69<br><span style="color:var(--muted);font-size:11px;">no setup fee</span></td>
+          <td><span class="chip chip-purple">PWA + native</span></td>
+          <td><strong style="color:var(--purple-bright);">Voice inventory + Vision AI scanning</strong></td>
+          <td>All independent restaurants</td>
+          <td>New entrant (opportunity: no legacy baggage)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:24px;display:flex;gap:16px;flex-wrap:wrap;">
+    <div class="card" style="flex:1;min-width:280px;border-color:rgba(63,185,80,.3);">
+      <h3 style="color:var(--green)">🎯 Market Gap You Fill</h3>
+      <ul style="list-style:none;margin-top:10px;">
+        <li style="padding:5px 0;border-bottom:1px solid var(--border2);font-size:13px;">✓ <strong>Voice inventory</strong> — only Crunchtime does this, but it's enterprise-only ($1,000s/mo)</li>
+        <li style="padding:5px 0;border-bottom:1px solid var(--border2);font-size:13px;">✓ <strong>Vision AI (photo scan)</strong> — MarketMan has invoice scanning, but nobody scans the walk-in shelf</li>
+        <li style="padding:5px 0;border-bottom:1px solid var(--border2);font-size:13px;">✓ <strong>$49/month</strong> — nearest competitor at this price (BlueCart) lacks full inventory features</li>
+        <li style="padding:5px 0;font-size:13px;">✓ <strong>No setup fee, no annual lock-in</strong> — every competitor charges $250–$500 setup</li>
+      </ul>
+    </div>
+    <div class="card" style="flex:1;min-width:280px;border-color:rgba(248,81,73,.2);">
+      <h3 style="color:var(--red)">⚠️ Risks to Watch</h3>
+      <ul style="list-style:none;margin-top:10px;">
+        <li style="padding:5px 0;border-bottom:1px solid var(--border2);font-size:13px;">• Toast acquires/copies voice feature into xtraChef (they have 100k+ restaurants)</li>
+        <li style="padding:5px 0;border-bottom:1px solid var(--border2);font-size:13px;">• MarketMan adds voice to their AI suite (they're already doing AI recipe creation)</li>
+        <li style="padding:5px 0;font-size:13px;">• Google/Apple add inventory to their food service products</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- 7. PRICING -->
+<div class="section" id="pricing">
+  <div class="section-header">
+    <div class="section-icon">💳</div>
+    <h2>Pricing Strategy</h2>
+  </div>
+  <p class="section-note">Goal: volume at 50%+ margin. Launch price creates momentum; raise after 500 customers.</p>
+
+  <div class="tier-grid" style="margin-bottom:28px;">
+    <div class="tier-card">
+      <div class="tier-name">Starter</div>
+      <div class="tier-price">$49<span>/mo</span></div>
+      <div class="tier-desc">For independent restaurants, food trucks, pop-ups</div>
+      <ul class="tier-features">
+        <li>1 location, up to 5 staff users</li>
+        <li>All core inventory features</li>
+        <li>Voice commands (Gemini)</li>
+        <li>Photo scanning (Gemini Vision)</li>
+        <li>Recipe & prep costing</li>
+        <li>Shopping list auto-generation</li>
+        <li>Activity log</li>
+        <li>PWA mobile app</li>
+      </ul>
+    </div>
+    <div class="tier-card featured">
+      <div class="tier-name" style="color:var(--purple-bright);">Pro</div>
+      <div class="tier-price" style="background:linear-gradient(135deg,#a78bfa,#7c5cbf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">$99<span style="-webkit-text-fill-color:var(--muted)">/mo</span></div>
+      <div class="tier-desc">For established single-location restaurants</div>
+      <ul class="tier-features">
+        <li>Everything in Starter</li>
+        <li>Unlimited staff users</li>
+        <li>Toast / Square POS integration</li>
+        <li>Custom domain support</li>
+        <li>CSV export / reports</li>
+        <li>Webhook integrations</li>
+        <li>Priority email support</li>
+      </ul>
+    </div>
+    <div class="tier-card">
+      <div class="tier-name">Multi</div>
+      <div class="tier-price">$199<span>/mo</span></div>
+      <div class="tier-desc">Small chains, ghost kitchen groups</div>
+      <ul class="tier-features">
+        <li>Up to 5 locations</li>
+        <li>Everything in Pro</li>
+        <li>Cross-location inventory view</li>
+        <li>Centralized recipe library</li>
+        <li>Location-level reporting</li>
+        <li>Onboarding call included</li>
+      </ul>
+    </div>
+    <div class="tier-card">
+      <div class="tier-name">Chain</div>
+      <div class="tier-price">Custom</div>
+      <div class="tier-desc">6+ locations, white-label, enterprise</div>
+      <ul class="tier-features">
+        <li>Unlimited locations</li>
+        <li>White-label (your brand)</li>
+        <li>Dedicated onboarding</li>
+        <li>SLA guarantee</li>
+        <li>API access</li>
+        <li>Custom integrations</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-grid card-grid-2">
+    <div class="card">
+      <h3 style="color:var(--gold)">🧲 Acquisition Strategy</h3>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+        <div style="padding:10px;background:var(--bg3);border-radius:8px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Free 30-day trial, no credit card</div>
+          <div style="font-size:12px;color:var(--muted);">Let them import their real menu and run real inventory. Data lock-in drives conversion. Target: 60%+ trial-to-paid.</div>
+        </div>
+        <div style="padding:10px;background:var(--bg3);border-radius:8px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Annual discount: 2 months free</div>
+          <div style="font-size:12px;color:var(--muted);">$490/yr vs. $588 monthly. Reduces churn and improves cash flow. Target: 40% take annual.</div>
+        </div>
+        <div style="padding:10px;background:var(--bg3);border-radius:8px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Competitor migration bonus</div>
+          <div style="font-size:12px;color:var(--muted);">$0 first month + data import help if leaving MarketMan or Craftable. Convert their frustration directly.</div>
+        </div>
+        <div style="padding:10px;background:var(--bg3);border-radius:8px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Referral: 1 month free for both</div>
+          <div style="font-size:12px;color:var(--muted);">Restaurant owners know each other. Word of mouth in the industry is the lowest CAC channel.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--blue)">🧮 Why $49 Beats $69 at Launch</h3>
+      <div style="margin-top:12px;">
+        <p style="font-size:13px;margin-bottom:12px;">$49 is below the <strong>"approval threshold"</strong> for most restaurant owners — they can expense it without a budget meeting. $150+ requires approval. $69 requires hesitation.</p>
+        <div style="background:var(--bg3);padding:14px;border-radius:8px;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Estimated impact at 500 customers:</div>
+          <div style="font-size:13px;margin-bottom:4px;">At $49: <span style="color:var(--green);font-weight:600;">500 customers × $49 = $24,500 MRR</span></div>
+          <div style="font-size:13px;">At $69 with 40% fewer signups: <span style="color:var(--red);font-weight:600;">300 customers × $69 = $20,700 MRR</span></div>
+        </div>
+        <p style="font-size:13px;color:var(--muted);">Launch at $49. <strong>Grandfather all existing customers at $49 forever</strong> when you raise to $69 after 500. The loyalty that creates is worth more than the price difference.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 8. MULTI-AGENT PLAN -->
+<div class="section" id="agents">
+  <div class="section-header">
+    <div class="section-icon">🤖</div>
+    <h2>Multi-Agent Claude Operating Plan</h2>
+  </div>
+  <p class="section-note">Six specialized Claude agents handle all operations. Each has a defined trigger, scope, and toolset.</p>
+
+  <div class="agent-grid">
+
+    <!-- AGENT 1 -->
+    <div class="agent-card">
+      <div class="agent-header" style="background:rgba(63,185,80,.06);">
+        <div class="agent-num" style="background:var(--green-bg);color:var(--green);border:1px solid rgba(63,185,80,.3);">1</div>
+        <div>
+          <div class="agent-title">Provisioning Agent</div>
+          <div class="agent-trigger">⚡ Trigger: Stripe webhook on new subscription payment</div>
+        </div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><div class="agent-icon">→</div><div>Generate UUID <code>tenantId</code>, create Firestore namespace with seed areas (Kitchen, Walk-in, Dry Storage, Bar)</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Stamp Firebase Auth custom claims: <code>{tenantId, approved: true, tier: "starter"}</code></div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Reserve <code>{slug}.bistrosteward.com</code> on Firebase Hosting wildcard</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Send branded welcome email via Resend with login URL + onboarding video link</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Create customer record in admin Firestore + audit trail</div></div>
+      </div>
+      <div class="agent-footer">
+        <span class="lbl">Tools:</span>
+        <span class="chip chip-green">Firebase Admin SDK</span>
+        <span class="chip chip-green">Stripe API</span>
+        <span class="chip chip-green">Resend</span>
+        <span class="lbl" style="margin-left:auto;">Runtime: ~30 seconds</span>
+      </div>
+    </div>
+
+    <!-- AGENT 2 -->
+    <div class="agent-card">
+      <div class="agent-header" style="background:rgba(88,166,255,.06);">
+        <div class="agent-num" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(88,166,255,.3);">2</div>
+        <div>
+          <div class="agent-title">Onboarding Agent</div>
+          <div class="agent-trigger">⚡ Trigger: Customer's first login OR "Help me set up" button click</div>
+        </div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><div class="agent-icon">→</div><div>Checks what's already configured (areas, ingredients, POS connection)</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>If Toast: initiates OAuth flow link → polls for connection → imports full menu as ingredients</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>If Square: same OAuth + import flow</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>If manual: presents CSV template → parses upload → maps to ingredient schema</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Creates first inventory count sheet, sends "you're set up!" email with tips</div></div>
+      </div>
+      <div class="agent-footer">
+        <span class="lbl">Tools:</span>
+        <span class="chip chip-blue">Toast OAuth API</span>
+        <span class="chip chip-blue">Square API</span>
+        <span class="chip chip-blue">CSV parser</span>
+        <span class="chip chip-blue">Resend</span>
+        <span class="lbl" style="margin-left:auto;">Human: Zero</span>
+      </div>
+    </div>
+
+    <!-- AGENT 3 -->
+    <div class="agent-card">
+      <div class="agent-header" style="background:rgba(124,92,191,.06);">
+        <div class="agent-num" style="background:var(--purple-bg);color:var(--purple-bright);border:1px solid rgba(124,92,191,.3);">3</div>
+        <div>
+          <div class="agent-title">Deployment Agent</div>
+          <div class="agent-trigger">⚡ Trigger: You run <code>/deploy</code> or merge to main</div>
+        </div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><div class="agent-icon">→</div><div>Run full test suite (<code>npx vitest run</code>) — hard stop if any fail</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Security scan: grep for new <code>onclick</code> with user data, unescaped innerHTML</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Deploy updated index.html to Firebase Hosting CDN (<code>firebase deploy --only hosting</code>)</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Canary validation: open 3 random tenant URLs, verify auth works and app loads</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Auto-rollback if canary fails. Post deploy summary to you.</div></div>
+      </div>
+      <div class="agent-footer">
+        <span class="lbl">Tools:</span>
+        <span class="chip chip-purple">Bash / Firebase CLI</span>
+        <span class="chip chip-purple">Vitest</span>
+        <span class="chip chip-purple">Grep</span>
+        <span class="lbl" style="margin-left:auto;">~5–10 min per deploy</span>
+      </div>
+    </div>
+
+    <!-- AGENT 4 -->
+    <div class="agent-card">
+      <div class="agent-header" style="background:rgba(240,180,41,.06);">
+        <div class="agent-num" style="background:var(--gold-bg);color:var(--gold);border:1px solid rgba(240,180,41,.3);">4</div>
+        <div>
+          <div class="agent-title">Health Monitor Agent</div>
+          <div class="agent-trigger">⚡ Trigger: Daily cron + Firebase error-spike webhook</div>
+        </div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><div class="agent-icon">→</div><div>Query Firebase Cloud Logging: error rates per tenant, failed syncs, auth errors</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Check Firestore quota usage — flag tenants approaching daily read/write limits</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Check Stripe for failed payments → trigger automatic payment retry email</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Identify at-risk customers: signed up &gt;7 days ago, &lt;10 inventory events (low engagement)</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Email you a one-page digest: active users, errors, quota, at-risk list, MRR movement</div></div>
+      </div>
+      <div class="agent-footer">
+        <span class="lbl">Tools:</span>
+        <span class="chip chip-gold">GCP Logging API</span>
+        <span class="chip chip-gold">Firestore Admin</span>
+        <span class="chip chip-gold">Stripe API</span>
+        <span class="chip chip-gold">Resend</span>
+      </div>
+    </div>
+
+    <!-- AGENT 5 -->
+    <div class="agent-card">
+      <div class="agent-header" style="background:rgba(57,208,181,.06);">
+        <div class="agent-num" style="background:var(--teal-bg);color:var(--teal);border:1px solid rgba(57,208,181,.3);">5</div>
+        <div>
+          <div class="agent-title">Support Agent</div>
+          <div class="agent-trigger">⚡ Trigger: Email to support@bistrosteward.com</div>
+        </div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><div class="agent-icon">→</div><div>Classify inbound: how-to / bug report / billing / feature request</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div><strong>How-to</strong>: look up in knowledge base → reply directly, &lt;1 hour</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div><strong>Bug</strong>: check if known issue → reply with workaround or ETA</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div><strong>Billing</strong>: handle cancel/upgrade via Stripe API automatically</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div><strong>Escalate to you only</strong>: data loss, security concern, unknown bug, angry churn risk</div></div>
+      </div>
+      <div class="agent-footer">
+        <span class="lbl">Tools:</span>
+        <span class="chip chip-teal">Gmail MCP</span>
+        <span class="chip chip-teal">Stripe API</span>
+        <span class="chip chip-teal">Firestore</span>
+        <span class="lbl" style="margin-left:auto;">&lt;10% tickets reach you</span>
+      </div>
+    </div>
+
+    <!-- AGENT 6 -->
+    <div class="agent-card">
+      <div class="agent-header" style="background:rgba(247,120,186,.06);">
+        <div class="agent-num" style="background:var(--pink-bg);color:var(--pink);border:1px solid rgba(247,120,186,.3);">6</div>
+        <div>
+          <div class="agent-title">Revenue Intelligence Agent</div>
+          <div class="agent-trigger">⚡ Trigger: First of each month</div>
+        </div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-row"><div class="agent-icon">→</div><div>Pull Stripe MRR, new signups, churn, expansion revenue (upgrades)</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Calculate churn rate, LTV, CAC — flag if any trending wrong direction</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Identify top 10 customers by usage (potential advocates for referral program)</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Identify bottom 10 by usage → trigger automated win-back email sequence</div></div>
+        <div class="agent-row"><div class="agent-icon">→</div><div>Full P&amp;L: revenue → infra costs → Stripe fees → net. Email one-page summary.</div></div>
+      </div>
+      <div class="agent-footer">
+        <span class="lbl">Tools:</span>
+        <span class="chip chip-muted">Stripe API</span>
+        <span class="chip chip-muted">Firestore</span>
+        <span class="chip chip-muted">Resend</span>
+        <span class="lbl" style="margin-left:auto;">Runs monthly</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scale focus -->
+  <div style="margin-top:28px;">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;">Agent Focus by Scale</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Scale</th><th>Primary Concern</th><th>Active Agents</th><th>Your Weekly Time</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="chip chip-muted">0–500</span></td>
+            <td>Product-market fit, onboarding conversion</td>
+            <td>Provisioning + Onboarding. Handle most support yourself.</td>
+            <td class="td-num">3–5 hrs</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-blue">500–1k</span></td>
+            <td>Support volume, churn reduction</td>
+            <td>All 6 agents. Support Agent fully deployed.</td>
+            <td class="td-num">1–2 hrs</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-gold">1k–5k</span></td>
+            <td>Quota management, feature velocity</td>
+            <td>Health Monitor escalated. Deployment Agent adds PR regression tests.</td>
+            <td class="td-num">~1 hr</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-green">5k–10k</span></td>
+            <td>Infra cost optimization, SLA</td>
+            <td>Revenue Agent guides infra spend. Consider region-based Firebase projects.</td>
+            <td class="td-num">~1 hr</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- 9. DAY TO DAY -->
+<div class="section" id="ops">
+  <div class="section-header">
+    <div class="section-icon">📅</div>
+    <h2>Your Day-to-Day at 1,000 Customers</h2>
+  </div>
+  <p class="section-note">This is what your actual week looks like. Everything else is handled by agents.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Task</th><th>Frequency</th><th>Your Time</th><th>Who Does It</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Read health monitor digest</td>
+          <td>Daily</td>
+          <td class="td-num">5 min</td>
+          <td><span class="chip chip-gold">Agent 4</span> prepares it</td>
+        </tr>
+        <tr>
+          <td>Handle escalated support tickets</td>
+          <td>As needed</td>
+          <td class="td-num">~30 min/week</td>
+          <td><span class="chip chip-teal">Agent 5</span> filters; you see &lt;10%</td>
+        </tr>
+        <tr>
+          <td>Review + approve deploy</td>
+          <td>Per release</td>
+          <td class="td-num">15 min</td>
+          <td><span class="chip chip-purple">Agent 3</span> runs everything; you approve</td>
+        </tr>
+        <tr>
+          <td>Read monthly revenue report</td>
+          <td>Monthly</td>
+          <td class="td-num">10 min</td>
+          <td><span class="chip chip-muted">Agent 6</span> generates it</td>
+        </tr>
+        <tr>
+          <td>Custom domain setup requests</td>
+          <td>Rare</td>
+          <td class="td-num">5 min each</td>
+          <td><span class="chip chip-green">Agent 1</span> handles DNS + Hosting</td>
+        </tr>
+        <tr>
+          <td>Feature development</td>
+          <td>Whenever</td>
+          <td>All your actual coding time</td>
+          <td>You + Claude Code</td>
+        </tr>
+        <tr style="background:rgba(63,185,80,.05);">
+          <td><strong>Total ops overhead</strong></td>
+          <td><strong>Per week</strong></td>
+          <td class="td-num"><strong style="color:var(--green);">~1 hr/week</strong></td>
+          <td>Everything else automated</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-box green" style="margin-top:20px;">
+    <div class="info-box-icon">✅</div>
+    <div>At 1,000 customers generating ~$62k net MRR, you spend approximately 1 hour per week on operations. The remaining 39+ hours are available for product development, marketing, or more customers. This is the key advantage of the multi-agent Claude architecture.</div>
+  </div>
+</div>
+
+
+<!-- 10. ROADMAP -->
+<div class="section" id="roadmap">
+  <div class="section-header">
+    <div class="section-icon">🗺</div>
+    <h2>6-Month Build Roadmap</h2>
+  </div>
+  <p class="section-note">Sequential build order. You can charge real customers after Month 1. Everything else improves ops without blocking revenue.</p>
+
+  <div class="roadmap">
+    <div class="roadmap-month">
+      <div class="roadmap-month-label">Month 1</div>
+      <div class="roadmap-item key">Multi-tenant Firestore rules</div>
+      <div class="roadmap-item key">Provisioning Cloud Function</div>
+      <div class="roadmap-item key">Stripe webhook → auto-create tenant</div>
+      <div class="roadmap-item key">Signup landing page</div>
+      <div class="roadmap-item">PWA manifest.json + service worker</div>
+      <div class="roadmap-item">Welcome email template</div>
+      <div style="margin-top:12px;padding:8px;background:var(--green-bg);border-radius:6px;">
+        <div style="font-size:11px;color:var(--green);font-weight:600;">🚀 LAUNCH — charge real customers</div>
+      </div>
+    </div>
+    <div class="roadmap-month">
+      <div class="roadmap-month-label">Month 2</div>
+      <div class="roadmap-item key">Onboarding wizard in app</div>
+      <div class="roadmap-item key">Toast POS OAuth + menu import</div>
+      <div class="roadmap-item key">Square POS OAuth + import</div>
+      <div class="roadmap-item">CSV import + template</div>
+      <div class="roadmap-item">Onboarding Agent logic</div>
+      <div class="roadmap-item">Trial signup flow (no CC)</div>
+    </div>
+    <div class="roadmap-month">
+      <div class="roadmap-month-label">Month 3</div>
+      <div class="roadmap-item key">Deployment Agent scripts</div>
+      <div class="roadmap-item key">Canary validation pipeline</div>
+      <div class="roadmap-item">Per-PR regression test hook</div>
+      <div class="roadmap-item">Wildcard subdomain routing</div>
+      <div class="roadmap-item">Custom domain setup flow</div>
+      <div class="roadmap-item">Pro tier billing</div>
+    </div>
+    <div class="roadmap-month">
+      <div class="roadmap-month-label">Month 4</div>
+      <div class="roadmap-item key">Support email routing system</div>
+      <div class="roadmap-item key">Support Agent + knowledge base</div>
+      <div class="roadmap-item">Health Monitor Agent</div>
+      <div class="roadmap-item">Stripe dunning / retry logic</div>
+      <div class="roadmap-item">Firestore quota alerts</div>
+      <div class="roadmap-item">In-app feedback widget</div>
+    </div>
+    <div class="roadmap-month">
+      <div class="roadmap-month-label">Month 5</div>
+      <div class="roadmap-item key">Revenue Intelligence Agent</div>
+      <div class="roadmap-item key">Win-back email sequences</div>
+      <div class="roadmap-item">Annual billing option</div>
+      <div class="roadmap-item">Referral program mechanics</div>
+      <div class="roadmap-item">Multi tier (5 locations)</div>
+      <div class="roadmap-item">Competitor migration offer</div>
+    </div>
+    <div class="roadmap-month">
+      <div class="roadmap-month-label">Month 6</div>
+      <div class="roadmap-item key">Capacitor shell (App Store)</div>
+      <div class="roadmap-item key">App Store + Google Play submit</div>
+      <div class="roadmap-item">White-label tier</div>
+      <div class="roadmap-item">Push notifications</div>
+      <div class="roadmap-item">Chain / enterprise pricing</div>
+      <div class="roadmap-item">Partner integrations (Sysco, etc.)</div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;display:flex;gap:16px;flex-wrap:wrap;">
+    <div class="card" style="flex:1;min-width:250px;border-color:rgba(63,185,80,.3);">
+      <h3 style="color:var(--green)">Revenue Timeline</h3>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border2);"><span>End of Month 1</span><span class="td-num" style="color:var(--green);">First paying customers</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border2);"><span>End of Month 3</span><span class="td-num" style="color:var(--green);">Target: 50 customers → $2,450 MRR</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border2);"><span>End of Month 6</span><span class="td-num" style="color:var(--green);">Target: 200 customers → $9,800 MRR</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border2);"><span>Month 12</span><span class="td-num" style="color:var(--gold);">Target: 500 customers → $24,500 MRR</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;"><span>Month 18</span><span class="td-num" style="color:var(--gold);">Target: 1,000 customers → $49,000 MRR</span></div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;min-width:250px;border-color:rgba(88,166,255,.3);">
+      <h3 style="color:var(--blue)">The Single Best First Move</h3>
+      <p style="font-size:13px;margin-top:10px;margin-bottom:10px;">Before any code: create a landing page at <code>bistrosteward.com</code> with a waitlist form. Collect 100 email addresses from restaurant owners.</p>
+      <p style="font-size:13px;margin-bottom:10px;">Then DM those 100 directly. Offer them 6 months free in exchange for weekly feedback calls. Convert those to paid at month 7.</p>
+      <p style="font-size:13px;">100 email addresses before launch is worth more than any line of infrastructure code.</p>
+    </div>
+  </div>
+</div>
+
+
+<div class="footer">
+  Bistro Steward SaaS Plan · Generated April 2026 · All infrastructure costs verified against Firebase Blaze + Gemini 2.5 Flash current pricing · Competitive data sourced from live pricing pages
+</div>
+
+</body>
+</html>

@@ -13,7 +13,7 @@ if (!API_KEY) { console.error('FIREBASE_WEB_API_KEY required'); process.exit(1);
 const ADMIN_URL = 'https://us-central1-restaurant-oracle.cloudfunctions.net/adminBilling';
 const SUPER_URL = 'https://us-central1-restaurant-oracle.cloudfunctions.net/superAdmin';
 
-const TEST_EMAIL = `sec-test-${Date.now()}@restaurant-oracle.test`;
+const TEST_EMAIL = `sec-test-${Date.now()}@bistrosteward.test`;
 const TEST_PASSWORD = `Sec_Pass_${Date.now()}_X`;
 
 async function signIn(email, password) {
@@ -51,7 +51,7 @@ async function main() {
   await new Promise(r => setTimeout(r, 500));
 
   console.log('[setup] Creating tenant-bound user (role=employee, NOT super_admin)');
-  const employeeEmail = `emp-${Date.now()}@restaurant-oracle.test`;
+  const employeeEmail = `emp-${Date.now()}@bistrosteward.test`;
   const employee = await auth.createUser({ email: employeeEmail, password: TEST_PASSWORD, emailVerified: true });
   await auth.setCustomUserClaims(employee.uid, { tenantId: 'lachona', tenantSlug: 'lachona', approved: true, role: 'employee' });
   await new Promise(r => setTimeout(r, 500));

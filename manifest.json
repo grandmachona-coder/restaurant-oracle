@@ -1,8 +1,8 @@
 {
-  "name": "Restaurant Oracle",
-  "short_name": "Oracle",
+  "name": "Bistro Steward",
+  "short_name": "Steward",
   "description": "Smart Kitchen Management",
-  "start_url": "/restaurant-oracle/",
+  "start_url": "/bistro-steward/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",

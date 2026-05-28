@@ -1,0 +1,277 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bistro Steward — UPC Scanner Integration (Revised Plan)</title><style>
+:root{
+  --bg:#0f1226; --panel:#171a35; --panel2:#1f2347; --ink:#eef0ff; --muted:#a7adcf;
+  --accent:#ffb84d; --accent2:#7aa2ff; --line:rgba(255,255,255,.08);
+  --add-bg:rgba(109,214,163,.15); --add-fg:#9ff4c3;
+  --del-bg:rgba(255,122,135,.15); --del-fg:#ffb1bb;
+  --warn-bg:rgba(255,184,77,.12); --warn-fg:#ffd699;
+  --ctx-fg:#9aa1c8; --shadow:0 8px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:linear-gradient(180deg,#0b0e22 0%,#0f1226 40%,#10142e 100%);
+  color:var(--ink);font:14.5px/1.6 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:36px 28px 90px}
+header.hero{padding:26px 30px;border-radius:16px;background:radial-gradient(800px 240px at 20% 0%,rgba(255,184,77,.15),transparent 60%),radial-gradient(900px 260px at 90% 10%,rgba(122,162,255,.18),transparent 60%),var(--panel);box-shadow:var(--shadow);border:1px solid var(--line);}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:30px;line-height:1.15;margin:6px 0 6px}
+.sub{color:var(--muted);max-width:880px}
+.meta{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#262b58;border:1px solid var(--line);color:var(--ink);padding:5px 11px;border-radius:999px;font-size:12px}
+.chip.ok{background:#1f4633;color:#b9f1d3}
+.chip.fix{background:#5a2a30;color:#ffc3cb}
+h2{font-size:19px;margin:36px 0 10px;letter-spacing:.2px;scroll-margin-top:20px}
+h2 .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--accent);color:#1a1a2e;border-radius:6px;font-size:12px;font-weight:800;margin-right:8px;vertical-align:1px}
+h3{font-size:15px;margin:22px 0 6px;color:var(--accent2)}
+p{margin:8px 0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;background:#0d1029;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:#cfe0ff}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:14px 0;padding:16px 18px;box-shadow:var(--shadow)}
+.note{padding:12px 16px;background:#13163a;color:#dfe5ff;border-left:3px solid var(--accent);font-size:13.5px;border-radius:0 8px 8px 0;margin:12px 0}
+.note.warn{border-left-color:#ffb84d;background:var(--warn-bg);color:var(--warn-fg)}
+.note.bad{border-left-color:#ff7a87;background:var(--del-bg);color:#ffd5da}
+.note.good{border-left-color:#6dd6a3;background:var(--add-bg);color:#cdf6e1}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+td.was{color:var(--del-fg)}
+td.now{color:var(--add-fg)}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.kpi .k{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.kpi .k b{display:block;font-size:17px;color:var(--accent)}
+.kpi .k span{color:var(--muted);font-size:11px}
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:14px 0}
+.step{flex:1 1 150px;min-width:140px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;position:relative;margin:6px}
+.step .t{font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:4px}
+.step .d{font-size:12.5px;color:var(--muted)}
+.step.green{border-color:rgba(109,214,163,.4)}
+.step.amber{border-color:rgba(255,184,77,.4)}
+ul{margin:8px 0;padding-left:20px}
+li{margin:5px 0}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.toc a{font-size:12.5px;color:var(--accent2);text-decoration:none;background:#1a1e40;border:1px solid var(--line);padding:5px 10px;border-radius:8px}
+.toc a:hover{background:#222850}
+pre.block{margin:10px 0;padding:14px 16px;background:#0d1029;border:1px solid var(--line);border-radius:10px;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;color:#cfe0ff}
+.pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700}
+.pill.p1{background:#5a2a30;color:#ffc3cb}
+.pill.p2{background:#1d3a5a;color:#b9d2ff}
+.pill.p3{background:#3a3550;color:#d8cfff}
+.gantt td{font-size:12.5px}
+.bar{height:14px;border-radius:4px;background:linear-gradient(90deg,var(--accent2),var(--accent));display:inline-block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0}
+footer{margin-top:44px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--line);padding-top:18px}
+.checkitem{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.checkitem .bx{color:var(--accent);font-weight:800}
+@media(max-width:680px){.kpi{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Bistro Steward · UPC Scanner Integration · Revised 2026-05-27</div>
+  <h1>Camera barcode scanning — revised integration plan</h1>
+  <p class="sub">The original plan was sketched against assumptions that don't match the real codebase. This revision re-grounds the feature in Bistro Steward as it actually ships today — a vanilla HTML PWA backed by a single Firebase Cloud Function (<code>op:*</code> dispatcher) — and lays out a hybrid inventory workflow that replaces printed count sheets with a phone-camera barcode scan for packaged goods, while prepped items stay hand-counted exactly as they are now.</p>
+  <div class="meta">
+    <span class="chip fix">4 plan corrections</span>
+    <span class="chip ok">Reuses existing audit + rate-limit + offline infra</span>
+    <span class="chip">Hybrid: scan packaged, hand-count prep</span>
+    <span class="chip">Free-first UPC lookup, cached</span>
+  </div>
+  <div class="kpi">
+    <div class="k"><b>P1</b><span>Data model + lookup API</span></div>
+    <div class="k"><b>P2</b><span>Camera scanner UI</span></div>
+    <div class="k"><b>P3</b><span>Offline + count write-back</span></div>
+    <div class="k"><b>P4 →</b><span>Hardening + rollout</span></div>
+  </div>
+</header>
+
+<div class="toc">
+  <a href="#replace">1 · What this replaces</a>
+  <a href="#corrections">2 · Plan corrections</a>
+  <a href="#workflow">3 · Hybrid workflow</a>
+  <a href="#arch">4 · Architecture</a>
+  <a href="#data">5 · Data model</a>
+  <a href="#lookup">6 · UPC lookup</a>
+  <a href="#scanner">7 · Camera scanner</a>
+  <a href="#schedule">8 · Production schedule</a>
+  <a href="#ship">9 · Everything else to ship</a>
+  <a href="#risks">10 · Risks &amp; decisions</a>
+</div>
+
+<h2 id="replace"><span class="num">1</span>What this replaces</h2>
+<p>Today's inventory count is a four-step paper loop. It works, but every step adds latency, error, or cost:</p>
+<div class="flow">
+  <div class="step"><div class="t">1 · Print</div><div class="d">Staff print a count sheet per area — a table of <code>#, Item, Unit, Last Qty, New Count</code>.</div></div>
+  <div class="step"><div class="t">2 · Handwrite</div><div class="d">They walk the area with a pen and write the new count in each row.</div></div>
+  <div class="step"><div class="t">3 · Photograph</div><div class="d">They snap a photo of the filled sheet on a phone.</div></div>
+  <div class="step amber"><div class="t">4 · OCR (Gemini)</div><div class="d">The <code>scan</code> op sends the image to Gemini 2.5 Flash Vision to read handwriting and match items — billed per scan, confidence-rated, and prone to misreads.</div></div>
+</div>
+<div class="note bad"><b>The pain:</b> printing requires a printer and reprints when items change; handwriting + OCR introduces misreads (the model already returns <code>"confidence":"low"</code> when it can't read a number); every sheet costs Gemini tokens; and the whole loop is slow per area. The barcode path collapses steps 1–4 into a single point-and-scan for any packaged item.</p></div>
+
+<div class="note good"><b>What we keep:</b> the OCR count-sheet path stays in place for items that have no barcode — fresh produce, prepped batches, bulk dry goods decanted into bins. This is the hybrid model you chose: scan what has a barcode, hand-count the rest exactly as today. Nothing about the existing prep workflow changes.</div>
+
+<h2 id="corrections"><span class="num">2</span>Corrections to the original plan</h2>
+<p>The screenshot's "Key Decisions" carried four assumptions that would have caused real rework. Each is corrected below against what's actually in the repo.</p>
+<table>
+  <thead><tr><th style="width:18%">Decision</th><th style="width:34%">Original (as planned)</th><th style="width:48%">Corrected (grounded in repo)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Tech stack</b></td>
+      <td class="was">Next.js + Firebase ("existing")</td>
+      <td class="now">There is no Next.js. The app is a single large PWA page (<code>firebase/public/app.html</code>, ~568&nbsp;KB of inline JS) served as static hosting, with all server logic in one Cloud Function (<code>firebase/functions/index.js</code>, ~6,000 lines) that dispatches on an <code>operation</code> field (<code>op:'scan'</code>, <code>op:'voice'</code>, …). The scanner ships as a module inside <code>app.html</code> and a new <code>op:'upcLookup'</code> — not a Next.js route.</td>
+    </tr>
+    <tr>
+      <td><b>Camera library</b></td>
+      <td class="was">jsQR (lightweight, zero deps)</td>
+      <td class="now"><b>jsQR only decodes 2D QR codes — it cannot read 1D UPC/EAN barcodes at all.</b> Retail UPC-A / EAN-13 are linear barcodes. The plan uses the browser-native <code>BarcodeDetector</code> API (free, on-device, already on most Android Chrome) with <code>@zxing/library</code> as the JavaScript fallback for iOS Safari and older browsers. Both run live off the phone's rear camera via <code>getUserMedia</code>.</td>
+    </tr>
+    <tr>
+      <td><b>Firestore</b></td>
+      <td class="was">6 new focused collections, composite IDs</td>
+      <td class="now">Don't add a parallel inventory schema. The app already has its per-tenant collections under <code>/tenants/{tenantId}/…</code> plus <code>audit_log</code>, <code>rate_limits</code>, <code>geminiUsage</code>, and a Pub/Sub audit queue. The feature adds just a <code>barcode</code> field to existing ingredients and <b>one</b> shared <code>upc_cache</code> collection. Counts write back through the existing inventory path.</td>
+    </tr>
+    <tr>
+      <td><b>UPC API</b></td>
+      <td class="was">eandata.com only ($0.01–0.05/lookup)</td>
+      <td class="now">Free-first: query Open Food Facts (free, strong on grocery/food) first, fall back to a paid provider only on a miss, and <b>cache every result in <code>upc_cache</code></b> so any given barcode is paid for at most once across all tenants. Reuses the existing <code>geminiUsage</code>-style cost-logging pattern.</td>
+    </tr>
+  </tbody>
+</table>
+<div class="note warn"><b>Why the library correction matters most:</b> had we built on jsQR, the camera would open, scan nothing off a grocery barcode, and the feature would appear "broken" with no obvious cause. Catching this before Phase 1 saves a full build-and-discard cycle.</div>
+
+<h2 id="workflow"><span class="num">3</span>The hybrid count workflow</h2>
+<p>From the counter's point of view, each area now has two ways to log an item. The app picks the fast path automatically and falls back gracefully.</p>
+<div class="flow">
+  <div class="step green"><div class="t">Packaged item</div><div class="d">Point camera → barcode auto-detects → product name + size resolve from cache/API → confirm count with visual portion buttons or weight input → logged.</div></div>
+  <div class="step amber"><div class="t">No barcode (prep/produce)</div><div class="d">Unchanged: hand-count on the printed sheet, or type the count in-app. OCR sheet scan remains available.</div></div>
+  <div class="step"><div class="t">Unknown barcode</div><div class="d">Scan resolves to nothing → one-tap "link this barcode to an ingredient" → saved to that ingredient so the next scan is instant.</div></div>
+</div>
+<h3>Portion capture</h3>
+<p>Per your earlier decision, two entry modes coexist after a successful scan: <b>visual buttons</b> for speed (¼ · ½ · ¾ · 1 · +1 steppers, matching the decimal quantities the app already stores) and a <b>weight/quantity input</b> for accuracy on partial cases or weighed goods. Both resolve to the same <code>{qty, unit}</code> shape the inventory model already uses.</p>
+
+<h2 id="arch"><span class="num">4</span>Revised architecture</h2>
+<p>The feature is three thin additions to surfaces that already exist — no new app, no new infrastructure.</p>
+<div class="card">
+<h3>Client — a scanner module inside <code>app.html</code></h3>
+<ul>
+  <li>A <code>&lt;video&gt;</code> + <code>getUserMedia({video:{facingMode:'environment'}})</code> live preview.</li>
+  <li>A decode loop using <code>BarcodeDetector</code> when present, else <code>@zxing/library</code> (loaded from CDN, consistent with how the app loads other vendor scripts).</li>
+  <li>On decode: debounce duplicate reads, vibrate/beep on success, resolve the product, then show the portion-capture sheet.</li>
+  <li>Writes counts into the same in-memory inventory state and offline queue the app already uses.</li>
+</ul>
+</div>
+<div class="card">
+<h3>Server — one new op in the dispatcher</h3>
+<pre class="block">if (operation === 'upcLookup') {
+  // 1. validate barcode (UPC-A 12 / EAN-13 13 digits, checksum)
+  // 2. read /upc_cache/{barcode} — return immediately on hit
+  // 3. miss → Open Food Facts (free) → paid provider fallback
+  // 4. write-through to /upc_cache, log cost like logGeminiUsage()
+  // 5. enforce the same per-tenant rate limit + audit emit as scan/voice
+}</pre>
+<p>It mirrors the existing <code>scan</code> and <code>voice</code> handlers exactly: same <code>rateCheck</code>, same <code>writeAuditLog</code>, same cost-logging discipline, same <code>{data, error, _rateLimit}</code> response envelope.</p>
+</div>
+<div class="card">
+<h3>Data — minimal, reuses what's there</h3>
+<ul>
+  <li>Add an optional <code>barcode</code> (string) to each ingredient record — the link between a physical product and a known ingredient.</li>
+  <li>One shared <code>upc_cache</code> collection keyed by barcode: product name, brand, size, source, fetchedAt. Shared across tenants because a Coca-Cola UPC is the same everywhere — this is what makes paid lookups one-time.</li>
+  <li>Counts continue to write through the existing inventory write path and the audit log; no new count collection.</li>
+</ul>
+</div>
+
+<h2 id="data"><span class="num">5</span>Data model changes</h2>
+<table>
+  <thead><tr><th>Where</th><th>Change</th><th>Shape</th></tr></thead>
+  <tbody>
+    <tr><td><code>ingredients[]</code> (per tenant)</td><td>Add optional field</td><td><code>barcode: "0049000050103"</code> — multiple ingredients may map to one barcode only if you stock variants; first match wins, with a disambiguation tap.</td></tr>
+    <tr><td><code>/upc_cache/{barcode}</code> (shared)</td><td>New collection</td><td><code>{ name, brand, size, unit, source:"off|paid", fetchedAt, hits }</code></td></tr>
+    <tr><td><code>audit_log</code></td><td>Reuse, new actions</td><td><code>upc_lookup</code>, <code>upc_linked</code>, <code>count_via_scan</code> — fits the existing emit-don't-mutate invariant.</td></tr>
+    <tr><td>Offline queue</td><td>Reuse</td><td>Counts captured offline enqueue in <code>localStorage</code> and batch-sync on reconnect — the pattern the audit queue already establishes.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="lookup"><span class="num">6</span>UPC lookup &amp; cost control</h2>
+<p>The lookup is designed so the paid API is the exception, not the rule:</p>
+<div class="flow">
+  <div class="step green"><div class="t">1 · Cache</div><div class="d">Read <code>upc_cache</code>. Hit = free, instant, no external call. Over time this serves the large majority of scans.</div></div>
+  <div class="step green"><div class="t">2 · Open Food Facts</div><div class="d">Free API, excellent food/grocery coverage. On hit, write-through to cache.</div></div>
+  <div class="step amber"><div class="t">3 · Paid fallback</div><div class="d">Only on a miss. eandata / UPCitemdb. Result cached so it's never paid for twice.</div></div>
+  <div class="step"><div class="t">4 · Manual link</div><div class="d">Total miss → user names it once; that mapping lives on the ingredient and seeds the cache.</div></div>
+</div>
+<div class="note"><b>Spend visibility:</b> every paid lookup logs through the same cost-rollup the app uses for Gemini (<code>tenant_costs_daily</code>), so UPC API spend shows up in the operator console alongside AI cost — no blind spend.</div>
+
+<h2 id="scanner"><span class="num">7</span>The camera scanner, in plain terms</h2>
+<p>You asked for "something that works from a user's camera on their phone." Here's what that means concretely and why this choice:</p>
+<ul>
+  <li><b>It uses the phone's own camera, in the browser — no app install.</b> Bistro Steward is already a PWA, so staff just open it and tap "Scan."</li>
+  <li><b>Two engines, one experience.</b> Modern Android Chrome has a built-in barcode reader (<code>BarcodeDetector</code>) that's fast and free. iPhones/Safari and older phones don't, so we bundle a proven JavaScript reader (<code>@zxing/library</code>) that does the same job. The staff member never sees the difference.</li>
+  <li><b>It reads grocery barcodes</b> (UPC-A, EAN-13, and the rest), which is exactly what's printed on packaged kitchen goods — and precisely what the originally-planned jsQR could <i>not</i> do.</li>
+  <li><b>Permission &amp; privacy:</b> the browser asks for camera access the first time; we add a plain-language note about why, and the camera stream never leaves the device — only the decoded number (e.g. <code>049000050103</code>) goes to the lookup.</li>
+</ul>
+
+<h2 id="schedule"><span class="num">8</span>Production schedule</h2>
+<p>Four phases. Each ends in something testable and shippable behind a feature flag, so you can pilot at LaChona before any other tenant sees it. Durations assume the existing solo build cadence; they're sequencing, not promises.</p>
+<table class="gantt">
+  <thead><tr><th style="width:20%">Phase</th><th style="width:40%">Scope</th><th style="width:24%">Timeline</th><th style="width:16%">Exit gate</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>P1 — Lookup spine</b></td>
+      <td><code>op:'upcLookup'</code>, <code>upc_cache</code> collection, Open Food Facts + paid fallback, cost logging, rate limit, audit actions, <code>barcode</code> field on ingredients.</td>
+      <td><span class="bar" style="width:70%"></span><br>Week 1</td>
+      <td>Lookup returns correct product for a known UPC; cache hit is free; unit tests green.</td>
+    </tr>
+    <tr>
+      <td><b>P2 — Camera UI</b></td>
+      <td>Scanner module in <code>app.html</code>: live preview, dual-engine decode, success feedback, product confirm, visual+weight portion capture, manual-link flow.</td>
+      <td><span class="bar" style="width:90%"></span><br>Weeks 2–3</td>
+      <td>Scans a real grocery barcode on both an Android and an iPhone; count lands in inventory state.</td>
+    </tr>
+    <tr>
+      <td><b>P3 — Offline &amp; write-back</b></td>
+      <td>Offline queue + batch sync for counts; integrate with existing inventory write path and audit; conflict handling consistent with current sync protection.</td>
+      <td><span class="bar" style="width:70%"></span><br>Week 4</td>
+      <td>Count captured in airplane mode syncs cleanly on reconnect; no double-writes.</td>
+    </tr>
+    <tr>
+      <td><b>P4 — Harden &amp; roll out</b></td>
+      <td>Security review, payload/permission checks, device QA matrix, feature-flag pilot at LaChona, then staged enablement.</td>
+      <td><span class="bar" style="width:70%"></span><br>Weeks 5–6</td>
+      <td>Pilot runs a full real inventory count via scan; sign-off; flag opened to other tenants.</td>
+    </tr>
+  </tbody>
+</table>
+<div class="legend"><span>Dependency: P2 needs P1's lookup. P3 needs P2's capture. P4 gates on all three.</span></div>
+
+<h2 id="ship"><span class="num">9</span>Everything else this needs to ship</h2>
+<p>Beyond the four build phases, these are the cross-cutting items that decide whether the feature is actually production-ready in a multi-tenant app — not afterthoughts:</p>
+
+<div class="card">
+<div class="checkitem"><span class="bx">☐</span><div><b>Multi-tenant isolation</b> <span class="pill p1">P1</span> — <code>upcLookup</code> must enforce the same <code>tenantId</code> scoping and JWT claims as every other op; <code>upc_cache</code> is shared (product data is public), but the <code>barcode</code>→ingredient mapping and all counts are strictly per-tenant.</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Rate limiting &amp; payload guards</b> <span class="pill p1">P1</span> — reuse the existing per-tenant <code>rate_limits</code>; validate barcode format and length server-side before any external call (cheap rejection of garbage).</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Cost ceiling &amp; logging</b> <span class="pill p1">P1</span> — paid lookups logged to <code>tenant_costs_daily</code>; a soft daily cap per tenant prevents a stuck scanner from running up an API bill.</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Camera permission UX &amp; privacy copy</b> <span class="pill p2">P2</span> — plain-language prompt; update <code>privacy.html</code> to state the camera is used only to read barcodes on-device and the image is never uploaded. (Privacy text should get the same legal review the recent sub-processor disclosures got.)</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>CSP / hosting headers</b> <span class="pill p2">P2</span> — allow the ZXing CDN and <code>getUserMedia</code> under the existing Content-Security-Policy; HTTPS is already in place (required for camera access).</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Service worker / PWA</b> <span class="pill p3">P3</span> — ensure <code>sw.js</code> caches the scanner module and ZXing bundle so scanning works in a walk-in with no signal.</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Accessibility &amp; ergonomics</b> <span class="pill p2">P2</span> — large tap targets, haptic/audio confirmation, one-handed use, glove-friendly buttons; usable in a cold, dim storeroom.</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Testing</b> <span class="pill p2">P2</span> — unit tests for <code>upcLookup</code> (cache hit, OFF hit, paid fallback, total miss, bad barcode) alongside the existing suite; a device QA matrix (Android Chrome, iOS Safari, low-end phone).</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Feature flag &amp; staged rollout</b> <span class="pill p3">P3</span> — gate behind the existing <code>feature_flags</code> so LaChona pilots first, then deterministic rollout to other tenants.</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Fallback &amp; error states</b> <span class="pill p2">P2</span> — clear paths when camera is denied, barcode won't read, lookup fails, or the device has no camera: always degrade to manual entry, never a dead end.</div></div>
+<div class="checkitem"><span class="bx">☐</span><div><b>Staff training note</b> <span class="pill p3">P3</span> — a one-page "how to count with the scanner" for kitchen staff; small but it's what makes adoption stick.</div></div>
+</div>
+
+<h2 id="risks"><span class="num">10</span>Open risks &amp; decisions to confirm</h2>
+<table>
+  <thead><tr><th style="width:30%">Risk / question</th><th>Detail &amp; mitigation</th></tr></thead>
+  <tbody>
+    <tr><td><b>Food-service pack codes</b></td><td>Restaurant suppliers (Sysco, US Foods) often use case-level GTIN-14 or internal SKUs, not retail UPCs — and those won't be in Open Food Facts. Mitigation: the manual-link flow turns any unrecognized code into a saved mapping after the first scan, so the system learns your specific supply over time.</td></tr>
+    <tr><td><b>iOS performance</b></td><td>ZXing-in-JS is heavier than the native detector. Mitigation: lazy-load the bundle only when the scanner opens; validate frame rate on a real older iPhone in P2's exit gate.</td></tr>
+    <tr><td><b>Open Food Facts coverage</b></td><td>Great on consumer grocery, thinner on bulk/industrial. Mitigation: paid fallback + cache means a miss is paid once, then free forever after.</td></tr>
+    <tr><td><b>Paid provider choice</b></td><td>You deferred eandata vs UPCitemdb to me. Recommendation: keep the provider behind a single config value so it can be swapped without code changes; pick after measuring real miss-rate during the LaChona pilot, when we'll know which codes actually fall through.</td></tr>
+  </tbody>
+</table>
+
+<div class="note good"><b>Net effect:</b> packaged-goods counting goes from print → handwrite → photo → OCR down to point → scan → confirm, with no printer, no handwriting misreads, and near-zero per-scan cost after the cache warms — while prepped items keep working exactly as they do today.</div>
+
+<footer>
+  Bistro Steward · UPC Scanner Integration — Revised Plan · 2026-05-27<br>
+  Supersedes the prior <code>bistro_steward_UPC.md</code> draft. Corrects: tech stack, scanner library, Firestore footprint, and lookup strategy. Ready to start Phase 1.
+</footer>
+
+</div></body></html>

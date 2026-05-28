@@ -1,0 +1,28 @@
+{
+  "environment": "sandbox",
+  "locationId": "LA45K6CZ9392T",
+  "createdAt": "2026-04-23T21:43:04.609Z",
+  "plans": [
+    {
+      "slug": "starter",
+      "name": "Bistro Steward — Starter",
+      "amountCents": 2900,
+      "planId": "BFALLLGASBJVKRYF4UBG6YBF",
+      "variationId": "46O4VUEJTVCCB5BEFYDO3JDP"
+    },
+    {
+      "slug": "pro",
+      "name": "Bistro Steward — Pro",
+      "amountCents": 4900,
+      "planId": "GFB3J5CJ4NBE3HXFYTIYVD2D",
+      "variationId": "QO6NPHN5AUTYX4O2OJQEYAQ5"
+    },
+    {
+      "slug": "scale",
+      "name": "Bistro Steward — Scale",
+      "amountCents": 9900,
+      "planId": "EZ5XJH32BDBBMPPQ4D76KYOZ",
+      "variationId": "INSGSBWJUJSHS3VND445EKG4"
+    }
+  ]
+}

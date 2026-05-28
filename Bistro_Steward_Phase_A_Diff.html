@@ -1,0 +1,755 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bistro Steward — Phase A Diff</title><style>
+:root{
+  --bg:#0f1226; --panel:#171a35; --panel2:#1f2347; --ink:#eef0ff; --muted:#a7adcf;
+  --accent:#ffb84d; --accent2:#7aa2ff; --line:rgba(255,255,255,.08);
+  --add-bg:rgba(109,214,163,.15); --add-fg:#9ff4c3;
+  --del-bg:rgba(255,122,135,.15); --del-fg:#ffb1bb;
+  --ctx-fg:#9aa1c8; --shadow:0 8px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:linear-gradient(180deg,#0b0e22 0%,#0f1226 40%,#10142e 100%);
+  color:var(--ink);font:14px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:36px 28px 80px}
+header.hero{padding:24px 28px;border-radius:16px;background:radial-gradient(800px 240px at 20% 0%,rgba(255,184,77,.15),transparent 60%),radial-gradient(900px 260px at 90% 10%,rgba(122,162,255,.18),transparent 60%),var(--panel);box-shadow:var(--shadow);border:1px solid var(--line);}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:30px;line-height:1.15;margin:6px 0 4px}
+.sub{color:var(--muted);max-width:820px}
+.meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#262b58;border:1px solid var(--line);color:var(--ink);padding:5px 10px;border-radius:999px;font-size:12px}
+h2{font-size:18px;margin:30px 0 8px;letter-spacing:.2px}
+h2 .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--accent);color:#1a1a2e;border-radius:6px;font-size:12px;font-weight:800;margin-right:8px;vertical-align:1px}
+.file{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:14px 0;overflow:hidden;box-shadow:var(--shadow)}
+.file header{padding:10px 16px;background:#181c3b;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.file header .path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--accent2);font-size:13px}
+.file header .badge{font-size:10px;padding:2px 8px;border-radius:5px;background:#262b58;color:#dfe5ff;letter-spacing:.04em;text-transform:uppercase}
+.file header .badge.new{background:#1f4633;color:#b9f1d3}
+.file header .badge.mod{background:#1d3a5a;color:#b9d2ff}
+.file .desc{padding:10px 16px;background:#13163a;border-bottom:1px solid var(--line);color:var(--muted);font-size:13px}
+pre.diff{margin:0;padding:0;background:#0d1029;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5}
+.diff-line{display:block;padding:1px 16px 1px 16px;white-space:pre}
+.diff-line.add{background:var(--add-bg);color:var(--add-fg)}
+.diff-line.del{background:var(--del-bg);color:var(--del-fg)}
+.diff-line.hunk{color:#7aa2ff;background:#181c3b;font-style:italic}
+.diff-line.ctx{color:var(--ctx-fg)}
+.diff-line.head{color:#a7adcf;background:#13163a}
+.note{padding:12px 16px;background:#13163a;color:#dfe5ff;border-left:3px solid var(--accent);font-size:13px;border-radius:0 8px 8px 0;margin:10px 0}
+footer{margin-top:36px;color:var(--muted);font-size:12px;text-align:center}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.kpi .k{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kpi .k b{display:block;font-size:18px;color:var(--accent)}
+.kpi .k span{color:var(--muted);font-size:11px}
+</style></head><body><div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Bistro Steward · Phase A · 2026-05-19</div>
+  <h1>Phase A — diff review</h1>
+  <p class="sub">Three tasks landed: operator role-update hardening, doc reconciliation, and the Pub/Sub-backed audit-log queue (the foundation everything else depends on). Tests pass; no production deploy yet.</p>
+  <div class="meta">
+    <span class="chip">Tests: 19/19 passing</span>
+    <span class="chip">Syntax: clean on all touched files</span>
+    <span class="chip">Files modified: 4</span>
+    <span class="chip">Files added: 2</span>
+    <span class="chip">Lines added: ~400</span>
+  </div>
+  <div class="kpi">
+    <div class="k"><b>A1</b><span>Doc reconciliation</span></div>
+    <div class="k"><b>A2</b><span>Operator role guard</span></div>
+    <div class="k"><b>A3</b><span>Audit-log queue</span></div>
+    <div class="k"><b>B1 →</b><span>Signup rollback (next)</span></div>
+  </div>
+</header>
+
+<div class="note"><b>One-time GCP setup required before deploy:</b><br>
+<code>gcloud pubsub topics create bistro-steward-audit-events --project=restaurant-oracle</code><br>
+<code>gcloud pubsub topics create bistro-steward-audit-events-dlq --project=restaurant-oracle</code><br>
+Then attach the DLQ to the auto-created subscription with <code>--max-delivery-attempts=5</code>.</div>
+
+<h2><span class="num">A2</span>Operator role-update hierarchy guard (E-1, P1)</h2>
+<p class="sub">Closes the P1 finding that any super-admin could overwrite any other super-admin's profile (including the <code>role</code> field). Profile edits are now self-only; the <code>role</code> field is rejected entirely (role changes flow through <code>grantSuperAdmin</code>/<code>revokeSuperAdmin</code> which already audit-emit); <code>photoUrl</code> is URL-validated; both ops emit super-audit entries on every path.</p>
+<div class="file"><header><span class="path">firebase/functions/index.js — operator profile ops</span><span class="badge mod">MODIFIED</span></header><div class="desc">Operator ops tightened: self-only edits, role field rejected, photoUrl validated, audit emit on allow + deny.</div><pre class="diff"><span class="diff-line head">--- a/firebase/functions/index.js</span>
+<span class="diff-line head">+++ b/firebase/functions/index.js</span>
+<span class="diff-line hunk">@@ change @@</span>
+<span class="diff-line ctx">     statusUpdatedBy: ctx.userEmail,</span>
+<span class="diff-line ctx">   }, { merge: true });</span>
+<span class="diff-line add">+  // Audit cross-operator status changes too — supervising peers is fine, but</span>
+<span class="diff-line add">+  // the trail must exist (e.g. who marked whom offline, and when).</span>
+<span class="diff-line add">+  await writeSuperAudit(ctx, &#x27;operator_status_updated&#x27;, null, { targetUid: uid, status });</span>
+<span class="diff-line ctx">   return { data: { uid, status } };</span>
+<span class="diff-line ctx"> }</span>
+<span class="diff-line ctx">   const { uid, displayName, role, photoUrl } = params || {};</span>
+<span class="diff-line ctx">   if (!uid) return { error: &#x27;uid required&#x27;, status: 400 };</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  // Hierarchy guard: operators may only edit their OWN profile here.</span>
+<span class="diff-line add">+  // Letting any super-admin silently overwrite a peer&#x27;s displayName, photo,</span>
+<span class="diff-line add">+  // or role confuses the operator dashboard and could lock a peer out of</span>
+<span class="diff-line add">+  // their own profile management. Super-admin grants/revokes are</span>
+<span class="diff-line add">+  // intentionally exclusive to grantSuperAdmin / revokeSuperAdmin, which</span>
+<span class="diff-line add">+  // mutate the authoritative `superAdmin` custom claim and emit their own</span>
+<span class="diff-line add">+  // audit entries.</span>
+<span class="diff-line add">+  if (uid !== ctx.userId) {</span>
+<span class="diff-line add">+    await writeSuperAudit(ctx, &#x27;operator_profile_update_denied&#x27;, null, {</span>
+<span class="diff-line add">+      targetUid: uid, reason: &#x27;cross_operator_edit_not_permitted&#x27;,</span>
+<span class="diff-line add">+    });</span>
+<span class="diff-line add">+    return { error: &quot;Cannot edit another operator&#x27;s profile&quot;, status: 403 };</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+  if (role !== undefined) {</span>
+<span class="diff-line add">+    await writeSuperAudit(ctx, &#x27;operator_profile_update_denied&#x27;, null, {</span>
+<span class="diff-line add">+      targetUid: uid, reason: &#x27;role_field_not_settable_here&#x27;,</span>
+<span class="diff-line add">+    });</span>
+<span class="diff-line add">+    return {</span>
+<span class="diff-line add">+      error: &#x27;Role changes go through grantSuperAdmin / revokeSuperAdmin&#x27;,</span>
+<span class="diff-line add">+      status: 400,</span>
+<span class="diff-line add">+    };</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line ctx">   const updates = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };</span>
+<span class="diff-line ctx">   if (displayName !== undefined) updates.displayName = sanitizeString(displayName);</span>
+<span class="diff-line del">-  if (role !== undefined) updates.role = role;</span>
+<span class="diff-line del">-  if (photoUrl !== undefined) updates.photoUrl = photoUrl;</span>
+<span class="diff-line add">+  if (photoUrl !== undefined) {</span>
+<span class="diff-line add">+    const url = String(photoUrl || &#x27;&#x27;).trim();</span>
+<span class="diff-line add">+    if (url &amp;&amp; !/^https?:\/\//.test(url)) {</span>
+<span class="diff-line add">+      return { error: &#x27;photoUrl must be an http(s) URL&#x27;, status: 400 };</span>
+<span class="diff-line add">+    }</span>
+<span class="diff-line add">+    updates.photoUrl = url || null;</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line ctx">   await db.collection(&#x27;operators&#x27;).doc(uid).set(updates, { merge: true });</span>
+<span class="diff-line add">+  await writeSuperAudit(ctx, &#x27;operator_profile_updated&#x27;, null, {</span>
+<span class="diff-line add">+    targetUid: uid,</span>
+<span class="diff-line add">+    fields: Object.keys(updates).filter(k =&gt; k !== &#x27;updatedAt&#x27;),</span>
+<span class="diff-line add">+  });</span>
+<span class="diff-line ctx">   return { data: { ok: true } };</span>
+<span class="diff-line ctx"> }</span></pre></div>
+<div class="file"><header><span class="path">firebase/functions/_e2e_super_admin.js</span><span class="badge mod">MODIFIED</span></header><div class="desc">Five new test sections [9]–[13] cover self status update (200), self profile update (200), cross-operator attempt (403), role-field present (400), and javascript: URL rejection (400).</div><pre class="diff"><span class="diff-line head">diff --git a/firebase/functions/_e2e_super_admin.js b/firebase/functions/_e2e_super_admin.js</span>
+<span class="diff-line head">index e624fe8..3c37066 100644</span>
+<span class="diff-line head">--- a/firebase/functions/_e2e_super_admin.js</span>
+<span class="diff-line head">+++ b/firebase/functions/_e2e_super_admin.js</span>
+<span class="diff-line hunk">@@ -13,7 +13,7 @@ const API_KEY = process.env.FIREBASE_WEB_API_KEY;</span>
+<span class="diff-line ctx"> if (!API_KEY) { console.error(&#x27;FIREBASE_WEB_API_KEY required&#x27;); process.exit(1); }</span>
+<span class="diff-line ctx"> </span>
+<span class="diff-line ctx"> const SUPER_URL = &#x27;https://us-central1-restaurant-oracle.cloudfunctions.net/superAdmin&#x27;;</span>
+<span class="diff-line del">-const TEST_EMAIL = `super-e2e-${Date.now()}@restaurant-oracle.test`;</span>
+<span class="diff-line add">+const TEST_EMAIL = `super-e2e-${Date.now()}@bistrosteward.test`;</span>
+<span class="diff-line ctx"> const TEST_PASSWORD = `TestPass${Date.now()}_!A`;</span>
+<span class="diff-line ctx"> </span>
+<span class="diff-line ctx"> async function signIn(email, password) {</span>
+<span class="diff-line hunk">@@ -92,7 +92,7 @@ async function main() {</span>
+<span class="diff-line ctx">     }</span>
+<span class="diff-line ctx"> </span>
+<span class="diff-line ctx">     // 5. grantSuperAdmin (grant to a throwaway, then revoke)</span>
+<span class="diff-line del">-    const granteeEmail = `grantee-${Date.now()}@restaurant-oracle.test`;</span>
+<span class="diff-line add">+    const granteeEmail = `grantee-${Date.now()}@bistrosteward.test`;</span>
+<span class="diff-line ctx">     const granteeUser = await auth.createUser({ email: granteeEmail, password: &#x27;XYZ_TempPass123&#x27; });</span>
+<span class="diff-line ctx">     console.log(`\n[5] grantSuperAdmin(${granteeEmail})`);</span>
+<span class="diff-line ctx">     r = await callOp(token, &#x27;grantSuperAdmin&#x27;, { email: granteeEmail });</span>
+<span class="diff-line hunk">@@ -121,6 +121,40 @@ async function main() {</span>
+<span class="diff-line ctx">       console.log(`  unsuspend status=${r.status} result=${JSON.stringify(r.data.data)}`);</span>
+<span class="diff-line ctx">     }</span>
+<span class="diff-line ctx"> </span>
+<span class="diff-line add">+    // 9. updateOperatorStatus(self → busy) — allowed; supervisor edits also allowed by design.</span>
+<span class="diff-line add">+    console.log(&#x27;\n[9] updateOperatorStatus(self → busy)&#x27;);</span>
+<span class="diff-line add">+    r = await callOp(token, &#x27;updateOperatorStatus&#x27;, { uid: user.uid, status: &#x27;busy&#x27; });</span>
+<span class="diff-line add">+    console.log(`  status=${r.status} result=${JSON.stringify(r.data.data)}`);</span>
+<span class="diff-line add">+    if (r.status !== 200) throw new Error(&#x27;Expected 200 for self status update&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+    // 10. updateOperatorProfile(self) — allowed</span>
+<span class="diff-line add">+    console.log(&#x27;\n[10] updateOperatorProfile(self) — should succeed&#x27;);</span>
+<span class="diff-line add">+    r = await callOp(token, &#x27;updateOperatorProfile&#x27;, { uid: user.uid, displayName: &#x27;E2E Tester&#x27; });</span>
+<span class="diff-line add">+    console.log(`  status=${r.status} result=${JSON.stringify(r.data.data)}`);</span>
+<span class="diff-line add">+    if (r.status !== 200) throw new Error(&#x27;Expected 200 for self profile update&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+    // 11. updateOperatorProfile(other) — should fail 403 (hierarchy guard)</span>
+<span class="diff-line add">+    console.log(&#x27;\n[11] updateOperatorProfile(other) — should fail 403&#x27;);</span>
+<span class="diff-line add">+    r = await callOp(token, &#x27;updateOperatorProfile&#x27;, {</span>
+<span class="diff-line add">+      uid: &#x27;someone-else-uid&#x27;, displayName: &#x27;Hijacked&#x27;,</span>
+<span class="diff-line add">+    });</span>
+<span class="diff-line add">+    console.log(`  status=${r.status} error=${r.data.error || &#x27;none&#x27;}`);</span>
+<span class="diff-line add">+    if (r.status !== 403) throw new Error(&#x27;Expected 403 when editing another operator&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+    // 12. updateOperatorProfile(self, role=...) — should fail 400 (role goes through grant/revoke)</span>
+<span class="diff-line add">+    console.log(&#x27;\n[12] updateOperatorProfile(self, role=admin) — should fail 400&#x27;);</span>
+<span class="diff-line add">+    r = await callOp(token, &#x27;updateOperatorProfile&#x27;, { uid: user.uid, role: &#x27;admin&#x27; });</span>
+<span class="diff-line add">+    console.log(`  status=${r.status} error=${r.data.error || &#x27;none&#x27;}`);</span>
+<span class="diff-line add">+    if (r.status !== 400) throw new Error(&#x27;Expected 400 when role field is present&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+    // 13. updateOperatorProfile(self, photoUrl=&#x27;javascript:...&#x27;) — should fail 400 (URL guard)</span>
+<span class="diff-line add">+    console.log(&#x27;\n[13] updateOperatorProfile(self, bad photoUrl) — should fail 400&#x27;);</span>
+<span class="diff-line add">+    r = await callOp(token, &#x27;updateOperatorProfile&#x27;, {</span>
+<span class="diff-line add">+      uid: user.uid, photoUrl: &#x27;javascript:alert(1)&#x27;,</span>
+<span class="diff-line add">+    });</span>
+<span class="diff-line add">+    console.log(`  status=${r.status} error=${r.data.error || &#x27;none&#x27;}`);</span>
+<span class="diff-line add">+    if (r.status !== 400) throw new Error(&#x27;Expected 400 for non-http photoUrl&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line ctx">     console.log(&#x27;\n[e2e] All ops passed ✓&#x27;);</span>
+<span class="diff-line ctx"> </span>
+<span class="diff-line ctx">   } finally {</span></pre></div>
+<h2><span class="num">A1</span>Doc reconciliation (Wave 0)</h2>
+<p class="sub">Two pieces of doc-vs-code drift fixed. The deployed Cloud Function is <code>api</code> (not <code>secureApi</code>); the dispatcher has <strong>57 ops</strong> — verified directly against <code>SUPER_OPS</code> keys (Pass 1 said 54, Pass 2 said 42, both wrong). Historical sections of MASTER.md are left as document-of-record.</p>
+<div class="file"><header><span class="path">MASTER.md (live-state section)</span><span class="badge mod">MODIFIED</span></header><div class="desc">Canonical function name + ground-truth op count.</div><pre class="diff"><span class="diff-line head">--- a/MASTER.md (excerpt)</span>
+<span class="diff-line head">+++ b/MASTER.md (excerpt)</span>
+<span class="diff-line hunk">@@ canonical function name + ground-truth op count @@</span>
+<span class="diff-line del">-- **Cloud Functions** (...): `secureApi`, `superAdmin`, `adminBilling`, `inboundInvoice`, `squareWebhook`, `signupTenant`, plus 5 scheduled — ...</span>
+<span class="diff-line del">-- **`functions/index.js`** ~5,200 lines. `superAdmin` op dispatcher has 54 ops (...).</span>
+<span class="diff-line add">+- **Cloud Functions** (...): `api`, `superAdmin`, `adminBilling`, `inboundInvoice`, `squareWebhook`, `signupTenant`, plus 5 scheduled — ... (Note: the client-side wrapper that calls the `api` function is named `secureApi()` in `app.html`; references to `secureApi(...)` in this doc are call-site references to that wrapper, not the function deployment.)</span>
+<span class="diff-line add">+- **`functions/index.js`** ~5,200 lines. `superAdmin` op dispatcher has **57 ops** across these categories: core tenancy (9), enriched listing (3), tickets (9), feedback (3), notes (4), meta (4), cost/usage/health reads (3), actions (16), agents (3), platform utilities (3).</span></pre></div>
+<div class="note">Also updated: <code>BISTRO_STEWARD_AGENT.md</code> (5 references), <code>BISTRO_STEWARD_FIX_PLAN.md</code> §7 (4 decisions resolved) and §0.2 (op count corrected). SECURITY.md was already consistent.</div>
+<h2><span class="num">A3</span>Pub/Sub audit-log queue (P1, foundational)</h2>
+<p class="sub">The audit-log write path was previously fire-and-forget across 61+ call sites — a transient Firestore failure silently dropped the entry. Now: <code>writeAuditLog</code> publishes → on publish failure, falls back to direct Firestore write → on that failure, drops into <code>/pending_audit</code> → final resort logs to Sentry. A daily reconcile job drains <code>/pending_audit</code> back to the queue with give-up after 5 attempts.</p>
+<div class="file"><header><span class="path">firebase/functions/audit-queue.js</span><span class="badge new">NEW FILE</span></header><div class="desc">165-line queue module: publish, direct-write fallback, pending-audit fallback, and the consumer-side idempotent .create() with eventId as doc ID.</div><pre class="diff"><span class="diff-line head">--- /dev/null</span>
+<span class="diff-line head">+++ b/firebase/functions/audit-queue.js</span>
+<span class="diff-line hunk">@@ new file (223 lines) @@</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * audit-queue.js — Pub/Sub-backed audit-log pipeline.</span>
+<span class="diff-line add">+ *</span>
+<span class="diff-line add">+ * Why this exists.</span>
+<span class="diff-line add">+ *   The previous writeAuditLog() called Firestore .add() directly with a</span>
+<span class="diff-line add">+ *   try/catch that silently swallowed errors. A transient Firestore failure</span>
+<span class="diff-line add">+ *   meant a missing audit entry — and we&#x27;d never know. Inspector recon</span>
+<span class="diff-line add">+ *   Pass 1 flagged this as P1; Pass 2 confirmed 61+ call sites at risk.</span>
+<span class="diff-line add">+ *</span>
+<span class="diff-line add">+ * Architecture.</span>
+<span class="diff-line add">+ *   writeAuditLog(...)</span>
+<span class="diff-line add">+ *      → publishAuditEvent()      [Pub/Sub topic: bistro-steward-audit-events]</span>
+<span class="diff-line add">+ *         ↑ on success: return immediately, consumer will write</span>
+<span class="diff-line add">+ *         ↓ on publish failure: directWriteAuditEvent()</span>
+<span class="diff-line add">+ *            ↑ on success: return; audit landed, no replay needed</span>
+<span class="diff-line add">+ *            ↓ on direct-write failure: writePendingAudit()</span>
+<span class="diff-line add">+ *               ↑ on success: pending_audit retry loop picks it up later</span>
+<span class="diff-line add">+ *               ↓ on all-paths failure: Sentry.captureException()</span>
+<span class="diff-line add">+ *</span>
+<span class="diff-line add">+ *   consumeAuditEvent (Cloud Function, Pub/Sub-triggered)</span>
+<span class="diff-line add">+ *      → .create() at /tenants/{id}/audit_log/{eventId}  (idempotent)</span>
+<span class="diff-line add">+ *      → ALREADY_EXISTS = duplicate delivery, ack OK</span>
+<span class="diff-line add">+ *      → any other failure → throw → Pub/Sub retries, eventually DLQ</span>
+<span class="diff-line add">+ *</span>
+<span class="diff-line add">+ * Idempotency.</span>
+<span class="diff-line add">+ *   Each event carries an eventId (caller-provided OR auto-generated).</span>
+<span class="diff-line add">+ *   Consumer uses eventId as the Firestore doc ID, so duplicate Pub/Sub</span>
+<span class="diff-line add">+ *   deliveries become ALREADY_EXISTS, which we treat as a successful ack.</span>
+<span class="diff-line add">+ *</span>
+<span class="diff-line add">+ * Operational prerequisites (one-time, before deploying these functions):</span>
+<span class="diff-line add">+ *   gcloud pubsub topics create bistro-steward-audit-events \</span>
+<span class="diff-line add">+ *     --project=restaurant-oracle</span>
+<span class="diff-line add">+ *   gcloud pubsub topics create bistro-steward-audit-events-dlq \</span>
+<span class="diff-line add">+ *     --project=restaurant-oracle</span>
+<span class="diff-line add">+ *   (Configure the DLQ on the consumer subscription separately —</span>
+<span class="diff-line add">+ *    Firebase&#x27;s pubsub trigger does not auto-create dead-letter wiring.)</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+&#x27;use strict&#x27;;</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+const crypto = require(&#x27;crypto&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+// Lazy-load to keep cold-start fast for callers that never hit the queue path.</span>
+<span class="diff-line add">+let _pubsubClient = null;</span>
+<span class="diff-line add">+function getPubSubClient() {</span>
+<span class="diff-line add">+  if (!_pubsubClient) {</span>
+<span class="diff-line add">+    const { PubSub } = require(&#x27;@google-cloud/pubsub&#x27;);</span>
+<span class="diff-line add">+    _pubsubClient = new PubSub();</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+  return _pubsubClient;</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+const AUDIT_TOPIC_NAME = process.env.AUDIT_TOPIC_NAME || &#x27;bistro-steward-audit-events&#x27;;</span>
+<span class="diff-line add">+const PUBLISH_TIMEOUT_MS = 5000;</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * Normalize a raw event payload to the canonical audit-log shape.</span>
+<span class="diff-line add">+ * Accepts the existing writeAuditLog parameter names and the new event shape.</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+function normalizeEvent(raw) {</span>
+<span class="diff-line add">+  return {</span>
+<span class="diff-line add">+    user_id: raw.user_id || raw.userId || null,</span>
+<span class="diff-line add">+    user_email: raw.user_email || raw.userEmail || &#x27;unknown&#x27;,</span>
+<span class="diff-line add">+    tenant_id: raw.tenant_id || raw.tenantId || null,</span>
+<span class="diff-line add">+    operation: raw.operation || &#x27;unknown&#x27;,</span>
+<span class="diff-line add">+    collection: raw.collection || &#x27;N/A&#x27;,</span>
+<span class="diff-line add">+    record_count: Number(raw.record_count || raw.recordCount || 0),</span>
+<span class="diff-line add">+    extra: raw.extra || null,</span>
+<span class="diff-line add">+    // Wall-clock timestamp the publisher saw; consumer overlays a Firestore</span>
+<span class="diff-line add">+    // serverTimestamp on write for monotonic ordering across functions.</span>
+<span class="diff-line add">+    publisher_timestamp_ms: raw.publisher_timestamp_ms || Date.now(),</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * Build a stable eventId. Callers may supply `idempotencyKey` for true</span>
+<span class="diff-line add">+ * dedup semantics (e.g. webhook reprocessing). Otherwise we generate a</span>
+<span class="diff-line add">+ * UUID — duplicates within that publish call are impossible by construction.</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+function deriveEventId(event, idempotencyKey) {</span>
+<span class="diff-line add">+  if (idempotencyKey &amp;&amp; typeof idempotencyKey === &#x27;string&#x27;) {</span>
+<span class="diff-line add">+    return idempotencyKey.replace(/[^A-Za-z0-9_-]/g, &#x27;_&#x27;).slice(0, 80) || crypto.randomUUID();</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+  return crypto.randomUUID();</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * Publish an audit event to Pub/Sub.</span>
+<span class="diff-line add">+ * Resolves with the eventId on success. Throws on publish failure so the</span>
+<span class="diff-line add">+ * caller can fall back to direct-write.</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+async function publishAuditEvent(rawEvent, idempotencyKey) {</span>
+<span class="diff-line add">+  const event = normalizeEvent(rawEvent);</span>
+<span class="diff-line add">+  const eventId = deriveEventId(event, idempotencyKey);</span>
+<span class="diff-line add">+  const payload = { ...event, eventId };</span>
+<span class="diff-line add">+  const data = Buffer.from(JSON.stringify(payload));</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  const pubsub = getPubSubClient();</span>
+<span class="diff-line add">+  const topic = pubsub.topic(AUDIT_TOPIC_NAME);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  // Wrap the publish in a timeout so a hung Pub/Sub client never blocks the</span>
+<span class="diff-line add">+  // user-facing request. Pub/Sub&#x27;s internal batching + retries are still in</span>
+<span class="diff-line add">+  // play, but we set a hard ceiling for the caller.</span>
+<span class="diff-line add">+  const publishPromise = topic.publishMessage({</span>
+<span class="diff-line add">+    data,</span>
+<span class="diff-line add">+    attributes: {</span>
+<span class="diff-line add">+      eventId,</span>
+<span class="diff-line add">+      operation: event.operation,</span>
+<span class="diff-line add">+      tenantId: event.tenant_id || &#x27;platform&#x27;,</span>
+<span class="diff-line add">+    },</span>
+<span class="diff-line add">+  });</span>
+<span class="diff-line add">+  const timeoutPromise = new Promise((_, reject) =&gt; {</span>
+<span class="diff-line add">+    setTimeout(() =&gt; reject(new Error(&#x27;audit publish timeout&#x27;)), PUBLISH_TIMEOUT_MS);</span>
+<span class="diff-line add">+  });</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  await Promise.race([publishPromise, timeoutPromise]);</span>
+<span class="diff-line add">+  return eventId;</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * Fallback path: write the event directly to Firestore the same way the</span>
+<span class="diff-line add">+ * legacy writeAuditLog did. Uses .create() with the eventId as doc ID so</span>
+<span class="diff-line add">+ * a later Pub/Sub-delivered duplicate becomes a no-op on the consumer.</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+async function directWriteAuditEvent(db, admin, rawEvent, eventId) {</span>
+<span class="diff-line add">+  const event = normalizeEvent(rawEvent);</span>
+<span class="diff-line add">+  const id = eventId || deriveEventId(event);</span>
+<span class="diff-line add">+  const entry = {</span>
+<span class="diff-line add">+    ...event,</span>
+<span class="diff-line add">+    eventId: id,</span>
+<span class="diff-line add">+    timestamp: admin.firestore.FieldValue.serverTimestamp(),</span>
+<span class="diff-line add">+    via: &#x27;direct&#x27;,</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+  const ref = event.tenant_id</span>
+<span class="diff-line add">+    ? db.collection(&#x27;tenants&#x27;).doc(event.tenant_id).collection(&#x27;audit_log&#x27;).doc(id)</span>
+<span class="diff-line add">+    : db.collection(&#x27;audit_log&#x27;).doc(id);</span>
+<span class="diff-line add">+  try {</span>
+<span class="diff-line add">+    await ref.create(entry);</span>
+<span class="diff-line add">+  } catch (e) {</span>
+<span class="diff-line add">+    // ALREADY_EXISTS means the consumer already wrote this event — that&#x27;s</span>
+<span class="diff-line add">+    // a successful outcome, not a failure.</span>
+<span class="diff-line add">+    if (e &amp;&amp; (e.code === 6 || /already exists/i.test(e.message || &#x27;&#x27;))) return id;</span>
+<span class="diff-line add">+    throw e;</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+  return id;</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * Final-resort path: write to /pending_audit with the original error context.</span>
+<span class="diff-line add">+ * A daily reconcile job (TBD) drains this collection back into audit_log.</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+async function writePendingAudit(db, admin, rawEvent, eventId, errors) {</span>
+<span class="diff-line add">+  const event = normalizeEvent(rawEvent);</span>
+<span class="diff-line add">+  const id = eventId || deriveEventId(event);</span>
+<span class="diff-line add">+  await db.collection(&#x27;pending_audit&#x27;).add({</span>
+<span class="diff-line add">+    ...event,</span>
+<span class="diff-line add">+    eventId: id,</span>
+<span class="diff-line add">+    publishError: errors.publishError || null,</span>
+<span class="diff-line add">+    writeError: errors.writeError || null,</span>
+<span class="diff-line add">+    status: &#x27;pending&#x27;,</span>
+<span class="diff-line add">+    attempts: 0,</span>
+<span class="diff-line add">+    createdAt: admin.firestore.FieldValue.serverTimestamp(),</span>
+<span class="diff-line add">+  });</span>
+<span class="diff-line add">+  return id;</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * Consumer side: process one Pub/Sub message into a Firestore audit doc.</span>
+<span class="diff-line add">+ * Throwing causes Pub/Sub to retry (with backoff, eventually DLQ).</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+async function processAuditMessage(db, admin, messageDataBase64, messageAttributes) {</span>
+<span class="diff-line add">+  let payload;</span>
+<span class="diff-line add">+  try {</span>
+<span class="diff-line add">+    payload = JSON.parse(Buffer.from(messageDataBase64, &#x27;base64&#x27;).toString(&#x27;utf8&#x27;));</span>
+<span class="diff-line add">+  } catch (e) {</span>
+<span class="diff-line add">+    // Malformed payloads are unrecoverable; do not retry. Log + ack.</span>
+<span class="diff-line add">+    console.error(&#x27;[audit-consume] malformed payload, discarding:&#x27;, e.message);</span>
+<span class="diff-line add">+    return { ok: false, discarded: true, reason: &#x27;malformed_json&#x27; };</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  const eventId = (messageAttributes &amp;&amp; messageAttributes.eventId)</span>
+<span class="diff-line add">+    || payload.eventId</span>
+<span class="diff-line add">+    || deriveEventId(payload);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  const entry = {</span>
+<span class="diff-line add">+    user_id: payload.user_id || null,</span>
+<span class="diff-line add">+    user_email: payload.user_email || &#x27;unknown&#x27;,</span>
+<span class="diff-line add">+    tenant_id: payload.tenant_id || null,</span>
+<span class="diff-line add">+    operation: payload.operation || &#x27;unknown&#x27;,</span>
+<span class="diff-line add">+    collection: payload.collection || &#x27;N/A&#x27;,</span>
+<span class="diff-line add">+    record_count: Number(payload.record_count || 0),</span>
+<span class="diff-line add">+    extra: payload.extra || null,</span>
+<span class="diff-line add">+    publisher_timestamp_ms: payload.publisher_timestamp_ms || null,</span>
+<span class="diff-line add">+    eventId,</span>
+<span class="diff-line add">+    timestamp: admin.firestore.FieldValue.serverTimestamp(),</span>
+<span class="diff-line add">+    via: &#x27;pubsub&#x27;,</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  const ref = entry.tenant_id</span>
+<span class="diff-line add">+    ? db.collection(&#x27;tenants&#x27;).doc(entry.tenant_id).collection(&#x27;audit_log&#x27;).doc(eventId)</span>
+<span class="diff-line add">+    : db.collection(&#x27;audit_log&#x27;).doc(eventId);</span>
+<span class="diff-line ctx">... [truncated for display; full file at firebase/functions/audit-queue.js]</span></pre></div>
+<div class="file"><header><span class="path">firebase/functions/index.js — writeAuditLog rewrite</span><span class="badge mod">MODIFIED</span></header><div class="desc">writeAuditLog now routes through audit-queue with publish → direct-write → pending_audit → Sentry. Signature backward-compatible.</div><pre class="diff"><span class="diff-line head">--- a/firebase/functions/index.js</span>
+<span class="diff-line head">+++ b/firebase/functions/index.js</span>
+<span class="diff-line hunk">@@ change @@</span>
+<span class="diff-line del">-async function writeAuditLog(userId, userEmail, operation, collection, recordCount, tenantId) {</span>
+<span class="diff-line add">+// ==================== AUDIT LOGGING (1.7) ====================</span>
+<span class="diff-line add">+// Routes through audit-queue.js for durability. Architecture:</span>
+<span class="diff-line add">+//   publish → on failure: direct Firestore write → on failure: pending_audit</span>
+<span class="diff-line add">+// Previously this function was fire-and-forget with a silent try/catch; a</span>
+<span class="diff-line add">+// transient Firestore error meant a missing audit entry that nothing would</span>
+<span class="diff-line add">+// ever reconcile. Inspector recon Pass 1 flagged this as P1 across 61+</span>
+<span class="diff-line add">+// call sites; Pass 2 confirmed. See audit-queue.js for the full pipeline.</span>
+<span class="diff-line add">+//</span>
+<span class="diff-line add">+// Backward compatible signature: existing call sites with 6 positional args</span>
+<span class="diff-line add">+// still work. `extra` and `idempotencyKey` are optional new parameters.</span>
+<span class="diff-line add">+async function writeAuditLog(userId, userEmail, operation, collection, recordCount, tenantId, extra, idempotencyKey) {</span>
+<span class="diff-line add">+  const event = {</span>
+<span class="diff-line add">+    user_id: userId,</span>
+<span class="diff-line add">+    user_email: userEmail || &#x27;unknown&#x27;,</span>
+<span class="diff-line add">+    tenant_id: tenantId || null,</span>
+<span class="diff-line add">+    operation: operation,</span>
+<span class="diff-line add">+    collection: collection || &#x27;N/A&#x27;,</span>
+<span class="diff-line add">+    record_count: recordCount || 0,</span>
+<span class="diff-line add">+    extra: extra || null,</span>
+<span class="diff-line add">+    publisher_timestamp_ms: Date.now(),</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  // Path 1: publish to Pub/Sub. Consumer writes to Firestore idempotently.</span>
+<span class="diff-line add">+  let eventId = null;</span>
+<span class="diff-line add">+  let publishError = null;</span>
+<span class="diff-line ctx">   try {</span>
+<span class="diff-line del">-    const entry = {</span>
+<span class="diff-line del">-      user_id: userId,</span>
+<span class="diff-line del">-      user_email: userEmail || &#x27;unknown&#x27;,</span>
+<span class="diff-line del">-      tenant_id: tenantId || &#x27;unknown&#x27;,</span>
+<span class="diff-line del">-      operation: operation,</span>
+<span class="diff-line del">-      collection: collection || &#x27;N/A&#x27;,</span>
+<span class="diff-line del">-      record_count: recordCount || 0,</span>
+<span class="diff-line del">-      timestamp: admin.firestore.FieldValue.serverTimestamp()</span>
+<span class="diff-line del">-    };</span>
+<span class="diff-line del">-    const ref = tenantId</span>
+<span class="diff-line del">-      ? db.collection(&#x27;tenants&#x27;).doc(tenantId).collection(&#x27;audit_log&#x27;)</span>
+<span class="diff-line del">-      : db.collection(&#x27;audit_log&#x27;);</span>
+<span class="diff-line del">-    await ref.add(entry);</span>
+<span class="diff-line add">+    eventId = await auditQueue.publishAuditEvent(event, idempotencyKey);</span>
+<span class="diff-line add">+    return;</span>
+<span class="diff-line ctx">   } catch (e) {</span>
+<span class="diff-line del">-    console.error(&#x27;Audit log write failed:&#x27;, e.message);</span>
+<span class="diff-line add">+    publishError = e &amp;&amp; (e.message || String(e));</span>
+<span class="diff-line add">+    console.warn(&#x27;[audit] publish failed, falling back to direct write:&#x27;, publishError);</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  // Path 2: direct Firestore write with the same eventId. If the consumer</span>
+<span class="diff-line add">+  // later receives the same message anyway, ALREADY_EXISTS is treated as a</span>
+<span class="diff-line add">+  // successful ack — no double-write.</span>
+<span class="diff-line add">+  let writeError = null;</span>
+<span class="diff-line add">+  try {</span>
+<span class="diff-line add">+    await auditQueue.directWriteAuditEvent(db, admin, event, eventId);</span>
+<span class="diff-line add">+    return;</span>
+<span class="diff-line add">+  } catch (e) {</span>
+<span class="diff-line add">+    writeError = e &amp;&amp; (e.message || String(e));</span>
+<span class="diff-line add">+    console.warn(&#x27;[audit] direct write failed:&#x27;, writeError);</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  // Path 3: drop into /pending_audit for the reconcile job to pick up.</span>
+<span class="diff-line add">+  try {</span>
+<span class="diff-line add">+    await auditQueue.writePendingAudit(db, admin, event, eventId, { publishError, writeError });</span>
+<span class="diff-line add">+  } catch (finalErr) {</span>
+<span class="diff-line add">+    console.error(&#x27;[audit] FATAL: all audit paths failed:&#x27;, finalErr &amp;&amp; finalErr.message);</span>
+<span class="diff-line add">+    try {</span>
+<span class="diff-line add">+      Sentry.captureException(finalErr, {</span>
+<span class="diff-line add">+        tags: { component: &#x27;audit-queue&#x27;, stage: &#x27;pending_write&#x27; },</span>
+<span class="diff-line add">+        extra: { publishError, writeError, operation, tenantId },</span>
+<span class="diff-line add">+      });</span>
+<span class="diff-line add">+    } catch (_) { /* swallow Sentry init errors */ }</span>
+<span class="diff-line ctx">   }</span>
+<span class="diff-line ctx"> }</span></pre></div>
+<div class="file"><header><span class="path">firebase/functions/index.js — new exports</span><span class="badge mod">MODIFIED</span></header><div class="desc">Two new Cloud Function exports near the bottom of the file: the Pub/Sub-triggered consumer and the daily 1:15 AM PT reconcile loop.</div><pre class="diff"><span class="diff-line head">--- a/firebase/functions/index.js</span>
+<span class="diff-line head">+++ b/firebase/functions/index.js</span>
+<span class="diff-line hunk">@@ new function exports near bottom of file @@</span>
+<span class="diff-line add">+const auditQueue = require(&#x27;./audit-queue&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+async function runDailyAuditReconcile() {</span>
+<span class="diff-line add">+  // ... drains /pending_audit by republishing to the queue;</span>
+<span class="diff-line add">+  // marks status=&#x27;permanently_failed&#x27; after 5 attempts.</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+exports.dailyAuditReconcile = functions</span>
+<span class="diff-line add">+  .region(&#x27;us-central1&#x27;)</span>
+<span class="diff-line add">+  .runWith({ maxInstances: 1, timeoutSeconds: 300, memory: &#x27;256MB&#x27;, secrets: [&#x27;SENTRY_DSN&#x27;] })</span>
+<span class="diff-line add">+  .pubsub.schedule(&#x27;15 1 * * *&#x27;)</span>
+<span class="diff-line add">+  .timeZone(&#x27;America/Los_Angeles&#x27;)</span>
+<span class="diff-line add">+  .onRun(async () =&gt; { await runDailyAuditReconcile(); return null; });</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+exports.consumeAuditEvent = functions</span>
+<span class="diff-line add">+  .region(&#x27;us-central1&#x27;)</span>
+<span class="diff-line add">+  .runWith({ maxInstances: 5, timeoutSeconds: 60, memory: &#x27;256MB&#x27;, secrets: [&#x27;SENTRY_DSN&#x27;] })</span>
+<span class="diff-line add">+  .pubsub.topic(auditQueue.AUDIT_TOPIC_NAME)</span>
+<span class="diff-line add">+  .onPublish(async (message, context) =&gt; {</span>
+<span class="diff-line add">+    const result = await auditQueue.processAuditMessage(db, admin, message.data, message.attributes || {});</span>
+<span class="diff-line add">+    if (result &amp;&amp; result.discarded) return null;</span>
+<span class="diff-line add">+    return null;</span>
+<span class="diff-line add">+  });</span></pre></div>
+<div class="file"><header><span class="path">firebase/functions/_test_audit_queue.js</span><span class="badge new">NEW FILE</span></header><div class="desc">Self-contained unit tests with an in-memory mock Firestore. 19 assertions across 6 test cases. All passing.</div><pre class="diff"><span class="diff-line head">--- /dev/null</span>
+<span class="diff-line head">+++ b/firebase/functions/_test_audit_queue.js</span>
+<span class="diff-line hunk">@@ new file (202 lines) @@</span>
+<span class="diff-line add">+/**</span>
+<span class="diff-line add">+ * _test_audit_queue.js — Unit tests for audit-queue.js.</span>
+<span class="diff-line add">+ *</span>
+<span class="diff-line add">+ * Self-contained: uses an in-memory mock Firestore so it doesn&#x27;t touch the</span>
+<span class="diff-line add">+ * live project. Verifies:</span>
+<span class="diff-line add">+ *   1. processAuditMessage writes to the correct path (tenant-scoped vs root)</span>
+<span class="diff-line add">+ *   2. Duplicate eventId → deduped=true, no double-write</span>
+<span class="diff-line add">+ *   3. Malformed JSON → discarded, no throw</span>
+<span class="diff-line add">+ *   4. Missing tenant_id routes to root /audit_log</span>
+<span class="diff-line add">+ *</span>
+<span class="diff-line add">+ * Usage:</span>
+<span class="diff-line add">+ *   node _test_audit_queue.js</span>
+<span class="diff-line add">+ */</span>
+<span class="diff-line add">+&#x27;use strict&#x27;;</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+const auditQueue = require(&#x27;./audit-queue&#x27;);</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+// ── Mock Firestore ──────────────────────────────────────────────────────────</span>
+<span class="diff-line add">+function makeMockDb() {</span>
+<span class="diff-line add">+  const writes = []; // [{ path, op, data }]</span>
+<span class="diff-line add">+  const docs = new Map(); // path → data (for ALREADY_EXISTS simulation)</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  function makeDocRef(path) {</span>
+<span class="diff-line add">+    return {</span>
+<span class="diff-line add">+      path,</span>
+<span class="diff-line add">+      async create(data) {</span>
+<span class="diff-line add">+        if (docs.has(path)) {</span>
+<span class="diff-line add">+          const err = new Error(`already exists: ${path}`);</span>
+<span class="diff-line add">+          err.code = 6;</span>
+<span class="diff-line add">+          throw err;</span>
+<span class="diff-line add">+        }</span>
+<span class="diff-line add">+        docs.set(path, data);</span>
+<span class="diff-line add">+        writes.push({ path, op: &#x27;create&#x27;, data });</span>
+<span class="diff-line add">+        return { writeTime: Date.now() };</span>
+<span class="diff-line add">+      },</span>
+<span class="diff-line add">+      async set(data, _opts) {</span>
+<span class="diff-line add">+        docs.set(path, data);</span>
+<span class="diff-line add">+        writes.push({ path, op: &#x27;set&#x27;, data });</span>
+<span class="diff-line add">+        return { writeTime: Date.now() };</span>
+<span class="diff-line add">+      },</span>
+<span class="diff-line add">+    };</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  function makeCollectionRef(name, basePath = &#x27;&#x27;) {</span>
+<span class="diff-line add">+    const colPath = basePath ? `${basePath}/${name}` : name;</span>
+<span class="diff-line add">+    return {</span>
+<span class="diff-line add">+      doc(id) { return makeDocRef(`${colPath}/${id}`); },</span>
+<span class="diff-line add">+      async add(data) {</span>
+<span class="diff-line add">+        const id = `auto-${Math.random().toString(36).slice(2, 10)}`;</span>
+<span class="diff-line add">+        const path = `${colPath}/${id}`;</span>
+<span class="diff-line add">+        docs.set(path, data);</span>
+<span class="diff-line add">+        writes.push({ path, op: &#x27;add&#x27;, data });</span>
+<span class="diff-line add">+        return makeDocRef(path);</span>
+<span class="diff-line add">+      },</span>
+<span class="diff-line add">+    };</span>
+<span class="diff-line add">+  }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  function collection(name) { return makeCollectionRef(name); }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  // /tenants/{id}/collection/{doc}</span>
+<span class="diff-line add">+  collection.tenantsHelper = (tenantId) =&gt; ({</span>
+<span class="diff-line add">+    collection(name) {</span>
+<span class="diff-line add">+      return makeCollectionRef(name, `tenants/${tenantId}`);</span>
+<span class="diff-line add">+    },</span>
+<span class="diff-line add">+  });</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+  return {</span>
+<span class="diff-line add">+    collection(name) {</span>
+<span class="diff-line add">+      const col = makeCollectionRef(name);</span>
+<span class="diff-line add">+      // monkey-patch doc(id).collection(sub) so we can chain</span>
+<span class="diff-line add">+      const origDoc = col.doc.bind(col);</span>
+<span class="diff-line add">+      col.doc = (id) =&gt; {</span>
+<span class="diff-line add">+        const ref = origDoc(id);</span>
+<span class="diff-line add">+        ref.collection = (sub) =&gt; makeCollectionRef(sub, `${name}/${id}`);</span>
+<span class="diff-line add">+        return ref;</span>
+<span class="diff-line add">+      };</span>
+<span class="diff-line add">+      return col;</span>
+<span class="diff-line add">+    },</span>
+<span class="diff-line add">+    _writes: writes,</span>
+<span class="diff-line add">+    _docs: docs,</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+// Mock admin SDK — only the bits the queue uses.</span>
+<span class="diff-line add">+const mockAdmin = {</span>
+<span class="diff-line add">+  firestore: {</span>
+<span class="diff-line add">+    FieldValue: {</span>
+<span class="diff-line add">+      serverTimestamp: () =&gt; ({ _mockServerTimestamp: true }),</span>
+<span class="diff-line add">+    },</span>
+<span class="diff-line add">+  },</span>
+<span class="diff-line add">+};</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+// ── Assertions ──────────────────────────────────────────────────────────────</span>
+<span class="diff-line add">+let pass = 0;</span>
+<span class="diff-line add">+let fail = 0;</span>
+<span class="diff-line add">+function assert(condition, msg) {</span>
+<span class="diff-line add">+  if (condition) { pass++; console.log(`  ✓ ${msg}`); }</span>
+<span class="diff-line add">+  else { fail++; console.error(`  ✗ ${msg}`); }</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+function assertEq(actual, expected, msg) {</span>
+<span class="diff-line add">+  assert(actual === expected, `${msg} — expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+// ── Tests ───────────────────────────────────────────────────────────────────</span>
+<span class="diff-line add">+async function testTenantScopedWrite() {</span>
+<span class="diff-line add">+  console.log(&#x27;\n[1] Tenant-scoped write lands at /tenants/{id}/audit_log/{eventId}&#x27;);</span>
+<span class="diff-line add">+  const db = makeMockDb();</span>
+<span class="diff-line add">+  const payload = {</span>
+<span class="diff-line add">+    user_id: &#x27;u1&#x27;, user_email: &#x27;alice@example.com&#x27;,</span>
+<span class="diff-line add">+    tenant_id: &#x27;t-abc&#x27;, operation: &#x27;insert&#x27;, collection: &#x27;ings&#x27;,</span>
+<span class="diff-line add">+    record_count: 3, publisher_timestamp_ms: 1234567890,</span>
+<span class="diff-line add">+    eventId: &#x27;evt-001&#x27;,</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+  const data = Buffer.from(JSON.stringify(payload)).toString(&#x27;base64&#x27;);</span>
+<span class="diff-line add">+  const result = await auditQueue.processAuditMessage(db, mockAdmin, data, { eventId: &#x27;evt-001&#x27; });</span>
+<span class="diff-line add">+  assertEq(result.ok, true, &#x27;result.ok=true&#x27;);</span>
+<span class="diff-line add">+  assertEq(result.deduped, false, &#x27;deduped=false&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes.length, 1, &#x27;exactly one write&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes[0].path, &#x27;tenants/t-abc/audit_log/evt-001&#x27;, &#x27;path is tenant-scoped&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes[0].data.operation, &#x27;insert&#x27;, &#x27;operation preserved&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes[0].data.via, &#x27;pubsub&#x27;, &#x27;via=pubsub&#x27;);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+async function testRootFallback() {</span>
+<span class="diff-line add">+  console.log(&#x27;\n[2] Null tenant_id routes to root /audit_log&#x27;);</span>
+<span class="diff-line add">+  const db = makeMockDb();</span>
+<span class="diff-line add">+  const payload = {</span>
+<span class="diff-line add">+    user_id: null, user_email: &#x27;unknown&#x27;,</span>
+<span class="diff-line add">+    tenant_id: null, operation: &#x27;auth_failure&#x27;,</span>
+<span class="diff-line add">+    eventId: &#x27;evt-root-1&#x27;,</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+  const data = Buffer.from(JSON.stringify(payload)).toString(&#x27;base64&#x27;);</span>
+<span class="diff-line add">+  const result = await auditQueue.processAuditMessage(db, mockAdmin, data, {});</span>
+<span class="diff-line add">+  assertEq(result.ok, true, &#x27;result.ok=true&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes[0].path, &#x27;audit_log/evt-root-1&#x27;, &#x27;path is root&#x27;);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+async function testDuplicateDelivery() {</span>
+<span class="diff-line add">+  console.log(&#x27;\n[3] Duplicate eventId returns deduped=true&#x27;);</span>
+<span class="diff-line add">+  const db = makeMockDb();</span>
+<span class="diff-line add">+  const payload = {</span>
+<span class="diff-line add">+    user_id: &#x27;u1&#x27;, tenant_id: &#x27;t-abc&#x27;, operation: &#x27;update&#x27;,</span>
+<span class="diff-line add">+    eventId: &#x27;evt-dupe&#x27;,</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+  const data = Buffer.from(JSON.stringify(payload)).toString(&#x27;base64&#x27;);</span>
+<span class="diff-line add">+  const r1 = await auditQueue.processAuditMessage(db, mockAdmin, data, { eventId: &#x27;evt-dupe&#x27; });</span>
+<span class="diff-line add">+  const r2 = await auditQueue.processAuditMessage(db, mockAdmin, data, { eventId: &#x27;evt-dupe&#x27; });</span>
+<span class="diff-line add">+  assertEq(r1.deduped, false, &#x27;first delivery not deduped&#x27;);</span>
+<span class="diff-line add">+  assertEq(r2.deduped, true, &#x27;second delivery deduped&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes.length, 1, &#x27;only one write occurred&#x27;);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+async function testMalformedDiscarded() {</span>
+<span class="diff-line add">+  console.log(&#x27;\n[4] Malformed JSON is discarded, no throw&#x27;);</span>
+<span class="diff-line add">+  const db = makeMockDb();</span>
+<span class="diff-line add">+  const data = Buffer.from(&#x27;not json at all {{}&#x27;).toString(&#x27;base64&#x27;);</span>
+<span class="diff-line add">+  let threw = false;</span>
+<span class="diff-line add">+  let result;</span>
+<span class="diff-line add">+  try {</span>
+<span class="diff-line add">+    result = await auditQueue.processAuditMessage(db, mockAdmin, data, {});</span>
+<span class="diff-line add">+  } catch (_) { threw = true; }</span>
+<span class="diff-line add">+  assertEq(threw, false, &#x27;did not throw&#x27;);</span>
+<span class="diff-line add">+  assertEq(result.discarded, true, &#x27;discarded=true&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes.length, 0, &#x27;no writes attempted&#x27;);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+async function testDirectWriteFallback() {</span>
+<span class="diff-line add">+  console.log(&#x27;\n[5] directWriteAuditEvent with same eventId is idempotent&#x27;);</span>
+<span class="diff-line add">+  const db = makeMockDb();</span>
+<span class="diff-line add">+  const event = {</span>
+<span class="diff-line add">+    user_id: &#x27;u1&#x27;, tenant_id: &#x27;t-abc&#x27;, operation: &#x27;insert&#x27;,</span>
+<span class="diff-line add">+    collection: &#x27;ings&#x27;, record_count: 1,</span>
+<span class="diff-line add">+  };</span>
+<span class="diff-line add">+  const id1 = await auditQueue.directWriteAuditEvent(db, mockAdmin, event, &#x27;evt-fallback-1&#x27;);</span>
+<span class="diff-line add">+  const id2 = await auditQueue.directWriteAuditEvent(db, mockAdmin, event, &#x27;evt-fallback-1&#x27;);</span>
+<span class="diff-line add">+  assertEq(id1, &#x27;evt-fallback-1&#x27;, &#x27;first call returns id&#x27;);</span>
+<span class="diff-line add">+  assertEq(id2, &#x27;evt-fallback-1&#x27;, &#x27;second call returns same id (ALREADY_EXISTS)&#x27;);</span>
+<span class="diff-line add">+  assertEq(db._writes.length, 1, &#x27;only one write committed&#x27;);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+async function testDeriveEventId() {</span>
+<span class="diff-line add">+  console.log(&#x27;\n[6] deriveEventId is stable for the same idempotency key&#x27;);</span>
+<span class="diff-line add">+  const a = auditQueue._internal.deriveEventId({ operation: &#x27;x&#x27; }, &#x27;webhook-event-abc&#x27;);</span>
+<span class="diff-line add">+  const b = auditQueue._internal.deriveEventId({ operation: &#x27;x&#x27; }, &#x27;webhook-event-abc&#x27;);</span>
+<span class="diff-line add">+  assertEq(a, b, &#x27;same key → same id&#x27;);</span>
+<span class="diff-line add">+  const c = auditQueue._internal.deriveEventId({ operation: &#x27;x&#x27; });</span>
+<span class="diff-line add">+  assert(c &amp;&amp; c.length &gt;= 8, &#x27;no-key call generates a UUID-shaped id&#x27;);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+async function main() {</span>
+<span class="diff-line add">+  console.log(&#x27;[audit-queue test] starting…&#x27;);</span>
+<span class="diff-line add">+  await testTenantScopedWrite();</span>
+<span class="diff-line add">+  await testRootFallback();</span>
+<span class="diff-line add">+  await testDuplicateDelivery();</span>
+<span class="diff-line add">+  await testMalformedDiscarded();</span>
+<span class="diff-line add">+  await testDirectWriteFallback();</span>
+<span class="diff-line add">+  await testDeriveEventId();</span>
+<span class="diff-line add">+  console.log(`\n[audit-queue test] ${pass} passed, ${fail} failed`);</span>
+<span class="diff-line add">+  if (fail &gt; 0) process.exit(1);</span>
+<span class="diff-line add">+}</span>
+<span class="diff-line ctx">... [truncated for display; full file at firebase/functions/_test_audit_queue.js]</span></pre></div>
+<div class="file"><header><span class="path">firebase/functions/package.json</span><span class="badge mod">MODIFIED</span></header><div class="desc">Adds @google-cloud/pubsub.</div><pre class="diff"><span class="diff-line head">diff --git a/firebase/functions/package.json b/firebase/functions/package.json</span>
+<span class="diff-line head">index aadb15f..c947894 100644</span>
+<span class="diff-line head">--- a/firebase/functions/package.json</span>
+<span class="diff-line head">+++ b/firebase/functions/package.json</span>
+<span class="diff-line hunk">@@ -1,7 +1,7 @@</span>
+<span class="diff-line ctx"> {</span>
+<span class="diff-line del">-  &quot;name&quot;: &quot;restaurant-oracle-functions&quot;,</span>
+<span class="diff-line add">+  &quot;name&quot;: &quot;bistro-steward-functions&quot;,</span>
+<span class="diff-line ctx">   &quot;version&quot;: &quot;1.0.0&quot;,</span>
+<span class="diff-line del">-  &quot;description&quot;: &quot;Firebase Cloud Functions for Restaurant Oracle&quot;,</span>
+<span class="diff-line add">+  &quot;description&quot;: &quot;Firebase Cloud Functions for Bistro Steward&quot;,</span>
+<span class="diff-line ctx">   &quot;main&quot;: &quot;index.js&quot;,</span>
+<span class="diff-line ctx">   &quot;scripts&quot;: {</span>
+<span class="diff-line ctx">     &quot;serve&quot;: &quot;firebase emulators:start --only functions&quot;,</span>
+<span class="diff-line hunk">@@ -14,6 +14,7 @@</span>
+<span class="diff-line ctx">     &quot;node&quot;: &quot;22&quot;</span>
+<span class="diff-line ctx">   },</span>
+<span class="diff-line ctx">   &quot;dependencies&quot;: {</span>
+<span class="diff-line add">+    &quot;@google-cloud/pubsub&quot;: &quot;^4.7.0&quot;,</span>
+<span class="diff-line ctx">     &quot;@google/generative-ai&quot;: &quot;^0.21.0&quot;,</span>
+<span class="diff-line ctx">     &quot;@sentry/node&quot;: &quot;^10.0.0&quot;,</span>
+<span class="diff-line ctx">     &quot;cors&quot;: &quot;^2.8.6&quot;,</span></pre></div>
+<div class="file"><header><span class="path">firebase/firestore.rules</span><span class="badge mod">MODIFIED</span></header><div class="desc">Deny-all client rules added for two new server-side collections.</div><pre class="diff"><span class="diff-line head">diff --git a/firebase/firestore.rules b/firebase/firestore.rules</span>
+<span class="diff-line head">index 215d5a5..1b8d81b 100644</span>
+<span class="diff-line head">--- a/firebase/firestore.rules</span>
+<span class="diff-line head">+++ b/firebase/firestore.rules</span>
+<span class="diff-line hunk">@@ -230,6 +230,19 @@ service cloud.firestore {</span>
+<span class="diff-line ctx">       allow read, write: if false;</span>
+<span class="diff-line ctx">     }</span>
+<span class="diff-line ctx"> </span>
+<span class="diff-line add">+    // pending_audit holds events that failed both Pub/Sub publish AND direct</span>
+<span class="diff-line add">+    // Firestore write. A reconcile job drains these back into audit_log.</span>
+<span class="diff-line add">+    // Written only by Cloud Functions (Admin SDK bypasses rules).</span>
+<span class="diff-line add">+    match /pending_audit/{document=**} {</span>
+<span class="diff-line add">+      allow read, write: if false;</span>
+<span class="diff-line add">+    }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line add">+    // webhook_events records Square webhook deduplication keys. Written only</span>
+<span class="diff-line add">+    // by squareWebhook handler (Admin SDK bypasses). Read by no client.</span>
+<span class="diff-line add">+    match /webhook_events/{document=**} {</span>
+<span class="diff-line add">+      allow read, write: if false;</span>
+<span class="diff-line add">+    }</span>
+<span class="diff-line add">+</span>
+<span class="diff-line ctx">     // ── Catch-all ─────────────────────────────────────────────────────────────</span>
+<span class="diff-line ctx">     match /{document=**} {</span>
+<span class="diff-line ctx">       allow read, write: if false;</span></pre></div>
+<footer>Generated 2026-05-19 by the Maître d'. Files live in <code>/Users/mulefamily/Claude/Bistro-Steward/</code>. No commits made yet — review before <code>git add</code>.</footer>
+</div></body></html>

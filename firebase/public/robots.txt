@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /$
+Allow: /signup
+Allow: /privacy
+Allow: /terms
+Disallow: /app
+Disallow: /admin
+Disallow: /billing
+Disallow: /super-admin
+
+Sitemap: https://bistrosteward.com/sitemap.xml

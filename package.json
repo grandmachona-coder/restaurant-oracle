@@ -1,0 +1,12 @@
+{
+  "name": "bistro-steward-migrations",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Migration scripts and one-off admin tooling for Bistro Steward. Not deployed.",
+  "scripts": {
+    "migrate:multitenant": "node migrate-to-multitenant.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

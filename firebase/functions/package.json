@@ -1,7 +1,7 @@
 {
-  "name": "restaurant-oracle-functions",
+  "name": "bistro-steward-functions",
   "version": "1.0.0",
-  "description": "Firebase Cloud Functions for Restaurant Oracle",
+  "description": "Firebase Cloud Functions for Bistro Steward",
   "main": "index.js",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
@@ -14,6 +14,7 @@
     "node": "22"
   },
   "dependencies": {
+    "@google-cloud/pubsub": "^4.7.0",
     "@google/generative-ai": "^0.21.0",
     "@sentry/node": "^10.0.0",
     "cors": "^2.8.6",

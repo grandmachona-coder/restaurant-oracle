@@ -52,13 +52,23 @@
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a3a);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
         
-        /* Login Screen - Argentine Blue Theme */
-        .login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:40px 20px;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#e8f4fb 0%,#b8d9f0 25%,#74acdf 50%,#4d91cc 75%,#2e78b8 100%)}
+        /* Login Screen - Linen tablecloth background w/ logo composition */
+        .login-screen{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;width:100%;padding:16px 20px 16px;position:fixed;top:0;left:0;right:0;bottom:0;background:#e8e1d5 url('icon.png?v=2026-05-27-linen') center top / contain no-repeat}
+        .login-screen::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(232,225,213,0) 0%,rgba(232,225,213,0) 62%,rgba(20,15,10,.45) 78%,rgba(20,15,10,.85) 100%);pointer-events:none}
+        .login-screen > *{position:relative;z-index:1}
         .login-screen.hidden{display:none}
-        .login-logo{width:100%;max-width:340px;height:auto;margin-bottom:16px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-        .login-title{font-size:28px;font-weight:700;color:#1a2e4a;margin-bottom:8px;text-shadow:0 2px 4px rgba(255,255,255,.4)}
-        .login-subtitle{font-size:14px;color:#1e3d5c;margin-bottom:32px;text-align:center}
-        .login-box{width:100%;max-width:340px;background:rgba(10,20,46,.92);border:1px solid rgba(116,172,223,.35);border-radius:20px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+        .login-title{font-size:30px;font-weight:700;color:#fff;margin-top:auto;margin-bottom:4px;text-align:center;letter-spacing:.3px;text-shadow:0 2px 10px rgba(0,0,0,.8),0 0 28px rgba(0,0,0,.5)}
+        .login-subtitle{font-size:14px;color:#f0e9dd;margin-bottom:14px;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+        .login-box{width:100%;max-width:640px;background:rgba(10,20,46,.88);border:1px solid rgba(116,172,223,.35);border-radius:14px;padding:10px 12px;box-shadow:0 10px 40px rgba(0,0,0,.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+        /* Compact one-line signin row */
+        #signin-form.active{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+        #signin-form .login-divider{display:none}
+        #signin-form .login-input{margin:0;flex:1 1 140px;min-width:120px;padding:11px 12px;font-size:13px}
+        #signin-form .login-btn{width:auto;flex:0 0 auto;padding:11px 18px;font-size:14px;white-space:nowrap;margin:0}
+        #signin-form .google-btn{flex:0 0 44px;width:44px;min-width:44px;padding:10px;font-size:0;margin:0;gap:0}
+        #signin-form .google-btn svg{margin:0;width:22px;height:22px}
+        #signin-form > div:last-child{flex-basis:100%;text-align:center;margin-top:2px}
+        #signin-form > div:last-child a{font-size:11px;opacity:.75}
         .login-tabs{display:flex;margin-bottom:20px;background:rgba(0,0,0,.3);border-radius:10px;padding:4px}
         .login-tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;color:#a0aec0;cursor:pointer;border-radius:8px;transition:all .2s}
         .login-tab.active{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff}
@@ -97,7 +107,7 @@
         @keyframes spin{to{transform:rotate(360deg)}}
         .loading-text{color:#a0aec0;font-size:14px;font-weight:500}
         /* Toast notifications */
-        .toast-container{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:340px;max-width:90vw}
+        .toast-container{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:100000;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:340px;max-width:90vw}
         .toast{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;pointer-events:auto;animation:toastIn .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.4)}
         .toast.error{background:rgba(214,48,49,.9);color:#fff}
         .toast.success{background:rgba(0,184,148,.9);color:#fff}
@@ -412,7 +422,6 @@
 
 <!-- Login Screen -->
 <div class="login-screen" id="login-screen">
-    <img src="icon.png" alt="Bistro Steward" class="login-logo">
     <div class="login-title">Bistro Steward</div>
     <div class="login-subtitle">Smart Kitchen Management for LaChona</div>
     <div class="login-box">
@@ -483,6 +492,10 @@
 
 <!-- Sync Status Indicator -->
 <div class="sync-status" id="sync-status"></div>
+
+<!-- Sync Log button + panel (live diagnostics for sync flow) -->
+<button id="sync-log-btn" onclick="_syncLogToggle()" title="Sync log" style="position:fixed;bottom:20px;right:20px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(127,255,212,.4);background:rgba(0,0,0,.6);color:#7fffd4;font-size:14px;cursor:pointer;z-index:1001;display:none">📋</button>
+<div id="sync-log-panel" style="display:none;position:fixed;bottom:60px;right:20px;width:min(360px,calc(100vw - 40px));max-height:50vh;overflow-y:auto;background:rgba(0,0,0,.92);color:#7fffd4;padding:8px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.4;border:1px solid rgba(127,255,212,.4);border-radius:8px;z-index:1002;box-shadow:0 4px 18px rgba(0,0,0,.6)"></div>
 
 <!-- Main App -->
 <div class="phone hidden" id="app-container">
@@ -873,6 +886,15 @@ function getCurrentUserRole(){
 // Check if current user is owner/admin
 function isOwner(){
     return getCurrentUserRole() === 'owner';
+}
+
+function isAdmin(){
+    var r=getCurrentUserRole();
+    return r === 'admin' || r === 'super_admin';
+}
+
+function isOwnerOrAdmin(){
+    return isOwner() || isAdmin();
 }
 
 // Get current user's sub-role (foh/boh) - only relevant for employees
@@ -1718,17 +1740,27 @@ async function onAuthStateChange(user){
         // fail. Surface the billing banner up front via getTenantConfig (a
         // read-only op allowed for blocked tenants) rather than waiting for the
         // first failed write.
+        // P2 fix — reset flags to {} BEFORE the call so a throw leaves them
+        // empty (fail-closed) rather than carrying over from a previous
+        // tenant's session.
+        window.__bsFlags = {};
         try {
             var cfg = await secureApi('getTenantConfig', null, null, null);
             if(cfg && cfg.data){
                 window.__bsFlags = cfg.data.featureFlags || {};
+                try { console.log('[flags] resolved:', window.__bsFlags); } catch(_){}
                 var st = String(cfg.data.status||'').toLowerCase();
                 if(st === 'trial_expired' || st === 'suspended' || st === 'cancelled' || st === 'canceled'){
                     handleBillingBlock(st, null);
                 }
+                // Feature-flag-gated UI (e.g. Scan Barcode button) was rendered
+                // before this call resolved. Force a repaint so flag-dependent
+                // toolbars/buttons appear without requiring a tab switch.
+                if(typeof render === 'function') render();
             }
         } catch(e) {
             dbg('Tenant status check error:', e);
+            try { console.warn('[flags] getTenantConfig failed:', e && (e.message || e)); } catch(_){}
         }
 
     }else{
@@ -1748,6 +1780,10 @@ async function onAuthStateChange(user){
             if(typeof IDX === 'object'){
                 Object.keys(IDX).forEach(function(k){ if(IDX[k] && typeof IDX[k].clear === 'function') IDX[k].clear(); });
             }
+            // P2 fix — also reset feature flags so a second user signing in
+            // doesn't briefly see the prior tenant's flags before the new
+            // getTenantConfig resolves.
+            window.__bsFlags = {};
         } catch(e) { /* defensive */ }
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
@@ -2301,8 +2337,10 @@ async function migrateToFirebase(){
 async function syncNow(){
     dbg('syncNow called');
     dbg('firebaseAuth:', !!firebaseAuth, 'currentAuthUser:', !!currentAuthUser);
+    try{ _syncDbg('syncNow ENTRY: auth='+(!!firebaseAuth)+' user='+(!!currentAuthUser)+' online='+isOnline+' isSyncing='+isSyncing+' initLoaded='+initialLoadComplete); }catch(_){}
 
     if(!firebaseAuth||!currentAuthUser){
+        try{ _syncDbg('syncNow ABORT: not authenticated'); }catch(_){}
         alert('Not connected to cloud. Please sign in.');
         return;
     }
@@ -2310,10 +2348,11 @@ async function syncNow(){
     // Sync mutex - prevent concurrent sync calls
     if(isSyncing){
         dbg('syncNow: already syncing, skipping');
+        try{ _syncDbg('syncNow ABORT: isSyncing=true (mutex held)'); }catch(_){}
         return;
     }
     isSyncing = true;
-    try{ await _syncNowImpl(); }finally{ isSyncing = false; }
+    try{ await _syncNowImpl(); }finally{ isSyncing = false; try{_syncDbg('syncNow EXIT: isSyncing released');}catch(_){} }
 }
 
 async function _syncNowImpl(){
@@ -2337,9 +2376,18 @@ async function _syncNowImpl(){
                 secureApi('upsert', 'team_members', D.users.map(mapUserToDb)),
                 secureApi('upsert', 'settings', {id:1,key:'autoAddToInv',value:D.autoAddToInv?true:false})
             ]);
-            var failed=settled.filter(function(r){return r.status==='rejected';});
-            if(failed.length>0) console.warn('Full sync: '+failed.length+' tables failed');
-            dbg('Full sync results:', settled.length-failed.length, '/', settled.length, 'succeeded');
+            var rejected=settled.filter(function(r){return r.status==='rejected';});
+            var envErrors=settled.filter(function(r){return r.status==='fulfilled' && r.value && r.value.error;});
+            var firstErr = (envErrors[0]&&envErrors[0].value&&envErrors[0].value.error&&envErrors[0].value.error.message) || (rejected[0]&&rejected[0].reason&&rejected[0].reason.message) || '';
+            try{ _syncDbg('full-sync: ok='+(settled.length-rejected.length-envErrors.length)+' envErr='+envErrors.length+' rejected='+rejected.length+(firstErr?' first="'+String(firstErr).slice(0,80)+'"':'')); }catch(_){}
+            if(rejected.length>0 || envErrors.length>0){
+                console.warn('Full sync: '+(rejected.length+envErrors.length)+' tables failed');
+                showSyncStatus('unsaved');
+                pendingFirebaseSave=true;
+                showToast('Full sync failed: '+(firstErr||'unknown')+' — will retry.','warning');
+                return;
+            }
+            dbg('Full sync results:', settled.length-rejected.length, '/', settled.length, 'succeeded');
             takeSyncSnapshot();
             clearChangeLog();
             showSyncStatus('synced');
@@ -2503,22 +2551,48 @@ async function _syncNowImpl(){
 
         if(promises.length === 0){
             dbg('No sync operations needed');
+            try{ _syncDbg('_syncNowImpl: no ops needed, marking synced'); }catch(_){}
             showSyncStatus('synced');
             return;
         }
-        
+
         dbg('Executing', promises.length, 'sync operations...');
-        var results = await Promise.all(promises);
-        dbg('Sync results:', results);
-        
+        try{ _syncDbg('_syncNowImpl: awaiting '+promises.length+' secureApi calls…'); }catch(_){}
+        // P1 fix — Promise.allSettled (not Promise.all) so a single rejection
+        // doesn't skip the per-op result inspection and lose recovery state.
+        // Mirrors the debounce path so both manual and auto sync degrade the
+        // same way on partial failure.
+        var settled = await Promise.allSettled(promises);
+        var rejected = settled.filter(function(r){return r.status==='rejected';});
+        var envErrors = settled.filter(function(r){return r.status==='fulfilled' && r.value && r.value.error;});
+        var firstErr = (envErrors[0] && envErrors[0].value && envErrors[0].value.error && envErrors[0].value.error.message)
+            || (rejected[0] && rejected[0].reason && rejected[0].reason.message)
+            || '';
+        try{ _syncDbg('_syncNowImpl: results — ok='+(settled.length-envErrors.length-rejected.length)+' envErr='+envErrors.length+' rejected='+rejected.length+(firstErr?' first="'+String(firstErr).slice(0,80)+'"':'')); }catch(_){}
+        dbg('Sync results:', settled);
+
+        if(envErrors.length > 0 || rejected.length > 0){
+            showSyncStatus('unsaved');
+            pendingFirebaseSave=true;
+            showToast('Some changes failed to sync: '+(firstErr||'unknown')+' — will retry.','warning');
+            return;
+        }
+
         // Update snapshot and clear change log
         takeSyncSnapshot();
         clearChangeLog();
-        
+
         showSyncStatus('synced');
+        try{ _syncDbg('_syncNowImpl: SYNC OK'); }catch(_){}
         dbg('Sync complete');
     }catch(err){
         console.error('Sync error:',err);
+        try{ _syncDbg('_syncNowImpl CAUGHT: '+(err&&err.message||err)); }catch(_){}
+        // P2 fix — without this, a thrown sync leaves pendingFirebaseSave=false
+        // (cleared at the top of the debounce tick) so the 30s auto-sync and
+        // beforeunload guard don't fire and the user can close the tab without
+        // a warning that changes haven't synced.
+        pendingFirebaseSave=true;
         showSyncStatus('offline');
         showToast('Sync failed: '+(err.message||'Network error'), 'error');
     }
@@ -2527,6 +2601,35 @@ async function _syncNowImpl(){
 
 
 var lastSyncTime = null;
+
+// ============ SYNC DIAGNOSTIC LOG ============
+// Mirrors the _upcDbg pattern. Opt-in: tap the 📋 button.
+function _syncDbg(msg){
+    try{
+        if(!window._SYNC_LOG) window._SYNC_LOG = [];
+        var stamp = new Date().toTimeString().slice(0,8);
+        window._SYNC_LOG.push('['+stamp+'] '+msg);
+        if(window._SYNC_LOG.length > 60) window._SYNC_LOG.shift();
+        var panel = document.getElementById('sync-log-panel');
+        if(panel && panel.style.display !== 'none'){
+            panel.innerHTML = window._SYNC_LOG.map(function(line){return '<div>'+escHtml(line)+'</div>';}).join('');
+            panel.scrollTop = panel.scrollHeight;
+        }
+        var btn = document.getElementById('sync-log-btn');
+        if(btn && btn.style.display === 'none') btn.style.display = 'block';
+    }catch(_){}
+}
+function _syncLogToggle(){
+    var panel = document.getElementById('sync-log-panel');
+    if(!panel) return;
+    if(panel.style.display === 'none'){
+        panel.innerHTML = (window._SYNC_LOG||['(no events yet)']).map(function(line){return '<div>'+escHtml(line)+'</div>';}).join('');
+        panel.style.display = 'block';
+        panel.scrollTop = panel.scrollHeight;
+    } else {
+        panel.style.display = 'none';
+    }
+}
 
 function showSyncStatus(status){
     var el=document.getElementById('sync-status');
@@ -3565,7 +3668,7 @@ function renderInv(c,s){
     html+='<div id="inv-search-results" style="display:none;margin-bottom:12px"></div>';
 
     // Scan & Print toolbar (admin only)
-    if(isOwner()){
+    if(isOwnerOrAdmin()){
         html+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
         if(flagOn('upcScanner')){
             html+='<button onclick="showAreaScanPicker()" style="flex:1;min-width:120px;background:rgba(253,203,110,.15);border:1px solid rgba(253,203,110,.35);border-radius:8px;padding:10px;color:#fdcb6e;cursor:pointer;font-size:calc(12px * var(--font-scale));font-weight:600" title="Scan packaged-goods barcodes with the camera">&#x1F4F1; Scan Barcode</button>';
@@ -6767,30 +6870,75 @@ function renderMargin(c,s){
     html+='<th style="padding:8px 10px;text-align:left;color:#a0aec0;font-weight:600">Best Vendor</th>';
     html+='</tr></thead><tbody>';
 
+    function renderMarginRow(x){
+        var r=x.rec, cc=x.cost;
+        var hasPrice=(r.menuPrice||0)>0;
+        var marginStr=hasPrice?cc.margin.toFixed(1)+'%':'—';
+        var fcStr=hasPrice?cc.foodCostPct.toFixed(1)+'%':'—';
+        var mColor=hasPrice?marginColor(cc.margin):'#636e72';
+        var fcColor=hasPrice?foodCostColor(cc.foodCostPct):'#636e72';
+        var alarmBadge=alarmBadgeHtml(x.alarm);
+        var bestVendorName=getRecipeBestVendorSummary(r);
+        var row='<tr style="border-bottom:1px solid #1a2028;cursor:pointer" onclick="openRecipeDrawer('+r.id+')">';
+        row+='<td style="padding:8px 10px"><div style="color:#fff;font-weight:500">'+escHtml(r.name)+'</div>';
+        if(cc.missingCost.length||cc.missingConversion.length) row+='<div style="color:#fdcb6e;font-size:calc(10px * var(--font-scale));margin-top:2px">⚠ '+(cc.missingCost.length+cc.missingConversion.length)+' missing</div>';
+        row+='</td>';
+        row+='<td style="padding:8px 10px;text-align:right;color:'+(hasPrice?'#fff':'#636e72')+'">'+(hasPrice?'$'+r.menuPrice.toFixed(2):'—')+'</td>';
+        row+='<td style="padding:8px 10px;text-align:right;color:#fff">$'+cc.perPortion.toFixed(2)+'</td>';
+        row+='<td style="padding:8px 10px;text-align:right;color:'+fcColor+';font-weight:600">'+fcStr+'</td>';
+        row+='<td style="padding:8px 10px;text-align:right;color:'+mColor+';font-weight:600">'+marginStr+'</td>';
+        row+='<td style="padding:8px 10px;text-align:center">'+alarmBadge+'</td>';
+        row+='<td style="padding:8px 10px;color:#a0aec0">'+bestVendorName+'</td>';
+        row+='</tr>';
+        return row;
+    }
+
     if(!rows.length){
         html+='<tr><td colspan="7" style="padding:30px;text-align:center;color:#636e72">No items match filter.</td></tr>';
     }else{
+        // Group rows by recipe category (mirrors Recipes tab grouping pattern).
+        var recCats=D.recCats||[];
+        var rowsByCat={};
         rows.forEach(function(x){
-            var r=x.rec, cc=x.cost;
-            var hasPrice=(r.menuPrice||0)>0;
-            var marginStr=hasPrice?cc.margin.toFixed(1)+'%':'—';
-            var fcStr=hasPrice?cc.foodCostPct.toFixed(1)+'%':'—';
-            var mColor=hasPrice?marginColor(cc.margin):'#636e72';
-            var fcColor=hasPrice?foodCostColor(cc.foodCostPct):'#636e72';
-            var alarmBadge=alarmBadgeHtml(x.alarm);
-            var bestVendorName=getRecipeBestVendorSummary(r);
-            html+='<tr style="border-bottom:1px solid #1a2028;cursor:pointer" onclick="openRecipeDrawer('+r.id+')">';
-            html+='<td style="padding:8px 10px"><div style="color:#fff;font-weight:500">'+escHtml(r.name)+'</div>';
-            if(cc.missingCost.length||cc.missingConversion.length) html+='<div style="color:#fdcb6e;font-size:calc(10px * var(--font-scale));margin-top:2px">⚠ '+(cc.missingCost.length+cc.missingConversion.length)+' missing</div>';
-            html+='</td>';
-            html+='<td style="padding:8px 10px;text-align:right;color:'+(hasPrice?'#fff':'#636e72')+'">'+(hasPrice?'$'+r.menuPrice.toFixed(2):'—')+'</td>';
-            html+='<td style="padding:8px 10px;text-align:right;color:#fff">$'+cc.perPortion.toFixed(2)+'</td>';
-            html+='<td style="padding:8px 10px;text-align:right;color:'+fcColor+';font-weight:600">'+fcStr+'</td>';
-            html+='<td style="padding:8px 10px;text-align:right;color:'+mColor+';font-weight:600">'+marginStr+'</td>';
-            html+='<td style="padding:8px 10px;text-align:center">'+alarmBadge+'</td>';
-            html+='<td style="padding:8px 10px;color:#a0aec0">'+bestVendorName+'</td>';
-            html+='</tr>';
+            var k=(x.rec.catId!=null)?String(x.rec.catId):'__uncat';
+            (rowsByCat[k]=rowsByCat[k]||[]).push(x);
         });
+        recCats.forEach(function(cat){
+            var catRows=rowsByCat[String(cat.id)];
+            if(!catRows||!catRows.length)return;
+            var catKey='margin-cat-'+cat.id;
+            var totalPriced=catRows.filter(function(x){return (x.rec.menuPrice||0)>0;});
+            var catAvgM=totalPriced.length?(totalPriced.reduce(function(s,x){return s+(x.cost.margin||0);},0)/totalPriced.length):0;
+            var catAlarm=catRows.filter(function(x){return x.alarm==='red'||x.alarm==='amber';}).length;
+            var summary=catRows.length+' item'+(catRows.length===1?'':'s');
+            if(totalPriced.length) summary+=' · avg '+catAvgM.toFixed(1)+'%';
+            if(catAlarm) summary+=' · ⚠ '+catAlarm;
+            html+='<tr class="margin-cat-row" onclick="tog(\''+catKey+'\')" style="cursor:pointer">';
+            html+='<td colspan="7" style="background:#0a1118;padding:10px 12px;border-top:1px solid #1a2028;border-bottom:1px solid #1a2028">';
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;color:#fdcb6e;font-weight:700;font-size:calc(13px * var(--font-scale))">';
+            html+='<span>'+escHtml(cat.name)+' <span style="color:#a0aec0;font-weight:500">('+summary+')</span></span>';
+            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">'+(exp[catKey]?'▲':'▼')+'</span>';
+            html+='</div></td></tr>';
+            if(exp[catKey]) catRows.forEach(function(x){ html+=renderMarginRow(x); });
+        });
+        // Uncategorized
+        var uncatRows=rowsByCat['__uncat']||[];
+        if(uncatRows.length){
+            var uKey='margin-cat-uncat';
+            var uPriced=uncatRows.filter(function(x){return (x.rec.menuPrice||0)>0;});
+            var uAvgM=uPriced.length?(uPriced.reduce(function(s,x){return s+(x.cost.margin||0);},0)/uPriced.length):0;
+            var uAlarm=uncatRows.filter(function(x){return x.alarm==='red'||x.alarm==='amber';}).length;
+            var uSummary=uncatRows.length+' item'+(uncatRows.length===1?'':'s');
+            if(uPriced.length) uSummary+=' · avg '+uAvgM.toFixed(1)+'%';
+            if(uAlarm) uSummary+=' · ⚠ '+uAlarm;
+            html+='<tr class="margin-cat-row" onclick="tog(\''+uKey+'\')" style="cursor:pointer">';
+            html+='<td colspan="7" style="background:#0a1118;padding:10px 12px;border-top:1px solid #1a2028;border-bottom:1px solid #1a2028">';
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;color:#636e72;font-weight:700;font-size:calc(13px * var(--font-scale))">';
+            html+='<span>Uncategorized <span style="color:#a0aec0;font-weight:500">('+uSummary+')</span></span>';
+            html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">'+(exp[uKey]?'▲':'▼')+'</span>';
+            html+='</div></td></tr>';
+            if(exp[uKey]) uncatRows.forEach(function(x){ html+=renderMarginRow(x); });
+        }
     }
     html+='</tbody></table></div>';
 
@@ -9335,6 +9483,7 @@ function markChanged(table, id){
             changeLog[table].add(id);
         }
     }
+    try{ _syncDbg('markChanged '+table+(id!==undefined?'#'+id:'')); }catch(_){}
     scheduleSync();
 }
 
@@ -9391,28 +9540,40 @@ function getDeletedIds(table){
 // Only call this when data actually changes (from saveState)
 function queueFirebaseSave(){
     if(!firebaseAuth||!currentAuthUser){
+        try{ _syncDbg('queueFirebaseSave EARLY-RETURN: no auth (firebaseAuth='+(!!firebaseAuth)+', user='+(!!currentAuthUser)+')'); }catch(_){}
         return;
     }
     if(!initialLoadComplete){
+        try{ _syncDbg('queueFirebaseSave EARLY-RETURN: initialLoadComplete=false'); }catch(_){}
         return; // Don't try to sync until initial load is done
     }
+    try{ _syncDbg('queueFirebaseSave: pending='+pendingFirebaseSave+' isSyncing='+isSyncing+' online='+isOnline); }catch(_){}
     pendingFirebaseSave=true;
     showSyncStatus('unsaved');
-    
+
     // Debounce - wait 2 seconds of inactivity before saving to cloud
-    if(saveDebounceTimer)clearTimeout(saveDebounceTimer);
+    if(saveDebounceTimer){ try{_syncDbg('debounce reset (prior timer cleared)');}catch(_){} clearTimeout(saveDebounceTimer); }
     saveDebounceTimer=setTimeout(async function(){
-        if(!pendingFirebaseSave)return;
-        if(isSyncing){dbg('queueFirebaseSave: sync in progress, will retry');pendingFirebaseSave=true;queueFirebaseSave();return;}
+        try{ _syncDbg('debounce FIRED: pending='+pendingFirebaseSave+' isSyncing='+isSyncing); }catch(_){}
+        if(!pendingFirebaseSave){ try{_syncDbg('debounce: pending=false, abort');}catch(_){} return; }
+        if(isSyncing){dbg('queueFirebaseSave: sync in progress, will retry'); try{_syncDbg('debounce: isSyncing=true, re-queue');}catch(_){} pendingFirebaseSave=true;queueFirebaseSave();return;}
         pendingFirebaseSave=false;
         isSyncing=true;
-        
+
         // Detect what actually changed since last sync
         detectAllChanges();
-        
+
         if(!hasChanges()){
             dbg('No changes detected, showing synced');
             showSyncStatus('synced');
+            // P0 fix — the mutex was grabbed at the top of this debounce tick;
+            // this early return sits OUTSIDE the try/finally that releases it
+            // below, so without this line the next time we land in no-changes
+            // territory `isSyncing` stays true forever and every subsequent
+            // syncNow()/debounce tick silently no-ops ("already syncing,
+            // skipping") until the page reloads. Hard deadlock.
+            isSyncing=false;
+            try{ _syncDbg('debounce: no changes, mutex released'); }catch(_){}
             return;
         }
         
@@ -9563,20 +9724,33 @@ function queueFirebaseSave(){
             }
 
             if(promises.length > 0){
+                try{ _syncDbg('awaiting '+promises.length+' secureApi calls…'); }catch(_){}
                 var settled=await Promise.allSettled(promises);
-                var failed=settled.filter(function(r){return r.status==='rejected';});
-                if(failed.length>0){
-                    console.warn('Partial sync: '+failed.length+'/'+promises.length+' operations failed');
-                    showToast('Some changes failed to sync. Will retry.','warning');
+                var rejected=settled.filter(function(r){return r.status==='rejected';});
+                var envErrors=settled.filter(function(r){return r.status==='fulfilled' && r.value && r.value.error;});
+                var firstErr = (envErrors[0]&&envErrors[0].value&&envErrors[0].value.error&&envErrors[0].value.error.message) || (rejected[0]&&rejected[0].reason&&rejected[0].reason.message) || '';
+                try{ _syncDbg('settled: ok='+(settled.length-rejected.length-envErrors.length)+' envErr='+envErrors.length+' rejected='+rejected.length+(firstErr?' first="'+String(firstErr).slice(0,80)+'"':'')); }catch(_){}
+                if(rejected.length>0 || envErrors.length>0){
+                    console.warn('Partial sync: '+(rejected.length+envErrors.length)+'/'+promises.length+' operations failed');
+                    showToast('Some changes failed to sync: '+(firstErr||'unknown')+' — will retry.','warning');
+                    // Don't clearChangeLog when any op errored — leave changes pending so retry can ship them
+                    showSyncStatus('unsaved');
+                    pendingFirebaseSave=true;
+                    return;
                 }
-                dbg('Synced', promises.length-failed.length, '/', promises.length, 'operations');
+                dbg('Synced', promises.length-rejected.length, '/', promises.length, 'operations');
             }
 
             clearChangeLog();
             takeSyncSnapshot(); // Update snapshot after successful sync
             showSyncStatus('synced');
+            try{ _syncDbg('SYNC OK — cleared changeLog, snapshot taken'); }catch(_){}
         }catch(err){
             console.error('Firebase save error:',err);
+            try{ _syncDbg('SYNC CAUGHT: '+(err&&err.message||err)); }catch(_){}
+            // P2 fix — sync threw before reaching the allSettled handler; mark
+            // pending so the 30s auto-sync and beforeunload guard still fire.
+            pendingFirebaseSave=true;
             showSyncStatus('offline');
             showToast('Auto-sync failed. Changes saved locally.', 'warning');
         }finally{
@@ -9927,7 +10101,12 @@ function applyScanResults(areaId){
             ing=D.ings.find(function(i){return !i.archived&&i.name.toLowerCase().indexOf((item.name||'').toLowerCase())!==-1;});
         }
         if(!ing){skipped++;return;}
-        var existing=D.inv.find(function(x){return x.ingId===ing.id&&x.areaId===areaId;});
+        // P2 fix — match on subArea too. The OCR count sheet has no subArea
+        // concept (one sheet per area), so target the area's main row (empty
+        // subArea). Without this, an item with multiple inv rows in the same
+        // area but different sub-areas (shelf/bin) gets the first match's qty
+        // stomped while the others silently retain stale counts.
+        var existing=D.inv.find(function(x){return x.ingId===ing.id&&x.areaId===areaId&&String(x.subArea||'')==='';});
         if(existing){
             var oldQty=existing.qty;
             existing.qty=newQty;
@@ -9956,6 +10135,7 @@ function applyScanResults(areaId){
 }
 
 // ==================== UPC / BARCODE SCANNER (Phase 2) ====================
+var UPC_SCANNER_VERSION='v13-2026-05-28-force-polyfill-ios';
 var _UPC={area:0,items:[],stream:null,reader:null,det:null,iv:0,scanning:false,last:'',lastT:0};
 
 // Feature-flag gate — resolved server-side (getTenantConfig → data.featureFlags)
@@ -9997,7 +10177,7 @@ function _upcDbg(msg){
 }
 
 function showAreaScanPicker(){
-    if(!isOwner()){showToast('Admin only','warning');return;}
+    if(!isOwnerOrAdmin()){showToast('Owner/Admin only','warning');return;}
     if(!flagOn('upcScanner')){showToast('Barcode scanning is not enabled for your account yet','warning');return;}
     var m=document.getElementById('modal'),mo=document.getElementById('modal-o');
     var html='<div class="modal-t">Scan Barcodes</div>';
@@ -10011,10 +10191,10 @@ function showAreaScanPicker(){
 }
 
 function openUpcScanner(areaId){
-    if(!isOwner()){showToast('Admin only','warning');return;}
+    if(!isOwnerOrAdmin()){showToast('Owner/Admin only','warning');return;}
     if(!flagOn('upcScanner')){showToast('Barcode scanning is not enabled for your account yet','warning');return;}
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showToast('Camera not available on this device. Use Scan Sheet or hand count.','warning');return;}
-    _UPC={area:areaId,items:[],stream:null,reader:null,det:null,iv:0,scanning:false,last:'',lastT:0,manual:false,_unit:'ea'};
+    _UPC={area:areaId,items:[],stream:null,reader:null,det:null,iv:0,scanning:false,last:'',lastT:0,manual:false,_unit:'ea',zoomCap:null,zoomCur:1,torchCap:null,torchOn:false};
     var area=D.areas.find(function(a){return a.id===areaId;});
     var ov=document.createElement('div');
     ov.id='upc-ov';
@@ -10033,15 +10213,56 @@ function openUpcScanner(areaId){
     document.body.appendChild(ov);
     _upcDbg('UA: '+(navigator.userAgent||'').slice(0,90));
     _upcDbg('BarcodeDetector: '+('BarcodeDetector' in window ? 'yes' : 'no')+' | secureCtx: '+window.isSecureContext);
-    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}).then(function(stream){
+    navigator.mediaDevices.getUserMedia({
+        video:{
+            facingMode:{ideal:'environment'},
+            width:{ideal:1920},
+            height:{ideal:1080},
+            frameRate:{ideal:30}
+        },
+        audio:false
+    }).then(function(stream){
         _UPC.stream=stream;
         var v=document.getElementById('upc-vid');
         if(!v){stream.getTracks().forEach(function(t){t.stop();});return;}
         v.srcObject=stream;
         _UPC.scanning=true;
-        _upcDbg('camera stream attached');
+        // Continuous autofocus dramatically improves barcode reads on packaged goods.
+        // Not all browsers expose focusMode — applyConstraints failures are non-fatal.
+        try {
+            var track=stream.getVideoTracks()[0];
+            var caps=track && track.getCapabilities ? track.getCapabilities() : {};
+            var advanced=[];
+            if(caps.focusMode && caps.focusMode.indexOf('continuous')!==-1) advanced.push({focusMode:'continuous'});
+            if(caps.exposureMode && caps.exposureMode.indexOf('continuous')!==-1) advanced.push({exposureMode:'continuous'});
+            if(caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf('continuous')!==-1) advanced.push({whiteBalanceMode:'continuous'});
+            if(advanced.length){
+                track.applyConstraints({advanced:advanced}).then(function(){
+                    _upcDbg('applied advanced constraints: '+advanced.map(function(a){return Object.keys(a)[0];}).join(','));
+                }).catch(function(e){_upcDbg('applyConstraints err: '+(e&&e.message||e));});
+            } else {
+                _upcDbg('no continuous focus/exposure caps on this device');
+            }
+            var settings=track && track.getSettings ? track.getSettings() : {};
+            _upcDbg('camera settings: '+(settings.width||'?')+'x'+(settings.height||'?')+' fps='+(settings.frameRate||'?'));
+            // For ZXing fallback, capture deviceId (iOS Safari is picky about sources).
+            _UPC.deviceId=settings && settings.deviceId ? settings.deviceId : null;
+            if(_UPC.deviceId) _upcDbg('camera deviceId captured');
+            // Capture zoom + torch capabilities for UI controls. iOS Safari typically exposes zoom.
+            if(caps.zoom){
+                _UPC.zoomCap={min:caps.zoom.min||1,max:caps.zoom.max||1,step:caps.zoom.step||0.1,track:track};
+                _UPC.zoomCur=settings.zoom||_UPC.zoomCap.min||1;
+                _upcDbg('zoom cap: '+_UPC.zoomCap.min+'..'+_UPC.zoomCap.max+' step '+_UPC.zoomCap.step+' cur='+_UPC.zoomCur);
+            } else { _upcDbg('no zoom cap'); }
+            if(caps.torch){ _UPC.torchCap=track; _upcDbg('torch supported'); }
+        } catch(e){_upcDbg('camera tune err: '+(e&&e.message||e));}
         _upcDefaultPanel();
-        _upcStartDecode();
+        // Load WASM BarcodeDetector polyfill (zxing-wasm) before starting decode.
+        // Native BarcodeDetector wins when present (Android Chrome). On iOS Safari this
+        // flips the existing 'BarcodeDetector' in window branch from false to true.
+        _upcLoadBarcodeDetectorPolyfill(function(){
+            _upcStartDecode();
+        });
     }).catch(function(err){
         _upcDbg('getUserMedia error: '+(err&&err.name||'unknown')+' '+(err&&err.message||''));
         _upcManualOnly('Camera permission denied. You can type barcodes, or use Scan Sheet / hand count.');
@@ -10049,6 +10270,88 @@ function openUpcScanner(areaId){
     if(window.roTrack) window.roTrack('feature_used',{feature:'upc_scanner_opened'});
 }
 
+// Load WASM polyfill (zxing-wasm) once per session.
+// iOS Safari 17/18 ships a *stub* BarcodeDetector that resolves the 'in window' check
+// but throws "Barcode detection service unavailable" on detect(). Probe via
+// getSupportedFormats() before trusting native — if empty/throws, install polyfill.
+function _upcLoadBarcodeDetectorPolyfill(cb){
+    if(_UPC._bdpDone){cb();return;}
+    var done=function(){_UPC._bdpDone=true;cb();};
+    _upcDbg('UPC scanner '+UPC_SCANNER_VERSION);
+    // v13 — iOS Safari ships a BarcodeDetector stub: getSupportedFormats()
+    // returns a non-empty list (so v12's probe was fooled into trusting it),
+    // but detect() throws "Barcode detection service unavailable". Skip the
+    // native path entirely on iOS / iPadOS and install the WASM polyfill
+    // (barcode-detector@2 → zxing-wasm) directly. Android Chrome's native
+    // BarcodeDetector is genuine and stays on the probe path below.
+    var ua=navigator.userAgent||'';
+    var isIOS=/iPad|iPhone|iPod/.test(ua) || (/Mac/.test(ua) && (navigator.maxTouchPoints||0)>1);
+    if(isIOS){
+        _upcDbg('iOS detected — bypassing native BarcodeDetector, installing WASM polyfill');
+        _upcInstallPolyfill(done);
+        return;
+    }
+    if('BarcodeDetector' in window){
+        try {
+            var probe=window.BarcodeDetector.getSupportedFormats();
+            if(probe && typeof probe.then==='function'){
+                probe.then(function(formats){
+                    if(formats && formats.length){
+                        _upcDbg('native BarcodeDetector OK: '+formats.length+' formats ['+formats.slice(0,4).join(',')+(formats.length>4?',…':'')+']');
+                        done();
+                    } else {
+                        _upcDbg('native BarcodeDetector stub (0 formats) — installing WASM polyfill');
+                        _upcInstallPolyfill(done);
+                    }
+                }).catch(function(e){
+                    _upcDbg('native getSupportedFormats threw: '+(e&&e.message||e)+' — installing polyfill');
+                    _upcInstallPolyfill(done);
+                });
+                return;
+            }
+            _upcDbg('native getSupportedFormats sync — assuming OK');
+            done();
+            return;
+        } catch(e){
+            _upcDbg('native probe threw: '+(e&&e.message||e)+' — installing polyfill');
+        }
+    }
+    _upcInstallPolyfill(done);
+}
+
+function _upcInstallPolyfill(cb){
+    var t0=Date.now();
+    _upcDbg('loading WASM polyfill (zxing-wasm) from jsdelivr…');
+    // P2 fix — pin to an exact version (was @2, a floating major). A malicious
+    // 2.x release on jsdelivr would otherwise ship to every iOS user with no
+    // review. To go further: self-host under firebase/public/vendor/ and switch
+    // to a relative import.
+    import('https://cdn.jsdelivr.net/npm/barcode-detector@2.3.1/dist/es/pure.min.js')
+        .then(function(mod){
+            var Ctor=mod && (mod.BarcodeDetector||mod.default);
+            if(Ctor){
+                window.BarcodeDetector=Ctor;
+                _upcDbg('WASM polyfill ctor installed in '+(Date.now()-t0)+'ms');
+                // Warm WASM: instantiate + call getSupportedFormats so first detect() isn't slow.
+                try{
+                    Ctor.getSupportedFormats().then(function(formats){
+                        _upcDbg('WASM polyfill ready: '+(formats||[]).length+' formats');
+                        cb();
+                    }).catch(function(e){
+                        _upcDbg('polyfill getSupportedFormats err: '+(e&&e.message||e));
+                        cb();
+                    });
+                } catch(e){_upcDbg('polyfill warmup threw: '+(e&&e.message||e));cb();}
+            } else {
+                _upcDbg('polyfill module missing export; keys='+Object.keys(mod||{}).join(','));
+                cb();
+            }
+        })
+        .catch(function(e){
+            _upcDbg('polyfill load failed: '+(e&&e.message||e));
+            cb();
+        });
+}
 function _upcStartDecode(){
     var video=document.getElementById('upc-vid');
     if(!video){_upcDbg('no video element');return;}
@@ -10056,28 +10359,154 @@ function _upcStartDecode(){
         try{
             _UPC.det=new window.BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
             _UPC.det_frames=0;
-            _upcDbg('BarcodeDetector instantiated; polling 300ms');
+            _UPC.det_busy=false;
+            _UPC.det_fails=0;
+            _UPC.det_nohits=0;
+            // Canvas-based detection is more reliable on iOS Safari (some implementations
+            // throw "Invalid element or state" when passed a <video> directly).
+            _UPC.det_canvas=_UPC.det_canvas||document.createElement('canvas');
+            _UPC.det_ctx=_UPC.det_canvas.getContext('2d',{willReadFrequently:true});
+            _upcDbg('BarcodeDetector instantiated; polling 80ms');
             _UPC.iv=setInterval(function(){
                 if(!_UPC.scanning)return;
+                if(_UPC.det_busy)return; // skip if last detect() still running — WASM is async
                 if(!video.videoWidth){if(_UPC.det_frames%10===0)_upcDbg('waiting on video stream (videoWidth=0)');_UPC.det_frames++;return;}
-                _UPC.det.detect(video).then(function(codes){
+                _UPC.det_busy=true;
+                // Grab a frame to canvas and run detection on that source.
+                try{
+                    if(_UPC.det_canvas.width!==video.videoWidth){_UPC.det_canvas.width=video.videoWidth;}
+                    if(_UPC.det_canvas.height!==video.videoHeight){_UPC.det_canvas.height=video.videoHeight;}
+                    _UPC.det_ctx.drawImage(video,0,0,_UPC.det_canvas.width,_UPC.det_canvas.height);
+                }catch(eDraw){
+                    // If we can't draw yet, treat like a no-hit and keep polling.
+                    _UPC.det_busy=false;
+                    _UPC.det_nohits++;
+                    if(_UPC.det_nohits%25===0)_upcDbg('canvas drawImage not ready: '+(eDraw&&eDraw.message||eDraw));
+                    return;
+                }
+                _UPC.det.detect(_UPC.det_canvas).then(function(codes){
+                    _UPC.det_busy=false;
+                    _UPC.det_fails=0;
                     _UPC.det_frames++;
-                    if(_UPC.det_frames%20===0)_upcDbg('scanning… frames='+_UPC.det_frames+' size='+video.videoWidth+'x'+video.videoHeight);
-                    if(codes&&codes.length){_upcDbg('detected: '+(codes[0].rawValue||''));_upcOnDetect(String(codes[0].rawValue||''));}
-                }).catch(function(e){_upcDbg('detect err: '+(e&&e.message||e));});
-            },300);
+                    if(_UPC.det_frames%40===0)_upcDbg('scanning… frames='+_UPC.det_frames+' size='+video.videoWidth+'x'+video.videoHeight);
+                    if(codes&&codes.length){
+                        _UPC.det_nohits=0;
+                        _upcDbg('detected: '+(codes[0].rawValue||''));_upcOnDetect(String(codes[0].rawValue||''));
+                    } else {
+                        // Some browsers expose BarcodeDetector but never return results.
+                        // After ~6s of no hits (75 * 80ms), fall back to ZXing.
+                        _UPC.det_nohits++;
+                        if(_UPC.det_nohits===75){
+                            _upcDbg('no BarcodeDetector hits after ~6s — switching to ZXing fallback');
+                            if(_UPC.iv){clearInterval(_UPC.iv);_UPC.iv=0;}
+                            _UPC.det=null;
+                            _upcStartZxing(video);
+                        }
+                    }
+                }).catch(function(e){
+                    _UPC.det_busy=false;
+                    _UPC.det_fails++;
+                    var msg=(e&&e.message||String(e));
+                    if(_UPC.det_fails<=3)_upcDbg('detect err #'+_UPC.det_fails+': '+msg);
+                    // After 3 consecutive failures, abort BarcodeDetector and try ZXing fallback.
+                    if(_UPC.det_fails===3){
+                        _upcDbg('BarcodeDetector unusable — aborting and loading ZXing JS fallback');
+                        if(_UPC.iv){clearInterval(_UPC.iv);_UPC.iv=0;}
+                        _UPC.det=null;
+                        _upcStartZxing(video);
+                    }
+                });
+            },80);
             return;
         }catch(e){_upcDbg('BarcodeDetector ctor failed: '+(e&&e.message||e));}
     }
+    _upcStartZxing(video);
+}
+
+function _upcStartZxing(video){
     _upcDbg('loading ZXing from CDN…');
     _upcLoadZxing(function(err){
         if(err||!window.ZXing){_upcDbg('ZXing load failed: '+(err&&err.message||'no window.ZXing'));_upcManualOnly('Live scanning is not supported on this browser — type the barcode instead.');return;}
         _upcDbg('ZXing loaded; starting decoder');
         try{
-            _UPC.reader=new window.ZXing.BrowserMultiFormatReader();
+            // Configure hints: TRY_HARDER + restrict formats for accuracy on packaged grocery.
+            var hints=null;
+            try{
+                if(window.ZXing.DecodeHintType && window.ZXing.BarcodeFormat){
+                    hints=new Map();
+                    hints.set(window.ZXing.DecodeHintType.TRY_HARDER, true);
+                    hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+                        window.ZXing.BarcodeFormat.UPC_A,
+                        window.ZXing.BarcodeFormat.UPC_E,
+                        window.ZXing.BarcodeFormat.EAN_13,
+                        window.ZXing.BarcodeFormat.EAN_8,
+                        window.ZXing.BarcodeFormat.CODE_128
+                    ]);
+                    _upcDbg('ZXing hints set (TRY_HARDER + 5 formats)');
+                }
+            }catch(eh){_upcDbg('hints unavailable: '+(eh&&eh.message||eh));}
+            _UPC.reader=hints?new window.ZXing.BrowserMultiFormatReader(hints):new window.ZXing.BrowserMultiFormatReader();
+            _UPC.zx_calls=0; _UPC.zx_lastLogT=Date.now(); _UPC.zx_hasResult=false;
+
+            // Start strategy #1: attach to the existing <video> fed by our stream.
             _UPC.reader.decodeFromVideoElement(video,function(result,zerr){
-                if(result&&_UPC.scanning){_upcDbg('ZXing read: '+(result.getText?result.getText():(result.text||'')));_upcOnDetect(String(result.getText?result.getText():(result.text||'')));}
+                _UPC.zx_calls++;
+                if(result&&_UPC.scanning){
+                    _UPC.zx_hasResult=true;
+                    _upcDbg('ZXing read: '+(result.getText?result.getText():(result.text||'')));
+                    _upcOnDetect(String(result.getText?result.getText():(result.text||'')));
+                    return;
+                }
+                // Heartbeat: log alive count every 3s while no result
+                var now=Date.now();
+                if(now-_UPC.zx_lastLogT>3000){
+                    _UPC.zx_lastLogT=now;
+                    var v=document.getElementById('upc-vid');
+                    var dim=v?(v.videoWidth+'x'+v.videoHeight):'no video';
+                    _upcDbg('ZXing alive calls='+_UPC.zx_calls+' size='+dim+' (waiting for barcode)');
+                }
+                // Log non-NotFoundException errors (real failures, not "no code in frame")
+                if(zerr && zerr.name && zerr.name!=='NotFoundException' && zerr.name!=='NotFoundException2'){
+                    if(!_UPC.zx_lastErrName || _UPC.zx_lastErrName!==zerr.name){
+                        _UPC.zx_lastErrName=zerr.name;
+                        _upcDbg('ZXing err: '+zerr.name+' '+(zerr.message||''));
+                    }
+                }
             });
+
+            // iOS Safari: ZXing sometimes needs an explicit deviceId source. If we get
+            // no reads for a few seconds, restart using decodeFromVideoDevice.
+            setTimeout(function(){
+                if(!_UPC.scanning || _UPC.zx_hasResult) return;
+                if(!_UPC.reader) return;
+                var v=document.getElementById('upc-vid');
+                if(!v || !v.videoWidth) return;
+                _upcDbg('ZXing no reads yet — restarting with decodeFromVideoDevice');
+                try{ _UPC.reader.reset(); }catch(_){}
+                try{
+                    var vidId='upc-vid';
+                    if(typeof _UPC.reader.decodeFromVideoDevice === 'function'){
+                        _UPC.reader.decodeFromVideoDevice(_UPC.deviceId||undefined, vidId, function(result2,zerr2){
+                            if(result2&&_UPC.scanning){
+                                _UPC.zx_hasResult=true;
+                                _upcDbg('ZXing(device) read: '+(result2.getText?result2.getText():(result2.text||'')));
+                                _upcOnDetect(String(result2.getText?result2.getText():(result2.text||'')));
+                                return;
+                            }
+                            if(zerr2 && zerr2.name && zerr2.name!=='NotFoundException' && zerr2.name!=='NotFoundException2'){
+                                if(!_UPC.zx_lastErrName || _UPC.zx_lastErrName!==zerr2.name){
+                                    _UPC.zx_lastErrName=zerr2.name;
+                                    _upcDbg('ZXing(device) err: '+zerr2.name+' '+(zerr2.message||''));
+                                }
+                            }
+                        });
+                    } else {
+                        _upcDbg('ZXing decodeFromVideoDevice not available on this build');
+                    }
+                } catch(e3){
+                    _upcDbg('ZXing(device) start failed: '+(e3&&e3.message||e3));
+                }
+            }, 4500);
         }catch(e2){_upcDbg('ZXing start failed: '+(e2&&e2.message||e2));_upcManualOnly('Could not start the barcode reader — type the barcode instead.');}
     });
 }
@@ -10104,7 +10533,18 @@ function _upcBeep(){
 }
 
 function _upcOnDetect(code){
+    // P2 fix — bail if the scanner has been stopped (X / Done / fallback
+    // switch). A detect() promise that resolves after _upcStop() would
+    // otherwise still hit secureApi('upcLookup',…) — wasted backend call
+    // (Firestore read + cache update) and a no-op against a torn-down panel.
+    if(!_UPC.scanning)return;
     var now=Date.now();
+    // Normalize detector output to digits. Some engines return formatted strings
+    // like "0 36000 29145 2" or include whitespace/newlines.
+    var raw=String(code==null?'':code);
+    var digits=raw.replace(/[^0-9]/g,'').trim();
+    if(!digits){_upcDbg('rejected empty scan (raw="'+raw.slice(0,40)+'")');return;}
+    code=digits;
     if(code===_UPC.last&&now-_UPC.lastT<2500){_upcDbg('dupe ignored: '+code);return;}
     var why=_upcValidReason(code);
     if(why!=='ok'){_upcDbg('rejected '+code+' — '+why);return;}
@@ -10127,15 +10567,46 @@ function _upcSetStatus(msg){var p=_upcPanel();if(p)p.innerHTML='<div style="text
 
 function _upcDefaultPanel(){
     var p=_upcPanel();if(!p)return;
+    var hasZoom=!!_UPC.zoomCap;
+    var hasTorch=!!_UPC.torchCap;
     p.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
-      +'<span style="color:#a0aec0;font-size:calc(12px * var(--font-scale))">Point at a barcode to add it</span>'
+      +'<span style="color:#a0aec0;font-size:calc(12px * var(--font-scale))">Point camera at barcode &mdash; auto-detects</span>'
       +'<span style="background:rgba(0,184,148,.18);color:#00b894;border-radius:20px;padding:4px 12px;font-size:calc(12px * var(--font-scale));font-weight:600">'+_UPC.items.length+' captured</span>'
       +'</div>'
+      +(hasZoom||hasTorch?'<div style="display:flex;gap:6px;margin-top:8px;align-items:center">'
+        +(hasZoom?'<button onclick="_upcZoom(-1)" class="btn btn-s" style="width:42px;padding:8px 0;font-size:18px">&minus;</button>'
+            +'<span id="upc-zoom-val" style="flex:1;text-align:center;color:#a0aec0;font-size:calc(12px * var(--font-scale))">Zoom '+(Math.round((_UPC.zoomCur||1)*10)/10)+'&times;</span>'
+            +'<button onclick="_upcZoom(1)" class="btn btn-s" style="width:42px;padding:8px 0;font-size:18px">+</button>':'')
+        +(hasTorch?'<button onclick="_upcToggleTorch()" class="btn btn-s" id="upc-torch-btn" style="margin-left:6px;padding:8px 12px">&#x1f526;</button>':'')
+      +'</div>':'')
       +'<div style="display:flex;gap:8px;margin-top:10px">'
         +'<button onclick="_upcManualEntry()" class="btn btn-s" style="flex:1">Type barcode</button>'
         +'<button onclick="_upcFinish()" class="btn btn-p" style="flex:1">Done ('+_UPC.items.length+')</button>'
       +'</div>';
 }
+
+function _upcZoom(dir){
+    var z=_UPC.zoomCap;if(!z)return;
+    var step=z.step||0.5;
+    var cur=_UPC.zoomCur||z.min||1;
+    var next=cur+dir*step*2; // 2 ticks per tap = noticeable jump
+    if(next<z.min)next=z.min;if(next>z.max)next=z.max;
+    next=Math.round(next*10)/10;
+    z.track.applyConstraints({advanced:[{zoom:next}]}).then(function(){
+        _UPC.zoomCur=next;
+        var el=document.getElementById('upc-zoom-val');if(el)el.textContent='Zoom '+next+'×';
+        _upcDbg('zoom → '+next);
+    }).catch(function(e){_upcDbg('zoom err: '+(e&&e.message||e));});
+}
+
+function _upcToggleTorch(){
+    var t=_UPC.torchCap;if(!t)return;
+    var on=!_UPC.torchOn;
+    t.applyConstraints({advanced:[{torch:on}]}).then(function(){
+        _UPC.torchOn=on;_upcDbg('torch '+(on?'on':'off'));
+    }).catch(function(e){_upcDbg('torch err: '+(e&&e.message||e));});
+}
+
 
 function _upcManualEntry(){
     var p=_upcPanel();if(!p)return;_UPC.scanning=false;
@@ -10147,12 +10618,52 @@ function _upcManualEntry(){
       +'<button class="btn btn-s" style="width:100%;margin-top:8px" onclick="_upcResume()">Back to camera</button>';
     var el=document.getElementById('upc-manual');if(el)el.focus();
 }
+// Compute UPC-A check digit (mod-10): odd positions ×3, even ×1, sum, (10-sum%10)%10.
+// Position 0 = leftmost digit. UPC-A pattern: weights 3,1,3,1,3,1,3,1,3,1,3 for digits 0..10.
+function _upcComputeCheck(digits11){
+    var s=String(digits11||'');
+    if(!/^[0-9]{11}$/.test(s))return null;
+    var sum=0;
+    for(var i=0;i<11;i++){sum+=Number(s[i])*((i%2===0)?3:1);}
+    return (10-(sum%10))%10;
+}
+// Auto-repair short manual UPC inputs. Costco/Kirkland packs often print just the
+// middle 10 digits (e.g. "9661975680") below the bars, omitting both the leading 0
+// AND the trailing check digit. Try in order: as-is, +check, "0"+input, "0"+input+check.
+// Returns first variant that passes _upcValid, or original on no-match.
+function _upcAutoRepair(raw){
+    var s=String(raw==null?'':raw).trim();
+    if(_upcValid(s))return {code:s,repaired:false};
+    if(/^[0-9]{11}$/.test(s)){
+        var c=_upcComputeCheck(s);
+        if(c!=null){var v=s+c;if(_upcValid(v))return {code:v,repaired:true,note:'added UPC-A check digit'};}
+    }
+    if(/^[0-9]{10}$/.test(s)){
+        var pad='0'+s,c2=_upcComputeCheck(pad);
+        if(c2!=null){var v2=pad+c2;if(_upcValid(v2))return {code:v2,repaired:true,note:'added leading 0 + UPC-A check digit'};}
+    }
+    if(/^[0-9]{12}$/.test(s)){
+        // Try EAN-13 by prefixing 0 (US/UPC-A is technically EAN-13 with country=0)
+        var v3='0'+s;if(_upcValid(v3))return {code:v3,repaired:true,note:'treated as EAN-13 with leading 0'};
+    }
+    return {code:s,repaired:false};
+}
 function _upcManualSubmit(){
-    var el=document.getElementById('upc-manual');var code=el?String(el.value||'').trim():'';
-    var why=_upcValidReason(code);
-    _upcDbg('manual submit: "'+code+'" ('+why+')');
-    if(why!=='ok'){showToast('Barcode invalid: '+why,'warning');return;}
-    _UPC.last='';_upcOnDetect(code);
+    var el=document.getElementById('upc-manual');var raw=el?String(el.value||'').trim():'';
+    var rep=_upcAutoRepair(raw);
+    var why=_upcValidReason(rep.code);
+    _upcDbg('manual submit: "'+raw+'"'+(rep.repaired?' → "'+rep.code+'" ('+rep.note+')':'')+' ('+why+')');
+    if(why!=='ok'){
+        showToast('Barcode invalid: '+why,'warning');
+        _upcSetStatus('Invalid: '+why+' — UPC has 12 digits (incl. leading 0 + check digit)');
+        return;
+    }
+    if(rep.repaired){showToast('Auto-corrected to '+rep.code+' ('+rep.note+')','success',2500);}
+    // P2 fix follow-up — _upcManualEntry / _upcManualOnly set scanning=false to
+    // halt the camera decode loop while the panel is showing. Re-arm here so
+    // the new _upcOnDetect scanning gate doesn't drop a legitimate typed code.
+    _UPC.scanning=true;
+    _UPC.last='';_upcOnDetect(rep.code);
 }
 function _upcManualOnly(msg){
     var p=_upcPanel();if(!p)return;_UPC.scanning=false;_UPC.manual=true;
@@ -10169,11 +10680,131 @@ function _upcLinkPicker(code,prod){
     var p=_upcPanel();if(!p)return;
     var hint=prod?('Looks like: <b style="color:#e0e6ed">'+escHtml(prod.name||'')+(prod.size?(' &middot; '+escHtml(prod.size)):'')+'</b>'):'Not in the product catalog yet';
     p.innerHTML='<div style="font-size:calc(12px * var(--font-scale));color:#a0aec0;margin-bottom:4px">Barcode '+escHtml(code)+'</div>'
-      +'<div style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;margin-bottom:8px">'+hint+'. Link it to one of your ingredients:</div>'
+      +'<div style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;margin-bottom:8px">'+hint+'. Link it to an ingredient or create a new one:</div>'
       +'<input id="upc-ing-search" oninput="_upcRenderIngList(this.value)" placeholder="Search ingredients…" style="width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'
       +'<div id="upc-ing-list" style="max-height:30vh;overflow-y:auto;margin-top:8px"></div>'
-      +'<button class="btn btn-s" style="width:100%;margin-top:8px" onclick="_upcResume()">Skip this item</button>';
+      +'<div style="display:flex;gap:8px;margin-top:8px">'
+        +'<button class="btn btn-p" style="flex:2" onclick="_upcCreateNewIngForm()">&#x2795; Create new ingredient</button>'
+        +'<button class="btn btn-s" style="flex:1" onclick="_upcResume()">Skip</button>'
+      +'</div>';
     _upcRenderIngList(prod&&prod.name?prod.name:'');
+}
+
+// Open mini-form to create a new ingredient with the just-scanned barcode pre-attached.
+// Pre-fills name from product lookup if available. Saves into D.ings, then flows to
+// the standard portion picker so the user can immediately set qty + add to count.
+function _upcSubAreasForArea(areaId){
+    var seen=Object.create(null),out=[];
+    (D.inv||[]).forEach(function(iv){
+        if(iv && iv.areaId===areaId && iv.subArea){
+            var s=String(iv.subArea);
+            if(!seen[s.toLowerCase()]){seen[s.toLowerCase()]=1;out.push(s);}
+        }
+    });
+    return out.sort();
+}
+function _upcRenderSubAreaList(){
+    var areaEl=document.getElementById('upc-new-area');
+    var dl=document.getElementById('upc-new-subarea-list');
+    if(!areaEl||!dl)return;
+    var areaId=+areaEl.value||0;
+    dl.innerHTML=_upcSubAreasForArea(areaId).map(function(s){return '<option value="'+escHtml(s)+'">';}).join('');
+}
+function _upcCreateNewIngForm(){
+    var p=_upcPanel();if(!p)return;
+    var code=_UPC._code||'';
+    var prod=_UPC._prod||null;
+    var defaultName=prod&&prod.name?String(prod.name):'';
+    var areas=(D.areas||[]).filter(function(a){return !a.archived;});
+    var cats=(D.cats||[]).filter(function(c){return !c.archived;});
+    var units=getSortedUnits();
+    var currentArea=_UPC.area;
+    var subSeed=_upcSubAreasForArea(currentArea);
+    p.innerHTML='<div style="font-size:calc(12px * var(--font-scale));color:#a0aec0;margin-bottom:4px">Barcode '+escHtml(code)+'</div>'
+      +'<div style="font-size:calc(12px * var(--font-scale));color:#fdcb6e;margin-bottom:8px">New ingredient</div>'
+      +'<input id="upc-new-name" placeholder="Ingredient name" value="'+escHtml(defaultName)+'" style="width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale));margin-bottom:8px">'
+      +'<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Inventory location</div>'
+      +'<div style="display:flex;gap:8px;margin-bottom:8px">'
+        +'<select id="upc-new-area" onchange="_upcRenderSubAreaList()" style="flex:2;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'
+          +areas.map(function(a){return '<option value="'+a.id+'"'+(a.id===currentArea?' selected':'')+'>'+escHtml(a.name)+'</option>';}).join('')
+        +'</select>'
+        +'<input id="upc-new-subarea" list="upc-new-subarea-list" placeholder="Shelf / bin (optional)" style="flex:3;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'
+        +'<datalist id="upc-new-subarea-list">'+subSeed.map(function(s){return '<option value="'+escHtml(s)+'">';}).join('')+'</datalist>'
+      +'</div>'
+      +'<div style="font-size:calc(11px * var(--font-scale));color:#a0aec0;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Quantity on hand</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'
+        +'<input id="upc-new-qty" type="number" step="any" value="1" style="flex:2;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(15px * var(--font-scale));text-align:center">'
+        +'<select id="upc-new-unit" style="flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'
+          +units.map(function(u){return '<option value="'+escHtml(u.abbr)+'"'+(u.abbr==='ea'?' selected':'')+'>'+escHtml(u.abbr)+'</option>';}).join('')
+        +'</select>'
+      +'</div>'
+      +(cats.length?'<select id="upc-new-cat" style="width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#e0e6ed;font-size:calc(13px * var(--font-scale));margin-bottom:8px"><option value="0">No category</option>'+cats.map(function(c){return '<option value="'+c.id+'">'+escHtml(c.name)+'</option>';}).join('')+'</select>':'')
+      +'<div style="display:flex;gap:8px">'
+        +'<button class="btn btn-s" style="flex:1" onclick="_upcLinkPicker(\''+code.replace(/[\\\'"]/g,'')+'\','+(prod?'_UPC._prod':'null')+')">Back</button>'
+        +'<button class="btn btn-p" style="flex:2" onclick="_upcCreateNewIngSubmit()">Create &amp; add</button>'
+      +'</div>';
+    var nm=document.getElementById('upc-new-name');if(nm){nm.focus();nm.select&&nm.select();}
+}
+
+function _upcCreateNewIngSubmit(){
+    var nameEl=document.getElementById('upc-new-name');
+    var areaEl=document.getElementById('upc-new-area');
+    var subEl=document.getElementById('upc-new-subarea');
+    var qtyEl=document.getElementById('upc-new-qty');
+    var unitEl=document.getElementById('upc-new-unit');
+    var catEl=document.getElementById('upc-new-cat');
+    var name=nameEl?String(nameEl.value||'').trim():'';
+    if(!name){showToast('Name required','warning');if(nameEl)nameEl.focus();return;}
+    var areaId=areaEl?(+areaEl.value||_UPC.area):_UPC.area;
+    var subArea=subEl?String(subEl.value||'').trim():'';
+    var qty=qtyEl?(+qtyEl.value||0):0;if(qty<0)qty=0;qty=Math.round(qty*100)/100;
+    var unit=unitEl?String(unitEl.value||'ea'):'ea';
+    var catId=catEl?(+catEl.value||0):0;
+    // Duplicate-name guard: surface to user before silently creating dupes.
+    var dup=(D.ings||[]).find(function(i){return !i.archived && i.name.toLowerCase()===name.toLowerCase();});
+    if(dup){
+        showToast('"'+name+'" already exists — linking barcode to it','success',2500);
+        dup.barcode=_UPC._code;
+        markChanged('ings',dup.id);
+        _upcQueueScan(dup,qty,unit,areaId,subArea);
+        return;
+    }
+    saveState('Create ingredient from barcode');
+    var newIng={
+        id:nid++,
+        name:name,
+        catId:catId,
+        areaId:areaId,
+        subArea:subArea,
+        defUnit:unit,
+        archived:0,
+        standalone:0,
+        minQty:0,
+        autoShop:0,
+        cost:0,
+        isMenuItem:0,
+        menuId:0,
+        vendorId:0,
+        priceHistory:[],
+        barcode:_UPC._code
+    };
+    D.ings.push(newIng);
+    if(typeof IDX==='object' && IDX.ings && IDX.ings.set) IDX.ings.set(newIng.id,newIng);
+    markChanged('ings',newIng.id);
+    saveAllData();
+    _upcDbg('created new ing: "'+name+'" (id '+newIng.id+') area '+areaId+' sub "'+subArea+'" qty '+qty+' '+unit);
+    showToast('Created '+name,'success');
+    _upcQueueScan(newIng,qty,unit,areaId,subArea);
+}
+
+// Queue a scanned item directly (skip portion screen when qty already entered)
+function _upcQueueScan(ing,qty,unit,areaId,subArea){
+    if(!qty||qty<=0){_upcPortion(ing,_UPC._code,_UPC._prod);return;}
+    var existing=_UPC.items.find(function(it){return it.ingId===ing.id&&it.areaId===areaId&&(it.subArea||'')===(subArea||'');});
+    if(existing){existing.qty=qty;existing.unit=unit;existing.subArea=subArea||'';}
+    else{_UPC.items.push({ingId:ing.id,name:ing.name,qty:qty,unit:unit,areaId:areaId,subArea:subArea||''});}
+    showToast('Added '+ing.name+' ('+qty+' '+unit+')','success');
+    _upcResume();
 }
 function _upcRenderIngList(filter){
     var box=document.getElementById('upc-ing-list');if(!box)return;
@@ -10223,9 +10854,11 @@ function _upcCommit(ingId){
     var el=document.getElementById('upc-qty');var qty=el?(+el.value||0):0;
     if(qty<0)qty=0;
     qty=Math.round(qty*100)/100;
-    var existing=_UPC.items.find(function(it){return it.ingId===ingId;});
+    var areaId=_UPC.area;
+    var subArea=String(ing.subArea||'');
+    var existing=_UPC.items.find(function(it){return it.ingId===ingId&&it.areaId===areaId&&(it.subArea||'')===subArea;});
     if(existing){existing.qty=qty;existing.unit=unit;}
-    else{_UPC.items.push({ingId:ingId,name:ing.name,qty:qty,unit:unit});}
+    else{_UPC.items.push({ingId:ingId,name:ing.name,qty:qty,unit:unit,areaId:areaId,subArea:subArea});}
     showToast('Added '+ing.name+' ('+qty+' '+unit+')','success');
     _upcResume();
 }
@@ -10245,29 +10878,34 @@ function _upcStop(){
 }
 
 function _upcFinish(){
-    var items=_UPC.items.slice(),areaId=_UPC.area;
+    var items=_UPC.items.slice(),sessionArea=_UPC.area;
     _upcStop();
     if(!items.length){return;}
     saveState('Barcode scan: inventory update');
-    var applied=0;
+    var applied=0,touchedAreas={};
     items.forEach(function(item){
         var ing=D.ings.find(function(i){return i.id===item.ingId;});if(!ing)return;
-        var existing=D.inv.find(function(x){return x.ingId===ing.id&&x.areaId===areaId;});
+        var areaId=(item.areaId!=null)?item.areaId:sessionArea;
+        var subArea=String(item.subArea||'');
+        var existing=D.inv.find(function(x){return x.ingId===ing.id&&x.areaId===areaId&&String(x.subArea||'')===subArea;});
         if(existing){
             var oldQty=existing.qty;existing.qty=item.qty;
             if(existing.qty>0&&existing.outOfStock)existing.outOfStock=0;
             logInventoryChange(ing.name,oldQty,existing.unit,item.qty,existing.unit);
             markChanged('inv',existing.id);
         }else{
-            var ni={id:nid++,areaId:areaId,subArea:'',ingId:ing.id,recId:0,menuId:0,qty:item.qty,unit:item.unit||ing.defUnit||'ea'};
+            var ni={id:nid++,areaId:areaId,subArea:subArea,ingId:ing.id,recId:0,menuId:0,qty:item.qty,unit:item.unit||ing.defUnit||'ea'};
             D.inv.push(ni);
             logInventoryChange(ing.name,0,ni.unit,item.qty,ni.unit);
             markChanged('inv',ni.id);
         }
+        touchedAreas[areaId]=1;
         applied++;
     });
-    var area=D.areas.find(function(a){return a.id===areaId;});
-    if(area){area.lastInventory=new Date().toISOString();markChanged('areas',area.id);}
+    Object.keys(touchedAreas).forEach(function(aid){
+        var area=D.areas.find(function(a){return a.id===+aid;});
+        if(area){area.lastInventory=new Date().toISOString();markChanged('areas',area.id);}
+    });
     render();saveAllData();
     if(window.roTrack) window.roTrack('feature_used',{feature:'upc_scan_applied',applied:applied});
     showToast('Applied '+applied+' scanned item'+(applied===1?'':'s'),'success');

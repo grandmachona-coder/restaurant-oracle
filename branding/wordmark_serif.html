@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bistro Steward — Serif Wordmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-2: #161922;
+    --ink: #f5f1e8;
+    --ink-dim: #b8b0a0;
+    --accent: #c9a961;     /* aged brass */
+    --accent-2: #8b3a3a;   /* burgundy */
+    --line: #2a2e3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; }
+  body { min-height: 100vh; padding: 64px 48px; display: flex; flex-direction: column; gap: 64px; }
+  .stage {
+    background: linear-gradient(160deg, #14171f 0%, #0f1117 100%);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 96px 64px;
+    text-align: center;
+  }
+  .wordmark {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 128px;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .wordmark .amp {
+    color: var(--accent);
+    font-style: italic;
+    font-weight: 400;
+  }
+  .rule {
+    width: 120px;
+    height: 1px;
+    background: var(--accent);
+    margin: 28px auto;
+    opacity: 0.7;
+  }
+  .tagline {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .alt-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .alt {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 48px 32px;
+    text-align: center;
+  }
+  .alt .wordmark { font-size: 64px; }
+  .alt .tagline { font-size: 14px; }
+  .alt h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  .palette { display: flex; gap: 16px; justify-content: center; }
+  .swatch {
+    width: 80px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+  }
+  .swatch .chip { height: 80px; }
+  .swatch .meta { padding: 8px; background: var(--bg-2); font-size: 10px; }
+  .swatch .meta .name { color: var(--ink); font-weight: 500; }
+  .swatch .meta .hex { color: var(--ink-dim); font-family: 'Inter', monospace; margin-top: 2px; }
+  .section-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    text-align: center;
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+  <div class="stage">
+    <div class="wordmark">Bistro<span class="amp"> </span>Steward</div>
+    <div class="rule"></div>
+    <div class="tagline">Restaurant Inventory &amp; Recipe Costing</div>
+  </div>
+
+  <div class="alt-row">
+    <div class="alt">
+      <h3>Playfair Display · Bold</h3>
+      <div class="wordmark" style="font-family:'Playfair Display',serif; font-weight:700;">Bistro Steward</div>
+      <div class="rule"></div>
+      <div class="tagline">Restaurant Inventory &amp; Recipe Costing</div>
+    </div>
+    <div class="alt">
+      <h3>Cormorant · Italic Lockup</h3>
+      <div class="wordmark" style="font-style:italic; font-weight:500;">Bistro <span style="color:var(--accent);">Steward</span></div>
+      <div class="rule"></div>
+      <div class="tagline">Restaurant Inventory &amp; Recipe Costing</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Palette · Heritage Brass</div>
+    <div class="palette">
+      <div class="swatch"><div class="chip" style="background:#0f1117;"></div><div class="meta"><div class="name">Ink</div><div class="hex">#0F1117</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#f5f1e8;"></div><div class="meta"><div class="name">Linen</div><div class="hex">#F5F1E8</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#c9a961;"></div><div class="meta"><div class="name">Brass</div><div class="hex">#C9A961</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#8b3a3a;"></div><div class="meta"><div class="name">Burgundy</div><div class="hex">#8B3A3A</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#3d4a3a;"></div><div class="meta"><div class="name">Sage</div><div class="hex">#3D4A3A</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#b8b0a0;"></div><div class="meta"><div class="name">Stone</div><div class="hex">#B8B0A0</div></div></div>
+    </div>
+  </div>
+
+</body>
+</html>
