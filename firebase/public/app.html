@@ -9974,6 +9974,27 @@ function _upcValid(code){
     for(var i=d.length-2,pos=0;i>=0;i--,pos++){sum+=d[i]*(pos%2===0?3:1);}
     return (10-(sum%10))%10===chk;
 }
+function _upcValidReason(code){
+    var s=String(code==null?'':code).trim();
+    if(!s)return 'empty';
+    if(!/^[0-9]+$/.test(s))return 'non-numeric chars';
+    if([8,12,13,14].indexOf(s.length)===-1)return s.length+' digits — need 8, 12, 13 or 14';
+    var d=s.split('').map(Number),chk=d[d.length-1],sum=0;
+    for(var i=d.length-2,pos=0;i>=0;i--,pos++){sum+=d[i]*(pos%2===0?3:1);}
+    var expected=(10-(sum%10))%10;
+    if(expected!==chk)return 'checksum mismatch (got '+chk+', expected '+expected+')';
+    return 'ok';
+}
+function _upcDbg(msg){
+    try{
+        if(!window._UPC_LOG)window._UPC_LOG=[];
+        var stamp=new Date().toLocaleTimeString();
+        window._UPC_LOG.push('['+stamp+'] '+msg);
+        if(window._UPC_LOG.length>6)window._UPC_LOG.shift();
+        var el=document.getElementById('upc-dbg');
+        if(el)el.innerHTML=window._UPC_LOG.map(function(line){return '<div>'+escHtml(line)+'</div>';}).join('');
+    }catch(_){}
+}
 
 function showAreaScanPicker(){
     if(!isOwner()){showToast('Admin only','warning');return;}
@@ -10007,17 +10028,22 @@ function openUpcScanner(areaId){
       +'<div style="flex:1;position:relative;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none">'
         +'<div style="width:74%;max-width:340px;height:120px;border:3px solid rgba(253,203,110,.9);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.28)"></div>'
       +'</div>'
-      +'<div id="upc-panel" style="position:relative;z-index:2;background:rgba(15,23,36,.92);color:#e0e6ed;padding:14px 16px"></div>';
+      +'<div id="upc-panel" style="position:relative;z-index:2;background:rgba(15,23,36,.92);color:#e0e6ed;padding:14px 16px"></div>'
+      +'<div id="upc-dbg" style="position:relative;z-index:2;background:rgba(0,0,0,.85);color:#7fffd4;padding:6px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.35;max-height:96px;overflow-y:auto;border-top:1px solid rgba(127,255,212,.2)"></div>';
     document.body.appendChild(ov);
+    _upcDbg('UA: '+(navigator.userAgent||'').slice(0,90));
+    _upcDbg('BarcodeDetector: '+('BarcodeDetector' in window ? 'yes' : 'no')+' | secureCtx: '+window.isSecureContext);
     navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}).then(function(stream){
         _UPC.stream=stream;
         var v=document.getElementById('upc-vid');
         if(!v){stream.getTracks().forEach(function(t){t.stop();});return;}
         v.srcObject=stream;
         _UPC.scanning=true;
+        _upcDbg('camera stream attached');
         _upcDefaultPanel();
         _upcStartDecode();
-    }).catch(function(){
+    }).catch(function(err){
+        _upcDbg('getUserMedia error: '+(err&&err.name||'unknown')+' '+(err&&err.message||''));
         _upcManualOnly('Camera permission denied. You can type barcodes, or use Scan Sheet / hand count.');
     });
     if(window.roTrack) window.roTrack('feature_used',{feature:'upc_scanner_opened'});
@@ -10025,27 +10051,34 @@ function openUpcScanner(areaId){
 
 function _upcStartDecode(){
     var video=document.getElementById('upc-vid');
-    if(!video)return;
+    if(!video){_upcDbg('no video element');return;}
     if('BarcodeDetector' in window){
         try{
             _UPC.det=new window.BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
+            _UPC.det_frames=0;
+            _upcDbg('BarcodeDetector instantiated; polling 300ms');
             _UPC.iv=setInterval(function(){
-                if(!_UPC.scanning||!video.videoWidth)return;
+                if(!_UPC.scanning)return;
+                if(!video.videoWidth){if(_UPC.det_frames%10===0)_upcDbg('waiting on video stream (videoWidth=0)');_UPC.det_frames++;return;}
                 _UPC.det.detect(video).then(function(codes){
-                    if(codes&&codes.length)_upcOnDetect(String(codes[0].rawValue||''));
-                }).catch(function(){});
+                    _UPC.det_frames++;
+                    if(_UPC.det_frames%20===0)_upcDbg('scanning… frames='+_UPC.det_frames+' size='+video.videoWidth+'x'+video.videoHeight);
+                    if(codes&&codes.length){_upcDbg('detected: '+(codes[0].rawValue||''));_upcOnDetect(String(codes[0].rawValue||''));}
+                }).catch(function(e){_upcDbg('detect err: '+(e&&e.message||e));});
             },300);
             return;
-        }catch(e){}
+        }catch(e){_upcDbg('BarcodeDetector ctor failed: '+(e&&e.message||e));}
     }
+    _upcDbg('loading ZXing from CDN…');
     _upcLoadZxing(function(err){
-        if(err||!window.ZXing){_upcManualOnly('Live scanning is not supported on this browser — type the barcode instead.');return;}
+        if(err||!window.ZXing){_upcDbg('ZXing load failed: '+(err&&err.message||'no window.ZXing'));_upcManualOnly('Live scanning is not supported on this browser — type the barcode instead.');return;}
+        _upcDbg('ZXing loaded; starting decoder');
         try{
             _UPC.reader=new window.ZXing.BrowserMultiFormatReader();
-            _UPC.reader.decodeFromVideoElement(video,function(result){
-                if(result&&_UPC.scanning)_upcOnDetect(String(result.getText?result.getText():(result.text||'')));
+            _UPC.reader.decodeFromVideoElement(video,function(result,zerr){
+                if(result&&_UPC.scanning){_upcDbg('ZXing read: '+(result.getText?result.getText():(result.text||'')));_upcOnDetect(String(result.getText?result.getText():(result.text||'')));}
             });
-        }catch(e2){_upcManualOnly('Could not start the barcode reader — type the barcode instead.');}
+        }catch(e2){_upcDbg('ZXing start failed: '+(e2&&e2.message||e2));_upcManualOnly('Could not start the barcode reader — type the barcode instead.');}
     });
 }
 
@@ -10072,17 +10105,21 @@ function _upcBeep(){
 
 function _upcOnDetect(code){
     var now=Date.now();
-    if(code===_UPC.last&&now-_UPC.lastT<2500)return;
-    if(!_upcValid(code))return;
+    if(code===_UPC.last&&now-_UPC.lastT<2500){_upcDbg('dupe ignored: '+code);return;}
+    var why=_upcValidReason(code);
+    if(why!=='ok'){_upcDbg('rejected '+code+' — '+why);return;}
     _UPC.last=code;_UPC.lastT=now;_UPC.scanning=false;
     _upcBeep();if(navigator.vibrate)navigator.vibrate(60);
     var ing=D.ings.find(function(i){return !i.archived&&String(i.barcode||'')===code;});
-    if(ing){_upcPortion(ing,code,null);return;}
+    if(ing){_upcDbg('matched existing ing: '+ing.name);_upcPortion(ing,code,null);return;}
+    _upcDbg('lookup '+code+' →');
     _upcSetStatus('Looking up '+code+'…');
     secureApi('upcLookup',null,{barcode:code}).then(function(res){
+        if(res&&res.error){_upcDbg('API error: '+(res.error.message||res.error));_upcLinkPicker(code,null);return;}
         var prod=(res&&res.data&&res.data.product)||null;
+        _upcDbg('API ok — '+(prod?'found "'+(prod.name||'?')+'"':'not in catalog'));
         _upcLinkPicker(code,prod);
-    }).catch(function(){_upcLinkPicker(code,null);});
+    }).catch(function(e){_upcDbg('API threw: '+(e&&e.message||e));_upcLinkPicker(code,null);});
 }
 
 function _upcPanel(){return document.getElementById('upc-panel');}
@@ -10112,7 +10149,9 @@ function _upcManualEntry(){
 }
 function _upcManualSubmit(){
     var el=document.getElementById('upc-manual');var code=el?String(el.value||'').trim():'';
-    if(!_upcValid(code)){showToast('That barcode does not look valid','warning');return;}
+    var why=_upcValidReason(code);
+    _upcDbg('manual submit: "'+code+'" ('+why+')');
+    if(why!=='ok'){showToast('Barcode invalid: '+why,'warning');return;}
     _UPC.last='';_upcOnDetect(code);
 }
 function _upcManualOnly(msg){
