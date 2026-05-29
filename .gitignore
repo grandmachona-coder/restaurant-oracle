@@ -31,3 +31,6 @@ audit-report.html
 # legacy / large binaries
 Backup/
 Bistro_Steward_Template.xlsx
+
+# timestamped pre-edit backups (local safety copies)
+_backups/

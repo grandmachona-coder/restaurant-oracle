@@ -232,8 +232,8 @@ The USPTO tmsearch system does not support cross-term boolean by wildcard across
 | bistrosteward.net | Status unconfirmed via automated check | Register defensive |
 | bistrosteward.co.uk | Status unconfirmed | Register defensive if expanding to UK |
 | **pantryseer.com** | Status unconfirmed | Fallback brand — register if available |
-| restaurantoracle.com | Existing — held or to be held by owner | Redirect to bistrosteward.com on launch |
-| restaurantoracle.app | Existing — held or to be held by owner | Redirect on launch |
+| bistrosteward.com | Existing — held or to be held by owner | Redirect to bistrosteward.com on launch |
+| bistrosteward.com | Existing — held or to be held by owner | Redirect on launch |
 
 **Action:** Register bistrosteward.com immediately without waiting for TM clearance. Domain registration does not require TM registration and provides independent evidence of first use and intent. Source for bistrosteward.com WHOIS: confirmed via WHOIS lookup May 8, 2026.
 

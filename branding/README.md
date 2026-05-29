@@ -1,6 +1,6 @@
 # Bistro Steward — Wordmark Concepts
 
-Brand pivot: **Restaurant Oracle → Bistro Steward**. Existing SAUCIVO icon stays; only the wordmark changes. Three typographic directions are explored as standalone HTML mockups.
+Brand pivot: **Bistro Steward → Bistro Steward**. Existing SAUCIVO icon stays; only the wordmark changes. Three typographic directions are explored as standalone HTML mockups.
 
 Open any file in a browser to view at full scale.
 

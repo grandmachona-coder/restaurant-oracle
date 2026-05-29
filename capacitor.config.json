@@ -1,0 +1,26 @@
+{
+  "appId": "com.bistrosteward.app",
+  "appName": "Bistro Steward",
+  "webDir": "firebase/public",
+  "server": {
+    "url": "https://restaurant-oracle.web.app/app",
+    "cleartext": false,
+    "allowNavigation": [
+      "restaurant-oracle.web.app",
+      "restaurant-oracle.firebaseapp.com",
+      "*.firebaseapp.com",
+      "accounts.google.com",
+      "apis.google.com",
+      "*.google.com"
+    ]
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com", "apple.com"]
+    }
+  }
+}

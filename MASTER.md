@@ -154,7 +154,7 @@ Real per-call Gemini token logging now wired (`logGeminiUsage` helper at `index.
 ### Week 1: Project Setup & Architecture
 
 **Day 1 (Mon) — Xcode Project & SPM Skeleton**
-- [ ] Create Xcode project: `RestaurantOracle` (iOS 17+ minimum, SwiftUI)
+- [ ] Create Xcode project: `BistroSteward` (iOS 17+ minimum, SwiftUI)
 - [ ] Set up SPM modular package structure:
   ```
   Packages/
@@ -1129,7 +1129,7 @@ _Source: `PHASE1_10K.md`_
 #### Day 1 — Xcode Project Scaffold
 
 **Morning: Project creation**
-- [ ] Create new Xcode project `RestaurantOracle`
+- [ ] Create new Xcode project `BistroSteward`
   - iOS 17.0 minimum deployment target
   - SwiftUI lifecycle
   - Bundle ID: `com.bistrosteward.com`
@@ -2120,9 +2120,9 @@ Packages/
       steps:
         - uses: actions/checkout@v4
         - name: Build
-          run: xcodebuild build -scheme RestaurantOracle -sdk iphonesimulator
+          run: xcodebuild build -scheme BistroSteward -sdk iphonesimulator
         - name: Test
-          run: xcodebuild test -scheme RestaurantOracle -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16'
+          run: xcodebuild test -scheme BistroSteward -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16'
   ```
 - [ ] SwiftLint integration (`.swiftlint.yml` with reasonable defaults)
 - [ ] Build status badge in README
@@ -2149,7 +2149,7 @@ Packages/
 
 **Morning: Sentry**
 - [ ] Add Sentry iOS SDK via SPM
-- [ ] Initialize in `RestaurantOracleApp.swift`:
+- [ ] Initialize in `BistroStewardApp.swift`:
   ```swift
   SentrySDK.start { options in
       options.dsn = "..."
@@ -3540,7 +3540,7 @@ Native iOS app to replace PWA, targeting 10K → 100K → 1M users across three 
 ### Architecture: iOS App
 
 ```
-RestaurantOracle.xcodeproj
+BistroSteward.xcodeproj
 ├── Packages/
 │   ├── CoreNetworking/     — APIClient (POST to existing Cloud Function), token mgmt
 │   ├── CoreDesignSystem/   — Dark theme (#1a1a2e), Inter font, toast, buttons, cards
@@ -9582,5 +9582,5 @@ Project ID `restaurant-oracle-*` STAYS unchanged (rename = downtime + auth inval
 
 ### Notes
 - migration scripts NOT executed (audit-only); user runs with `--execute` after review
-- Pre-existing rebrand work (Restaurant Oracle → Bistro Steward across agents/emails/invoices/index.js) rode along in this commit; rebrand was in working tree at audit start
+- Pre-existing rebrand work (Bistro Steward → Bistro Steward across agents/emails/invoices/index.js) rode along in this commit; rebrand was in working tree at audit start
 - Untracked side-files (Bistro_Steward_Architecture.html, MASTER.md, branding/, marketing/, _test_*.js) intentionally NOT staged — out of audit scope

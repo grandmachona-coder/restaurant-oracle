@@ -25,11 +25,8 @@
   }
 
   var host = (location && location.hostname) || '';
-  // P2 fix — restaurantoracle.app is the rebrand target; its CORS + CSP wiring
-  // was added but this Sentry env detector still tagged it 'staging'. Treat
-  // both apex domains (and their www) as production.
-  var env  = (host === 'bistrosteward.com'    || host === 'www.bistrosteward.com'
-            || host === 'restaurantoracle.app' || host === 'www.restaurantoracle.app')
+  // Treat the apex domain (and its www) as production.
+  var env  = (host === 'bistrosteward.com' || host === 'www.bistrosteward.com')
     ? 'production'
     : (host === 'localhost' || host === '127.0.0.1' ? 'development' : 'staging');
 

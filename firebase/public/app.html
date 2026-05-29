@@ -67,6 +67,8 @@
         #signin-form .login-btn{width:auto;flex:0 0 auto;padding:11px 18px;font-size:14px;white-space:nowrap;margin:0}
         #signin-form .google-btn{flex:0 0 44px;width:44px;min-width:44px;padding:10px;font-size:0;margin:0;gap:0}
         #signin-form .google-btn svg{margin:0;width:22px;height:22px}
+        #signin-form .apple-btn{flex:0 0 44px;width:44px;min-width:44px;padding:10px;font-size:0;margin:0;gap:0}
+        #signin-form .apple-btn svg{margin:0;width:22px;height:22px}
         #signin-form > div:last-child{flex-basis:100%;text-align:center;margin-top:2px}
         #signin-form > div:last-child a{font-size:11px;opacity:.75}
         .login-tabs{display:flex;margin-bottom:20px;background:rgba(0,0,0,.3);border-radius:10px;padding:4px}
@@ -92,6 +94,10 @@
         .google-btn:hover{background:#f8f8f8;transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.2)}
         .google-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
         .google-btn svg{width:20px;height:20px}
+        .apple-btn{width:100%;padding:14px;background:#000;border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-bottom:12px}
+        .apple-btn:hover{background:#1a1a1a;transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+        .apple-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .apple-btn svg{width:18px;height:18px}
         .access-denied{background:rgba(214,48,49,.15);border:1px solid rgba(214,48,49,.3);color:#ff7675;padding:16px;border-radius:10px;font-size:13px;text-align:center;margin-top:12px;display:none}
         .access-denied.show{display:block}
         .sync-status{position:fixed;bottom:20px;right:20px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:none;z-index:1000}
@@ -125,7 +131,7 @@
         .user-dropdown-name{font-weight:600;color:#e0e6ed;font-size:14px}
         .user-dropdown-email{font-size:11px;color:#a0aec0;margin-top:2px}
         
-        .phone{width:390px;height:844px;background:#1a1a2e;border-radius:44px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.5),0 0 0 12px #2a2a3e;display:flex;flex-direction:column;position:relative}
+        .phone{position:fixed;inset:0;background:#0a1422;overflow:hidden;box-shadow:none;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
         .phone.hidden{display:none}
         .status{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 8px;font-size:calc(14px * var(--font-scale));font-weight:600;color:#e0e6ed}
         .header{padding:12px 20px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -423,7 +429,7 @@
 <!-- Login Screen -->
 <div class="login-screen" id="login-screen">
     <div class="login-title">Bistro Steward</div>
-    <div class="login-subtitle">Smart Kitchen Management for LaChona</div>
+    <div class="login-subtitle">Smart Kitchen Management</div>
     <div class="login-box">
         <div class="login-error" id="login-error"></div>
         <div class="login-success" id="login-success"></div>
@@ -449,6 +455,10 @@
             <button type="button" class="google-btn" onclick="signInWithGoogle()" id="google-btn">
                 <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                 Sign in with Google
+            </button>
+            <button type="button" class="apple-btn" onclick="signInWithApple()" id="apple-btn" style="display:none" aria-label="Sign in with Apple">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.37 12.78c.03 3.27 2.87 4.36 2.9 4.37-.02.08-.45 1.55-1.49 3.07-.9 1.32-1.83 2.62-3.3 2.65-1.44.03-1.9-.85-3.55-.85-1.64 0-2.15.82-3.51.88-1.42.05-2.5-1.43-3.41-2.74-1.86-2.69-3.28-7.6-1.37-10.92.95-1.65 2.64-2.69 4.48-2.72 1.39-.03 2.7.94 3.55.94.85 0 2.44-1.16 4.11-.99.7.03 2.66.28 3.92 2.13-.1.06-2.34 1.37-2.31 4.09M13.72 4.06c.75-.91 1.26-2.18 1.12-3.44-1.08.04-2.39.72-3.17 1.63-.7.8-1.31 2.09-1.15 3.32 1.21.09 2.44-.61 3.2-1.51"/></svg>
+                Sign in with Apple
             </button>
             <div class="login-divider">or sign in with email</div>
             <input type="email" class="login-input" id="signin-email" placeholder="Email address" autocomplete="email">
@@ -1006,6 +1016,10 @@ async function initFirebase(){
             onAuthStateChanged: authModule.onAuthStateChanged,
             GoogleAuthProvider: authModule.GoogleAuthProvider,
             signInWithPopup: authModule.signInWithPopup,
+            signInWithRedirect: authModule.signInWithRedirect,
+            getRedirectResult: authModule.getRedirectResult,
+            signInWithCredential: authModule.signInWithCredential,
+            OAuthProvider: authModule.OAuthProvider,
             sendEmailVerification: authModule.sendEmailVerification,
             signInWithCustomToken: authModule.signInWithCustomToken,
             reload: authModule.reload
@@ -1459,6 +1473,29 @@ async function signInWithGoogle(){
     document.getElementById('google-btn').disabled=true;
     document.getElementById('google-btn').textContent='Signing in...';
 
+    // Native (Capacitor/WKWebView): Google blocks OAuth inside embedded webviews
+    // (Error 403 disallowed_useragent). Use the native Firebase Auth plugin, which
+    // signs in via ASWebAuthenticationSession (a system browser Google permits),
+    // then hand the credential to the JS SDK so onAuthStateChanged + the rest run.
+    if(window.Capacitor && window.Capacitor.isNativePlatform()){
+        try{
+            var FA = window.Capacitor.Plugins.FirebaseAuthentication;
+            var res = await FA.signInWithGoogle();
+            var idToken = res && res.credential && res.credential.idToken;
+            if(!idToken){ throw new Error('No Google credential returned'); }
+            var cred = window.firebaseAuthFunctions.GoogleAuthProvider.credential(idToken);
+            await window.firebaseAuthFunctions.signInWithCredential(firebaseAuth, cred);
+            // onAuthStateChanged verifies the email whitelist + loads data
+        }catch(err){
+            var emsg = (err && (err.message || err.code)) || '';
+            if(String(emsg).toLowerCase().indexOf('cancel')<0 && String(emsg).indexOf('12501')<0){
+                showLoginError((err && err.message) || 'Google sign in failed');
+            }
+            var gb=document.getElementById('google-btn'); if(gb){gb.disabled=false; gb.textContent='Sign in with Google';}
+        }
+        return;
+    }
+
     try{
         var provider = new window.firebaseAuthFunctions.GoogleAuthProvider();
         var result = await window.firebaseAuthFunctions.signInWithPopup(firebaseAuth, provider);
@@ -1472,6 +1509,28 @@ async function signInWithGoogle(){
 
     document.getElementById('google-btn').disabled=false;
     document.getElementById('google-btn').innerHTML='<svg viewBox="0 0 24 24" style="width:20px;height:20px"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Sign in with Google';
+}
+
+async function signInWithApple(){
+    hideLoginMessages();
+    var ab=document.getElementById('apple-btn'); if(ab){ab.disabled=true;}
+    try{
+        var FA = window.Capacitor.Plugins.FirebaseAuthentication;
+        var res = await FA.signInWithApple();
+        var idToken = res && res.credential && res.credential.idToken;
+        var nonce = res && res.credential && res.credential.nonce;
+        if(!idToken){ throw new Error('No Apple credential returned'); }
+        var provider = new window.firebaseAuthFunctions.OAuthProvider('apple.com');
+        var cred = provider.credential({ idToken: idToken, rawNonce: nonce });
+        await window.firebaseAuthFunctions.signInWithCredential(firebaseAuth, cred);
+        // onAuthStateChanged verifies the email whitelist + loads data
+    }catch(err){
+        var emsg = (err && (err.message || err.code)) || '';
+        if(String(emsg).toLowerCase().indexOf('cancel')<0 && String(emsg).indexOf('1001')<0){
+            showLoginError((err && err.message) || 'Apple sign in failed');
+        }
+    }
+    if(ab){ab.disabled=false;}
 }
 
 function signOut(){
@@ -9332,6 +9391,10 @@ document.addEventListener('DOMContentLoaded',async function(){
     if(firebaseReady && firebaseAuth){
         // Listen for auth state changes (triggers startListeners → real-time sync)
         window.firebaseAuthFunctions.onAuthStateChanged(firebaseAuth, onAuthStateChange);
+        // Native (Capacitor): reveal the Sign in with Apple button (native-only flow).
+        if(window.Capacitor && window.Capacitor.isNativePlatform()){
+            var _ab=document.getElementById('apple-btn'); if(_ab) _ab.style.display='flex';
+        }
     }else{
         // Firebase not available - use local mode
         dbg('Firebase not available, using local mode');

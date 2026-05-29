@@ -1045,3 +1045,111 @@ The three v12 diagnostic branches are moot — v13 doesn't trust the iOS native 
 Step 6 — Square "Recent charges" amount-format smoke test in super-admin → Billing tab — never validated. Out of scope for scanner work.
 
 **For platform email** (`support@`, `noreply@`): use Cloudflare Email Routing on `.app` (free, forwarding only) OR GoDaddy on `.com` (existing MX would conflict with Resend; pick one). Recommendation: Cloudflare Email Routing on `.app` for inbound forwarding, Resend on `.com` for outbound transactional.
+
+## Post-v13 Sync Resilience + Scanner Hardening (2026-05-28 — ✅ DEPLOYED & VERIFIED LIVE)
+
+After v13 shipped, a 4-agent F/X/S/C re-sweep against the full current tree found **1 P0 + 1 P1 + 6 P2s**, all in code that pre-dated the UPC work. All fixed and deployed in one hosting release.
+
+### P0 — `queueFirebaseSave` mutex deadlock (silent sync death)
+`app.html:9546-9550` — the "no changes detected" early return inside the 2-second debounce tick sits **outside** the try/finally that releases `isSyncing`. First time the debounce fires with no real changes (e.g. an edit-then-undo within 2s, a `markChanged` that turns into a no-op), the mutex stays `true` permanently. Every subsequent `syncNow()` then hits the mutex guard at `:2341` and silently no-ops with "already syncing, skipping" — kitchen staff see the sync indicator flip states but **no cloud writes happen until the page reloads**. Hard deadlock. **Fix**: `isSyncing = false;` + `_syncDbg('debounce: no changes, mutex released');` before the early return.
+
+### P1 — `_syncNowImpl` `Promise.all` → `Promise.allSettled`
+`app.html:2553` — the differential sync path used `Promise.all`. A single rejection skipped per-op result inspection and jumped to the outer catch which showed a toast but never set `pendingFirebaseSave=true`, so the 30s auto-sync couldn't pick up the slack. **Fix**: mirror the debounce path's `allSettled` handling, split `rejected` vs `envErrors`, set `pendingFirebaseSave=true` on any failure.
+
+### P2 fixes — sync resilience batch
+- **`pendingFirebaseSave=true` in catch blocks** of `queueFirebaseSave` (~9745) and `_syncNowImpl` (~2581). Without this, a thrown sync left `pendingFirebaseSave=false` (cleared at top of debounce tick) so the 30s auto-sync and beforeunload guard wouldn't fire — user could close the tab thinking changes saved.
+- **Stale feature flags on signout/signin** — `window.__bsFlags` not reset by `onAuthStateChanged(null)` cleanup, and not pre-zeroed before `getTenantConfig` call. **Fix**: reset to `{}` in BOTH paths so a token-revoked re-signin can't briefly see prior tenant's flags. Fail-closed.
+- **OCR `applyScanResults` ignored `subArea`** (`app.html:10104`) — pre-existing bug in the OCR sheet apply path. Same area + different subAreas (shelf/bin) → first match's qty stomped, others' silently stale. **Fix**: add `&& String(x.subArea||'')===''` (OCR sheet has no subArea concept).
+
+### P2 fixes — scanner hardening batch
+- **CDN pin: `barcode-detector@2` → `@2.3.1`** (`app.html:10289`). Supply-chain risk — a malicious 2.x release on jsdelivr would have shipped to every iOS user with no review.
+- **`_upcOnDetect` scanning gate** (`app.html:10535`). A `detect()` promise that resolves after `_upcStop()` was firing wasted `secureApi('upcLookup',…)` calls. **Follow-up fix caught by final F-lens review**: `_upcManualEntry` / `_upcManualOnly` deliberately set `scanning=false` to halt the camera loop, but `_upcManualSubmit` didn't re-arm before calling `_upcOnDetect`. Without re-arm, manual-typed barcodes silently dropped. **Final fix**: `_UPC.scanning=true;` in `_upcManualSubmit` before `_upcOnDetect(rep.code);` (`app.html:10663`).
+- **Sentry env detector** (`sentry-init.js:28`). Once `bistrosteward.com` serves traffic, errors would have tagged as `staging` instead of `production`. **Fix**: extended env detector to recognize both apex domains + their www subdomains.
+
+### Stray diagnostic script removed from test glob
+`functions/_test_tenant.js` (an ADC-requiring live Firestore probe added in an earlier debug session) was being picked up by `_test_all.js`'s `^_test_.+\.js$` glob and failing the suite count. **Fix**: renamed to `_inspect_tenant_flag.js` to match the existing `_inspect_*` convention. Suite count back to 12/12 green.
+
+### Verified
+- 12/12 backend test suites pass.
+- `app.html` inline JS parses; `sentry-init.js` syntax clean.
+- Deployed via `./deploy.sh hosting`. Smoke test on LaChona iPhone PWA: scanner still decodes, sync works, no regression.
+- Committed (`a75e8a0` baseline + sync-resilience commit applied).
+
+## Production Plan + iPhone App Track Initiated (2026-05-28)
+
+### Production-Plan.md authored
+Full path-to-production outline saved at `~/Claude/Bistro-Steward/Production-Plan.md`. Covers:
+- Honest baseline of what's shipped (PWA + multi-tenant Firebase + scanner + operator console).
+- Pre-launch checklist grouped by legal, domain/email, transactional emails, monitoring/ops, technical hardening, customer success.
+- iPhone app plan via Capacitor (not React Native rewrite — Bistro Steward is a single-page web app, Capacitor wraps it ~99% reused).
+- Go-to-market + steady-state operations.
+
+### Apple Developer Program — ✅ ACTIVE
+- **Enrollment ID**: 8K5M5YFZ52
+- **Type**: Apple Developer Program (Individual)
+- **Cost**: $99 USD/yr, auto-renew enabled
+- **Activated**: 2026-05-28 (same-day activation)
+
+### Xcode — ✅ INSTALLED
+Mac App Store install completed.
+
+### Next concrete step — Capacitor scaffold (sibling folder)
+Project directory: `~/Claude/Bistro-Steward-iOS/` (sibling to existing repo to keep git history clean).
+
+```bash
+cd ~/Claude
+mkdir Bistro-Steward-iOS && cd Bistro-Steward-iOS
+npm init -y
+npm install @capacitor/core @capacitor/cli @capacitor/ios
+npx cap init "Bistro Steward" com.bistrosteward.app --web-dir=www
+mkdir -p www && echo "loading…" > www/index.html
+```
+
+Then `capacitor.config.json` overrides webDir with a `server.url` pointing at production hosting (`https://restaurant-oracle.web.app` for now; switch to `https://bistrosteward.com` once that domain serves the same PWA):
+
+```json
+{
+  "appId": "com.bistrosteward.app",
+  "appName": "Bistro Steward",
+  "webDir": "www",
+  "server": { "url": "https://restaurant-oracle.web.app", "cleartext": false }
+}
+```
+
+Then (needs CocoaPods — `sudo gem install cocoapods` or `brew install cocoapods`):
+```bash
+npx cap add ios
+```
+
+Generates `ios/App/App.xcworkspace` — the Xcode project entry point.
+
+### Phase B (after scaffold) — native plugins, ML Kit barcode first
+The highest-leverage plugin to add first: `@capacitor-mlkit/barcode-scanning`. Native Google ML Kit decoding **eliminates the entire iOS Safari `BarcodeDetector` stub class of problems** we just spent v6→v13 fighting. The v13 WASM polyfill stays as the web fallback; native users get the real thing — much faster, much more accurate.
+
+Code pattern (insert in `_upcStartDecode` at top, ahead of polyfill path):
+```js
+if (window.Capacitor && Capacitor.isNativePlatform()) {
+    const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+    const { barcodes } = await BarcodeScanner.scan({
+        formats: ['EAN_13','UPC_A','EAN_8','UPC_E','CODE_128']
+    });
+    if (barcodes[0]) _upcOnDetect(barcodes[0].rawValue);
+    return;
+}
+// existing v13 web path (force-polyfill on iOS) continues unchanged below.
+```
+
+### Phase C (after plugins) — App Store submission
+- B2B billing exemption (Bistro Steward bills via Stripe/Square outside the app; Apple permits this for B2B SaaS — position billing UI in-app as "manage subscription in browser").
+- Sign in with Apple required (currently Google sign-in is the third-party option — must add Apple as well).
+- Privacy nutrition label, 1024×1024 icon (have it), 6 iPhone + 6 iPad screenshots, description, keywords.
+- TestFlight first; App Store review typically 24-72h, plan one revision cycle.
+
+### Status
+- ✅ Apple Developer active
+- ✅ Xcode installed
+- ⬜ Capacitor project scaffolded (NEXT)
+- ⬜ ML Kit barcode plugin wired
+- ⬜ TestFlight first build on real iPhone
+- ⬜ App Store submission
+- ⬜ Approved + live

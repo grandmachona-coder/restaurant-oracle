@@ -303,7 +303,7 @@ Gemini, Square, Firebase, "email delivery providers", retention tiers,
 CCPA/GDPR rights); `design-partners/01_target_list.csv` (22 Portland
 restaurants with chef names, fit scores 18–28/30);
 `design-partners/05_tracker.csv` (**all 22 rows blank — pipeline 100%
-cold**); `branding/README.md` (Restaurant Oracle → Bistro Steward pivot,
+cold**); `branding/README.md` (Bistro Steward → Bistro Steward pivot,
 wordmark recommendations); `marketing/launch_announcement.md`;
 `marketing/qa-screenshots/2026-05-08/`.
 
