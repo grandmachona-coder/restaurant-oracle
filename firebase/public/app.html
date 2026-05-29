@@ -2171,7 +2171,7 @@ function getDefaultUnits(){
 // Field mapping functions (database snake_case to local camelCase)
 function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0,isWarehouse:a.is_warehouse||0,invFrequency:a.inv_frequency||'',assignedTo:a.assigned_to||'',lastInventory:a.last_inventory||'',sortOrder:a.sort_order||0};}
 function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:i.standalone||0,minQty:i.par||0,autoShop:i.auto_shop||0,cost:i.cost||0,isMenuItem:i.is_menu_item||0,menuId:i.menu_id||0,vendorId:i.vendor_id||0,priceHistory:i.price_history||[],barcode:i.barcode||''};}
-function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,menuId:i.menu_id||0,qty:i.qty||0,unit:i.unit||'ea',outOfStock:i.out_of_stock||0,sortOrder:i.sort_order||0};}
+function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,menuId:i.menu_id||0,prepId:i.prep_id||0,qty:i.qty||0,unit:i.unit||'ea',outOfStock:i.out_of_stock||0,sortOrder:i.sort_order||0};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id,isMenuItem:p.is_menu_item||0,menuId:p.menu_id||0};}
 function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',outputMode:r.output_mode||'auto',manualQty:r.manual_qty||0,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],menuItems:r.menu_items||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0,includeInPrep:r.include_in_prep===0?0:1,isMenuItem:r.is_menu_item||0,menuId:r.menu_id||0};}
@@ -2189,7 +2189,7 @@ function mapVendorFromDb(v){return{id:v.id,name:v.name||'',contactName:v.contact
 // Mapping functions for saving (local camelCase to database snake_case)
 function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep,is_warehouse:a.isWarehouse||0,inv_frequency:a.invFrequency||'',assigned_to:a.assignedTo||'',last_inventory:a.lastInventory||'',sort_order:a.sortOrder||0};}
 function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,standalone:i.standalone,par:i.minQty,auto_shop:i.autoShop,cost:i.cost||0,is_menu_item:i.isMenuItem||0,menu_id:i.menuId||0,vendor_id:i.vendorId||0,price_history:i.priceHistory||[],barcode:i.barcode||null};}
-function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,menu_id:i.menuId||null,qty:i.qty,unit:i.unit,out_of_stock:i.outOfStock||0,sort_order:i.sortOrder||0};}
+function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,menu_id:i.menuId||null,prep_id:i.prepId||null,qty:i.qty,unit:i.unit,out_of_stock:i.outOfStock||0,sort_order:i.sortOrder||0};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId,is_menu_item:p.isMenuItem||0,menu_id:p.menuId||0};}
 function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,menu_items:r.menuItems,photos:r.photos,videos:r.videos,archived:r.archived,include_in_prep:r.includeInPrep,is_menu_item:r.isMenuItem||0,menu_id:r.menuId||0};}
@@ -3533,6 +3533,10 @@ function renderInvItem(inv,isWarehouseArea){
         var menu=IDX.menus.get(inv.menuId);
         itemName=menu?'&#x1F37D;&#xFE0F; '+escHtml(menu.name):'Unknown Menu';
         isPrep=true;
+    }else if(inv.prepId){
+        var prep=IDX.preps.get(inv.prepId);
+        itemName=prep?'&#x1F373; '+escHtml(prep.name):'Unknown Prep';
+        isPrep=true;
     }
     if(!itemName)return '';
 
@@ -3893,7 +3897,7 @@ function addToArea(areaId){
     var parts=selVal.split('-');
     var itemType=parts[0];
     var itemId=+parts[1];
-    var invItem={id:nid++,areaId:areaId,subArea:subArea,ingId:0,recId:0,menuId:0,qty:qty,unit:unit};
+    var invItem={id:nid++,areaId:areaId,subArea:subArea,ingId:0,recId:0,menuId:0,prepId:0,qty:qty,unit:unit};
     var itemName='';
 
     if(itemType==='ing'){
@@ -3963,6 +3967,10 @@ function addToArea(areaId){
         invItem.menuId=itemId;
         var menu=D.menus.find(function(m){return m.id===itemId;});
         itemName=menu?menu.name:'Menu Item';
+    }else if(itemType==='prep'){
+        invItem.prepId=itemId;
+        var prep=D.preps.find(function(p){return p.id===itemId;});
+        itemName=prep?prep.name:'Prep Item';
     }
 
     saveState('Add to '+getAreaName(areaId,subArea));
@@ -4015,16 +4023,18 @@ function buildInvDropdownItems(areaId, searchTerm){
         });
     }
 
-    // PREP ITEMS — recipes flagged "Include in Prep". Counting these in inventory
-    // feeds the Prep tab's recipe on-hand (via inv.recId).
-    var prepRecs=D.recs.filter(function(r){
-        return !r.archived && r.includeInPrep &&
-               (!searchTerm || r.name.toLowerCase().indexOf(searchLower)!==-1);
+    // PREP ITEMS — the Prep-tab batch items (D.preps), plus any recipe flagged Include-in-Prep.
+    var prepEntries=[];
+    (D.preps||[]).forEach(function(p){
+        if(!searchTerm || (p.name||'').toLowerCase().indexOf(searchLower)!==-1) prepEntries.push({val:'prep-'+p.id,name:p.name});
     });
-    if(prepRecs.length){
+    D.recs.forEach(function(r){
+        if(!r.archived && r.includeInPrep && (!searchTerm || r.name.toLowerCase().indexOf(searchLower)!==-1)) prepEntries.push({val:'rec-'+r.id,name:r.name});
+    });
+    if(prepEntries.length){
         html+='<div style="padding:6px 10px;color:#fd79a8;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3);margin-top:4px">── PREP ITEMS ──</div>';
-        prepRecs.forEach(function(rec){
-            html+='<div class="inv-dropdown-item" data-value="rec-'+rec.id+'" onclick="selectInvItem('+areaId+',\'rec-'+rec.id+'\',\'🍳 '+escHtml(rec.name).replace(/'/g,"\\'")+'\')">🍳 '+escHtml(rec.name)+'</div>';
+        prepEntries.forEach(function(e){
+            html+='<div class="inv-dropdown-item" data-value="'+e.val+'" onclick="selectInvItem('+areaId+',\''+e.val+'\',\'🍳 '+escHtml(e.name).replace(/'/g,"\\'")+'\')">🍳 '+escHtml(e.name)+'</div>';
         });
     }
 
@@ -5483,28 +5493,44 @@ function renderPrep(c,s){
         });
     }
 
-    // ========== Render Standalone Prep Items Section (collapsible) ==========
+    // ========== Render Standalone Prep Items — grouped by recipe category (collapsible, like Menu tab) ==========
     if(D.preps && D.preps.length){
-        var saPrepKey='standalone-prep-section';
-        var saPrepOpen=exp[saPrepKey]!==false; // default open
-        html += '<div class="sec" style="color:#fd79a8;margin-top:16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="tog(\''+saPrepKey+'\')"><span>👨‍🍳 Prep Items (' + D.preps.length + ')</span><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+(saPrepOpen?'▲':'▼')+'</span></div>';
-        if(saPrepOpen) D.preps.forEach(function(prep){
-            var diff = prep.onHand - prep.tgt;
+        html += '<div class="sec" style="color:#fd79a8;margin-top:16px">👨‍🍳 Prep Items (' + D.preps.length + ')</div>';
+        // Render one prep card (unchanged content, just factored out for reuse across category groups)
+        var prepCardHtml = function(prep){
             var status = prep.tgt > 0 ? getStatusTxt(prep.onHand, prep.tgt) : 'OK';
-            var color = prep.tgt > 0 ? getStatusColor(prep.onHand, prep.tgt) : 'green';
             var linkedMenu = prep.menuId ? IDX.menus.get(prep.menuId) : null;
-            html += '<div class="card">';
-            html += '<div class="card-h"><div><div class="card-t">' + escHtml(prep.name);
-            if(linkedMenu) html += ' <span style="color:#74b9ff;font-size:calc(10px * var(--font-scale))">🍽️</span>';
-            html += '</div>';
-            html += '<div class="card-s">On hand: ' + prep.onHand + ' ' + prep.unit + (prep.tgt ? ' • Target: ' + prep.tgt : '') + '</div></div>';
-            if(prep.tgt > 0) html += '<span class="status-badge status-' + status.toLowerCase() + '">' + status + '</span>';
-            html += '</div>';
+            var ch = '<div class="card">';
+            ch += '<div class="card-h"><div><div class="card-t">' + escHtml(prep.name);
+            if(linkedMenu) ch += ' <span style="color:#74b9ff;font-size:calc(10px * var(--font-scale))">🍽️</span>';
+            ch += '</div>';
+            ch += '<div class="card-s">On hand: ' + prep.onHand + ' ' + prep.unit + (prep.tgt ? ' • Target: ' + prep.tgt : '') + '</div></div>';
+            if(prep.tgt > 0) ch += '<span class="status-badge status-' + status.toLowerCase() + '">' + status + '</span>';
+            ch += '</div>';
             if(isOwner()){
-                html += '<div style="display:flex;gap:4px;margin-top:8px"><button class="btn btn-s btn-sm" onclick="editPrepItem('+prep.id+')" style="flex:1">✏️ Edit</button></div>';
+                ch += '<div style="display:flex;gap:4px;margin-top:8px"><button class="btn btn-s btn-sm" onclick="editPrepItem('+prep.id+')" style="flex:1">✏️ Edit</button></div>';
             }
-            html += '</div>';
+            ch += '</div>';
+            return ch;
+        };
+        // Category = the prep's recipe category (recCats); 0/unknown → "Other"
+        var prepCatId = function(prep){ var rec = prep.recId ? IDX.recs.get(prep.recId) : null; return (rec && rec.catId) ? rec.catId : 0; };
+        var knownCatIds = (D.recCats||[]).map(function(c){return c.id;});
+        (D.recCats||[]).forEach(function(cat){
+            var catPreps = D.preps.filter(function(p){ return prepCatId(p) === cat.id; });
+            if(!catPreps.length) return;
+            var key = 'prep-cat-' + cat.id;
+            var open = exp[key] !== false; // default open
+            html += '<div class="sec" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:8px" onclick="tog(\''+key+'\')"><span>'+escHtml(cat.name)+' ('+catPreps.length+')</span><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+(open?'▲':'▼')+'</span></div>';
+            if(open) catPreps.forEach(function(prep){ html += prepCardHtml(prep); });
         });
+        var otherPreps = D.preps.filter(function(p){ return knownCatIds.indexOf(prepCatId(p)) === -1; });
+        if(otherPreps.length){
+            var okey = 'prep-cat-other';
+            var oopen = exp[okey] !== false;
+            html += '<div class="sec" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:8px" onclick="tog(\''+okey+'\')"><span>Other ('+otherPreps.length+')</span><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+(oopen?'▲':'▼')+'</span></div>';
+            if(oopen) otherPreps.forEach(function(prep){ html += prepCardHtml(prep); });
+        }
     }
 
     if(!menuPrepList.length && !prepList.length && (!D.preps || !D.preps.length)){
