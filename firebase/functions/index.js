@@ -744,7 +744,16 @@ async function handleRequest(req, res) {
     }
 
     const userId = decodedToken.uid;
-    const userEmail = decodedToken.email || '';
+    let userEmail = decodedToken.email || '';
+    // Sign in with Apple frequently omits the email claim from the ID token even when
+    // the account has one. Fall back to the Auth user record so the whitelist + audit
+    // logging resolve the real address (e.g. tvmule@icloud.com).
+    if (!userEmail) {
+      try {
+        const rec = await auth.getUser(userId);
+        userEmail = (rec && rec.email) || '';
+      } catch (e) { /* leave blank — whitelist will reject, as before */ }
+    }
 
     // Email verification gate: block password users whose email is not yet verified.
     // Federated providers (Google, etc.) come pre-verified.
