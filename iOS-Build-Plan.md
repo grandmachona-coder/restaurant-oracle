@@ -55,6 +55,22 @@ xcrun simctl io booted screenshot /tmp/shot.png
 
 ---
 
+## 0.1 🎉 DEVICE-VERIFIED — WORKING ON iPhone (2026-05-29)
+
+On Tony's iPhone 16 Pro Max, all confirmed working:
+- ✅ Native **Google** sign-in
+- ✅ Native **Sign in with Apple**
+- ✅ Native **VisionKit barcode scanner**
+- ✅ Full-bleed layout; zero "Restaurant Oracle"
+
+**The architecture that worked (hard-won):**
+- **Capacitor 8 + SPM, NOT CocoaPods.** CocoaPods + `static_framework` does **not** register pure-Swift `CAPBridgedPlugin` plugins in a **remote-loaded** webview (only ObjC `.m` `CAP_PLUGIN` ones self-register; the remote page has no bundled `@capacitor/core`, so no `registerPlugin`). SPM auto-registers package plugins. This is why Firebase auth broke under CocoaPods and works under SPM.
+- **MLKit barcode is CocoaPods-only** → replaced with a custom **VisionKit `DataScannerViewController`** plugin shipped as a **local SPM package** (`local-plugins/bistro-scanner`, jsName `BistroScanner`, one-shot `scan()`). Auto-registers like Firebase. App-target Swift classes are NOT auto-discovered — must be a package.
+- **Sign in with Apple gotchas (3):** (1) `skipNativeAuth: true` in capacitor.config so the JS SDK consumes the single-use Apple credential once (false → double-sign → `auth/missing-or-invalid-nonce`). (2) Apple omits the email claim from the ID token → CF falls back to `admin.auth().getUser(uid).email`. (3) The app gates on the `approved` JWT claim (`app.html:~1637`); a direct `approved_emails` Firestore add does NOT stamp it — the in-app **invite** flow does, or stamp via `setCustomUserClaims`.
+- **Signing:** team `CT2U4HUZJ2`, Apple ID added in Xcode → Settings → Accounts, Developer Mode enabled on the device.
+
+**Remaining = App Store submission** (§10): icon set ✓, screenshots (iPhone+iPad), privacy nutrition label, B2B-billing copy (§3.1.3), description/keywords, submit. Plus §2 production items (real Sentry DSN, monitoring, legal review).
+
 ## 1. Scope
 
 - **In scope:** ship a native iPhone app to the App Store that wraps the existing PWA, with **native barcode capture** (the deciding criterion) and the native plugins that remove web friction.
