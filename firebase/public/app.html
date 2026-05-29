@@ -132,6 +132,9 @@
         .user-dropdown-email{font-size:11px;color:#a0aec0;margin-top:2px}
         
         .phone{position:fixed;inset:0;background:#0a1422;overflow:hidden;box-shadow:none;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+        /* Native barcode scanning: make the webview transparent so the native camera shows behind the scan overlay */
+        body.barcode-scanner-active{background:transparent!important}
+        body.barcode-scanner-active .phone{display:none!important}
         .phone.hidden{display:none}
         .status{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 8px;font-size:calc(14px * var(--font-scale));font-weight:600;color:#e0e6ed}
         .header{padding:12px 20px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -1471,7 +1474,6 @@ async function signIn(){
 async function signInWithGoogle(){
     hideLoginMessages();
     document.getElementById('google-btn').disabled=true;
-    document.getElementById('google-btn').textContent='Signing in...';
 
     // Native (Capacitor/WKWebView): Google blocks OAuth inside embedded webviews
     // (Error 403 disallowed_useragent). Use the native Firebase Auth plugin, which
@@ -1491,7 +1493,7 @@ async function signInWithGoogle(){
             if(String(emsg).toLowerCase().indexOf('cancel')<0 && String(emsg).indexOf('12501')<0){
                 showLoginError((err && err.message) || 'Google sign in failed');
             }
-            var gb=document.getElementById('google-btn'); if(gb){gb.disabled=false; gb.textContent='Sign in with Google';}
+            var gb=document.getElementById('google-btn'); if(gb){gb.disabled=false;}
         }
         return;
     }
@@ -10253,9 +10255,46 @@ function showAreaScanPicker(){
     m.innerHTML=html;mo.classList.add('open');
 }
 
+async function _upcOpenNative(areaId){
+    var BS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BistroScanner;
+    if(!BS){ showToast('Scanner unavailable','error'); return; }
+    try{ var sup = await BS.isSupported(); if(sup && sup.supported===false){ showToast('Barcode scanning needs an iPhone on iOS 16+','warning'); return; } }catch(e){}
+    _UPC={area:areaId,items:[],stream:null,reader:null,det:null,iv:0,scanning:true,last:'',lastT:0,manual:false,_unit:'ea',zoomCap:null,zoomCur:1,torchCap:null,torchOn:false,native:true};
+    var area=D.areas.find(function(a){return a.id===areaId;});
+    var ov=document.createElement('div');
+    ov.id='upc-ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#0a1422;display:flex;flex-direction:column;font-family:inherit';
+    ov.innerHTML=''
+      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:rgba(15,23,36,.95);color:#e0e6ed">'
+        +'<span style="font-weight:600">Scan &mdash; '+escHtml(area?area.name:'Inventory')+'</span>'
+        +'<button onclick="_upcFinish()" style="background:rgba(0,184,148,.18);border:1px solid rgba(0,184,148,.4);color:#00b894;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer">Done</button>'
+      +'</div>'
+      +'<div id="upc-panel" style="flex:1;background:#0a1422;color:#e0e6ed;padding:14px 16px;overflow-y:auto"></div>'
+      +'<div style="padding:12px 16px 18px;background:rgba(15,23,36,.95)"><button onclick="_upcScanLoopNative()" id="upc-scan-btn" class="btn btn-p" style="width:100%;padding:15px;font-size:calc(15px * var(--font-scale))">&#x1F4F7; Scan a barcode</button></div>';
+    document.body.appendChild(ov);
+    _upcDefaultPanel();
+    _upcScanLoopNative();
+}
+
+// One-shot native VisionKit scan: present scanner -> resolve one barcode -> feed _upcOnDetect.
+async function _upcScanLoopNative(){
+    if(!_UPC.native) return;
+    var BS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BistroScanner;
+    if(!BS) return;
+    _UPC.scanning=true; _UPC.last='';
+    try{
+        var r = await BS.scan();
+        if(r && r.cancelled){ _upcDefaultPanel(); return; }
+        var v = r && r.barcode && r.barcode.rawValue;
+        if(v){ _upcOnDetect(String(v)); } else { _upcDefaultPanel(); }
+    }catch(e){ if(typeof _upcDbg==='function')_upcDbg('native scan err: '+(e&&e.message||e)); _upcDefaultPanel(); }
+}
+
 function openUpcScanner(areaId){
     if(!isOwnerOrAdmin()){showToast('Owner/Admin only','warning');return;}
     if(!flagOn('upcScanner')){showToast('Barcode scanning is not enabled for your account yet','warning');return;}
+    // Native (Capacitor): use the native ML Kit scanner — accurate, no iOS-Safari decode issues.
+    if(window.Capacitor && window.Capacitor.isNativePlatform()){ _upcOpenNative(areaId); return; }
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showToast('Camera not available on this device. Use Scan Sheet or hand count.','warning');return;}
     _UPC={area:areaId,items:[],stream:null,reader:null,det:null,iv:0,scanning:false,last:'',lastT:0,manual:false,_unit:'ea',zoomCap:null,zoomCur:1,torchCap:null,torchOn:false};
     var area=D.areas.find(function(a){return a.id===areaId;});
@@ -10928,12 +10967,20 @@ function _upcCommit(ingId){
 
 function _upcResume(){
     _UPC.scanning=true;_UPC.last='';
+    if(_UPC.native){ _upcDefaultPanel(); _upcScanLoopNative(); return; }
     if(_UPC.manual){_upcManualOnly('Scan another item, or tap Done.');}
     else{_upcDefaultPanel();}
 }
 
 function _upcStop(){
     _UPC.scanning=false;
+    if(_UPC.native){
+        try{
+            var _BS=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.BistroScanner;
+            if(_BS&&_BS.stopScan)_BS.stopScan();
+        }catch(_e){}
+        _UPC.native=false;
+    }
     if(_UPC.iv){clearInterval(_UPC.iv);_UPC.iv=0;}
     if(_UPC.reader){try{_UPC.reader.reset();}catch(e){}_UPC.reader=null;}
     if(_UPC.stream){try{_UPC.stream.getTracks().forEach(function(t){t.stop();});}catch(e){}_UPC.stream=null;}

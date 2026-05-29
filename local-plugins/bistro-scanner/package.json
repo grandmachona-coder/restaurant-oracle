@@ -1,0 +1,15 @@
+{
+  "name": "bistro-scanner",
+  "version": "1.0.0",
+  "description": "Native VisionKit barcode scanner for Bistro Steward (Capacitor iOS plugin)",
+  "private": true,
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "files": [
+    "ios/Plugin/",
+    "Package.swift"
+  ]
+}
