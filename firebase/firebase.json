@@ -25,6 +25,15 @@
         ]
       },
       {
+        "source": "/@(app|signup|admin|billing|super-admin|terms|privacy)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
         "source": "**",
         "headers": [
           {

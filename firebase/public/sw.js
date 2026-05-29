@@ -9,7 +9,7 @@
  */
 'use strict';
 
-const VERSION = 'v12-2026-05-27-wasm-stub-bypass';
+const VERSION = 'v13-2026-05-29-html-nostore';
 const STATIC_CACHE = 'bs-static-' + VERSION;
 const RUNTIME_CACHE = 'bs-runtime-' + VERSION;
 
@@ -69,7 +69,7 @@ self.addEventListener('fetch', function (event) {
   // HTML → network-first, fall back to cache only if offline
   if (isHtml(req)) {
     event.respondWith(
-      fetch(req).then(function (resp) {
+      fetch(req, { cache: 'no-store' }).then(function (resp) {
         // Mirror successful HTML to runtime cache for offline fallback
         if (resp && resp.ok) {
           const copy = resp.clone();
