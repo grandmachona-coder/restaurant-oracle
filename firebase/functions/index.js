@@ -586,6 +586,50 @@ function normalizePaidProduct(json, barcode) {
   };
 }
 
+// Normalize a USDA FoodData Central /foods/search response (Branded foods).
+// Requires an exact GTIN/UPC match (leading-zero-insensitive) so a fuzzy search
+// hit for the wrong product is never returned.
+function normalizeUsdaProduct(json, barcode) {
+  const foods = (json && Array.isArray(json.foods)) ? json.foods : [];
+  if (!foods.length) return null;
+  const strip = function (s) { return String(s == null ? '' : s).replace(/[^0-9]/g, '').replace(/^0+/, ''); };
+  const bc = strip(barcode);
+  const f = foods.find(function (x) { return x && strip(x.gtinUpc) === bc; });
+  if (!f) return null;
+  const name = String(f.description || '').trim();
+  if (!name) return null;
+  const brand = String(f.brandName || f.brandOwner || '').trim();
+  let size = String(f.packageWeight || '').trim();
+  if (!size && f.servingSize) size = (f.servingSize + ' ' + (f.servingSizeUnit || '')).trim();
+  const um = size.match(/([a-zA-Z]+)\s*$/);
+  return {
+    barcode: String(barcode),
+    name: name.substring(0, 200),
+    brand: brand ? brand.substring(0, 120) : null,
+    size: size ? size.substring(0, 60) : null,
+    unit: f.servingSizeUnit ? String(f.servingSizeUnit).toLowerCase().substring(0, 20)
+      : (um ? um[1].toLowerCase().substring(0, 20) : null),
+  };
+}
+
+// Normalize a UPCitemdb /prod/trial/lookup response (free, keyless; broad retail).
+function normalizeUpcitemdbProduct(json, barcode) {
+  if (!json || json.code !== 'OK' || !Array.isArray(json.items) || !json.items.length) return null;
+  const p = json.items[0];
+  const name = String(p.title || '').trim();
+  if (!name) return null;
+  const brand = String(p.brand || '').trim();
+  const size = String(p.size || '').trim();
+  const um = size.match(/([a-zA-Z]+)\s*$/);
+  return {
+    barcode: String(barcode),
+    name: name.substring(0, 200),
+    brand: brand ? brand.substring(0, 120) : null,
+    size: size ? size.substring(0, 60) : null,
+    unit: um ? um[1].toLowerCase().substring(0, 20) : null,
+  };
+}
+
 // Per-tenant ledger of UPC lookups — one doc per call, mirroring logGeminiUsage
 // so cost/usage stays visible per tenant. `paid:true` rows are the ones that
 // cost money; everything else (cache hit, OFF hit, miss) is free. Non-fatal.
@@ -1403,23 +1447,60 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
         let product = null;
         let source = null;
 
-        // 2 ── Open Food Facts (free)
-        try {
-          const offUrl = 'https://world.openfoodfacts.org/api/v2/product/' +
-            encodeURIComponent(barcode) + '.json?fields=product_name,generic_name,brands,quantity';
-          const offResp = await fetchWithTimeout(offUrl, {
-            headers: { 'User-Agent': 'BistroSteward/1.0 (+https://bistrosteward.com)' },
-          }, 8000, 'off-lookup');
-          if (offResp.ok) {
-            const offJson = await offResp.json();
-            product = normalizeOffProduct(offJson, barcode);
-            if (product) source = 'off';
+        // 2 ── USDA FoodData Central (free; US branded foods; UPC_USDA_API_KEY or DEMO_KEY)
+        if (!product) {
+          try {
+            const usdaKey = process.env.UPC_USDA_API_KEY || 'DEMO_KEY';
+            const usdaUrl = 'https://api.nal.usda.gov/fdc/v1/foods/search?api_key=' +
+              encodeURIComponent(usdaKey) + '&query=' + encodeURIComponent(barcode) +
+              '&dataType=Branded&pageSize=5';
+            const usdaResp = await fetchWithTimeout(usdaUrl, {}, 8000, 'usda-lookup');
+            if (usdaResp.ok) {
+              const usdaJson = await usdaResp.json();
+              product = normalizeUsdaProduct(usdaJson, barcode);
+              if (product) source = 'usda';
+            }
+          } catch (usdaErr) {
+            console.warn('[upcLookup] USDA failed (non-fatal):', usdaErr.message);
           }
-        } catch (offErr) {
-          console.warn('[upcLookup] Open Food Facts failed (non-fatal):', offErr.message);
         }
 
-        // 3 ── Paid provider fallback (config-gated; inert until UPC_PAID_API_KEY set)
+        // 3 ── Open Food Facts (free)
+        if (!product) {
+          try {
+            const offUrl = 'https://world.openfoodfacts.org/api/v2/product/' +
+              encodeURIComponent(barcode) + '.json?fields=product_name,generic_name,brands,quantity';
+            const offResp = await fetchWithTimeout(offUrl, {
+              headers: { 'User-Agent': 'BistroSteward/1.0 (+https://bistrosteward.com)' },
+            }, 8000, 'off-lookup');
+            if (offResp.ok) {
+              const offJson = await offResp.json();
+              product = normalizeOffProduct(offJson, barcode);
+              if (product) source = 'off';
+            }
+          } catch (offErr) {
+            console.warn('[upcLookup] Open Food Facts failed (non-fatal):', offErr.message);
+          }
+        }
+
+        // 4 ── UPCitemdb free trial (keyless; broad retail incl. non-food)
+        if (!product) {
+          try {
+            const uidUrl = 'https://api.upcitemdb.com/prod/trial/lookup?upc=' + encodeURIComponent(barcode);
+            const uidResp = await fetchWithTimeout(uidUrl, {
+              headers: { 'User-Agent': 'BistroSteward/1.0 (+https://bistrosteward.com)' },
+            }, 8000, 'upcitemdb-lookup');
+            if (uidResp.ok) {
+              const uidJson = await uidResp.json();
+              product = normalizeUpcitemdbProduct(uidJson, barcode);
+              if (product) source = 'upcitemdb';
+            }
+          } catch (uidErr) {
+            console.warn('[upcLookup] UPCitemdb failed (non-fatal):', uidErr.message);
+          }
+        }
+
+        // 5 ── Paid provider fallback (config-gated; inert until UPC_PAID_API_KEY set)
         if (!product) {
           const paidKey = process.env.UPC_PAID_API_KEY;
           if (paidKey && await underPaidLookupCap(tenantId)) {
