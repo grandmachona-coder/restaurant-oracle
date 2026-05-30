@@ -10988,6 +10988,11 @@ function _upcCreateNewIngSubmit(){
     var qty=qtyEl?(+qtyEl.value||0):0;if(qty<0)qty=0;qty=Math.round(qty*100)/100;
     var unit=unitEl?String(unitEl.value||'ea'):'ea';
     var catId=catEl?(+catEl.value||0):0;
+    // Contribute the typed product to the SHARED upc_cache when the scan missed every
+    // source, so EVERY tenant resolves this barcode on the next scan (central catalog).
+    if(!_UPC._prod && _UPC._code && typeof secureApi==='function'){
+        try{ secureApi('upcContribute',null,{barcode:String(_UPC._code),name:name,unit:unit}).then(function(r){ if(r&&r.data&&r.data.stored&&typeof showToast==='function') showToast('Saved to shared catalog','success',2000); }).catch(function(){}); }catch(_e){}
+    }
     // Duplicate-name guard: surface to user before silently creating dupes.
     var dup=(D.ings||[]).find(function(i){return !i.archived && i.name.toLowerCase()===name.toLowerCase();});
     if(dup){

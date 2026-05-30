@@ -1570,6 +1570,45 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
       }
     }
 
+    // ==================== UPC CONTRIBUTE (user-built shared catalog) ==========
+    // When a scan misses every source, the user types the product in. We write it
+    // through to the SHARED root `upc_cache` so EVERY tenant resolves this barcode
+    // on the next scan. Never clobbers an authoritative (non-user) catalog entry.
+    if (operation === 'upcContribute') {
+      const barcode = String((data && data.barcode) || '').trim();
+      const name = String((data && data.name) || '').trim();
+      if (!isValidBarcode(barcode)) { res.status(400).json({ error: 'Invalid or unsupported barcode' }); return; }
+      if (!name) { res.status(400).json({ error: 'Product name required' }); return; }
+      try {
+        const ref = db.collection('upc_cache').doc(barcode);
+        const snap = await ref.get();
+        const cur = snap.exists ? snap.data() : null;
+        if (cur && cur.name && cur.source && cur.source !== 'user') {
+          // An external source already filled this entry — keep it, don't overwrite.
+          res.status(200).json({ data: { stored: false, reason: 'exists', product: { barcode, name: cur.name, brand: cur.brand || null, size: cur.size || null, unit: cur.unit || null } }, error: null });
+          return;
+        }
+        const entry = {
+          barcode,
+          name: name.substring(0, 200),
+          brand: (data && data.brand) ? String(data.brand).substring(0, 120) : ((cur && cur.brand) || null),
+          size: (data && data.size) ? String(data.size).substring(0, 60) : ((cur && cur.size) || null),
+          unit: (data && data.unit) ? String(data.unit).substring(0, 20) : ((cur && cur.unit) || null),
+          source: 'user',
+          contributedByTenant: tenantId || null,
+          contributedByUid: userId || null,
+          fetchedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        await ref.set(entry, { merge: true });
+        await writeAuditLog(userId, userEmail, 'upc_contribute', 'upc_cache', 1, tenantId, { barcode });
+        res.status(200).json({ data: { stored: true, product: { barcode, name: entry.name, brand: entry.brand, size: entry.size, unit: entry.unit } }, error: null });
+      } catch (e) {
+        console.error('[upcContribute] failed:', e.message);
+        res.status(500).json({ error: 'Could not save product' });
+      }
+      return;
+    }
+
     // ── New tenant-level operations ──────────────────────────────────────────
     if (operation === 'getTenantConfig') {
       const tenantDoc = await db.collection('tenants').doc(tenantId).get();
