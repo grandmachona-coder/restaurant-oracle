@@ -419,6 +419,11 @@
             input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),
             select, textarea, .form-i, .login-input{ font-size:16px !important; }
         }
+
+        /* Drag-reorder (admin): items within a location + locations */
+        .reorder-handle{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;color:#74acdf;font-size:18px;line-height:1;padding:2px 4px;flex:0 0 auto}
+        .reorder-handle:active{cursor:grabbing}
+        .reorder-dragging{opacity:.92;box-shadow:0 10px 28px rgba(0,0,0,.55);border-radius:8px;background:#15233b}
     </style>
 </head>
 <body>
@@ -3524,6 +3529,49 @@ function getSortedUnits(){
     });
 }
 
+// ===== Drag-reorder (admin): items within a location + reorder locations =====
+// Unset sortOrder (0) sorts last (1e9) so new items append at bottom; reorder assigns explicit 1..N.
+function _so(x){ return (x && x.sortOrder>0) ? x.sortOrder : 1e9; }
+function applyReorder(listType, orderedIds){
+    if(listType==='area'){
+        orderedIds.forEach(function(id,i){ var a=(typeof IDX!=='undefined'&&IDX.areas&&IDX.areas.get(+id))||(D.areas||[]).find(function(x){return x.id===+id;}); if(a){ a.sortOrder=i+1; markChanged('areas',a.id); } });
+    } else if(listType && listType.indexOf('inv-')===0){
+        orderedIds.forEach(function(id,i){ var v=(D.inv||[]).find(function(x){return x.id===+id;}); if(v){ v.sortOrder=i+1; markChanged('inv',v.id); } });
+    }
+    if(typeof render==='function') render();
+}
+(function(){
+    if(window._dragReorderInit) return; window._dragReorderInit=true;
+    var st=null;
+    function rowsIn(list){ return Array.prototype.slice.call(list.children).filter(function(el){ return el.nodeType===1 && el.hasAttribute('data-reorder-id'); }); }
+    document.addEventListener('pointerdown', function(e){
+        var h=e.target.closest && e.target.closest('.reorder-handle'); if(!h) return;
+        var row=h.closest('[data-reorder-id]'), list=h.closest('[data-reorder-list]'); if(!row||!list) return;
+        e.preventDefault(); e.stopPropagation();
+        st={row:row,list:list,startY:e.clientY,moved:false,pid:e.pointerId};
+        row.classList.add('reorder-dragging'); row.style.transition='none';
+        try{ row.setPointerCapture(e.pointerId); }catch(_){}
+    }, true);
+    document.addEventListener('pointermove', function(e){
+        if(!st||e.pointerId!==st.pid) return;
+        var dy=e.clientY-st.startY; if(Math.abs(dy)>4) st.moved=true;
+        st.row.style.transform='translateY('+dy+'px)'; st.row.style.position='relative'; st.row.style.zIndex='999';
+    }, true);
+    function finish(e){
+        if(!st||e.pointerId!==st.pid) return;
+        var s=st; st=null;
+        s.row.style.transform=''; s.row.style.position=''; s.row.style.zIndex=''; s.row.style.transition=''; s.row.classList.remove('reorder-dragging');
+        if(!s.moved) return;
+        var rows=rowsIn(s.list), draggedId=s.row.getAttribute('data-reorder-id');
+        var fy=e.clientY, order=[], inserted=false;
+        rows.forEach(function(r){ if(r===s.row) return; var rc=r.getBoundingClientRect(), mid=rc.top+rc.height/2; if(!inserted && fy<mid){ order.push(draggedId); inserted=true; } order.push(r.getAttribute('data-reorder-id')); });
+        if(!inserted) order.push(draggedId);
+        applyReorder(s.list.getAttribute('data-reorder-list'), order);
+    }
+    document.addEventListener('pointerup', finish, true);
+    document.addEventListener('pointercancel', finish, true);
+})();
+
 // Render a single inventory item with conversion info
 function renderInvItem(inv,isWarehouseArea){
     var itemName='',isPrep=false,conv=null,ing=null;
@@ -3547,9 +3595,9 @@ function renderInvItem(inv,isWarehouseArea){
     if(!itemName)return '';
 
     var outBadge=inv.outOfStock?'<span style="background:#e74c3c;color:#fff;padding:1px 5px;border-radius:4px;font-size:calc(9px * var(--font-scale));font-weight:700;margin-left:6px">OUT</span>':'';
-    var html='<div class="inv-item'+(isPrep?' prep-item':'')+(inv.outOfStock?' out-of-stock':'')+'" style="flex-wrap:wrap'+(inv.outOfStock?';opacity:.6':'')+'">';
+    var html='<div class="inv-item'+(isPrep?' prep-item':'')+(inv.outOfStock?' out-of-stock':'')+'" data-reorder-id="'+inv.id+'" style="flex-wrap:wrap'+(inv.outOfStock?';opacity:.6':'')+'">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;width:100%">';
-    html+='<span class="inv-item-name" onclick="editInvItem('+inv.id+')" style="cursor:pointer">'+itemName+outBadge+'</span>';
+    html+='<span style="display:flex;align-items:center;gap:6px;min-width:0;flex:1">'+(typeof isOwner==='function'&&isOwner()?'<span class="reorder-handle" title="Drag to reorder">&#x2630;</span>':'')+'<span class="inv-item-name" onclick="editInvItem('+inv.id+')" style="cursor:pointer">'+itemName+outBadge+'</span></span>';
     html+='<div class="inv-item-controls">';
     html+='<input type="number" value="'+inv.qty+'" onchange="updInv('+inv.id+',this.value)" onclick="event.stopPropagation()" style="width:50px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;text-align:center;font-size:calc(12px * var(--font-scale))">';
     html+='<select onchange="updInvUnit('+inv.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#e0e6ed;font-size:calc(10px * var(--font-scale))">';
@@ -3767,7 +3815,8 @@ function renderInv(c,s){
         html+='</div>';
     }
 
-    D.areas.slice().sort(function(a,b){return (a.isWarehouse?1:0)-(b.isWarehouse?1:0);}).forEach(function(area){
+    html+='<div data-reorder-list="area">';
+    D.areas.slice().sort(function(a,b){return _so(a)-_so(b)||(a.isWarehouse?1:0)-(b.isWarehouse?1:0)||a.id-b.id;}).forEach(function(area){
         var areaItems=D.inv.filter(function(i){return i.areaId===area.id&&(!area.sections.length||!i.subArea);});
         var subItems={};
         if(area.sections.length){
@@ -3783,14 +3832,16 @@ function renderInv(c,s){
         var areaType=area.isWarehouse?'Warehouse':'Storage';
         var areaStyle=area.isWarehouse?'border-left:3px solid #fdcb6e;':'';
         var printBtn=isOwner()?'<button onclick="event.stopPropagation();previewAreaSheet('+area.id+')" style="background:rgba(108,92,231,.2);border:1px solid rgba(108,92,231,.3);border-radius:6px;padding:2px 8px;color:#a29bfe;cursor:pointer;font-size:calc(10px * var(--font-scale));margin-right:6px" title="Print Inventory Sheet">&#x1F5A8;&#xFE0F;</button>':'';
-        html+='<div class="card" style="'+areaStyle+'"><div class="card-h" onclick="tog(\'area-'+area.id+'\')" style="cursor:pointer"><div><div class="card-t">'+areaIcon+' '+escHtml(area.name)+'</div><div class="card-s">'+areaType+'</div></div><span class="card-cnt">'+printBtn+totalInArea+' '+(isExp?'&#9650;':'&#9660;')+'</span></div>';
+        html+='<div class="card" style="'+areaStyle+'" data-reorder-id="'+area.id+'"><div class="card-h" onclick="tog(\'area-'+area.id+'\')" style="cursor:pointer"><div style="display:flex;align-items:center;gap:8px;min-width:0">'+(isOwner()?'<span class="reorder-handle" title="Drag to reorder location" onclick="event.stopPropagation()">&#x2630;</span>':'')+'<div><div class="card-t">'+areaIcon+' '+escHtml(area.name)+'</div><div class="card-s">'+areaType+'</div></div></div><span class="card-cnt">'+printBtn+totalInArea+' '+(isExp?'&#9650;':'&#9660;')+'</span></div>';
         
         if(isExp){
             html+='<div style="margin-top:12px">';
-            // Main area items
-            areaItems.forEach(function(inv){
+            // Main area items (drag-sortable by sortOrder)
+            html+='<div data-reorder-list="inv-'+area.id+'">';
+            areaItems.slice().sort(function(a,b){return _so(a)-_so(b)||a.id-b.id;}).forEach(function(inv){
                 html+=renderInvItem(inv,area.isWarehouse);
             });
+            html+='</div>';
             // Sub-areas
             if(area.sections.length){
                 area.sections.forEach(function(sec){
@@ -3884,6 +3935,7 @@ function renderInv(c,s){
         }
         html+='</div>';
     });
+    html+='</div>';
     c.innerHTML=html;
 }
 
