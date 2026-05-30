@@ -2180,7 +2180,7 @@ function getDefaultUnits(){
 }
 
 // Field mapping functions (database snake_case to local camelCase)
-function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0,isWarehouse:a.is_warehouse||0,invFrequency:a.inv_frequency||'',assignedTo:a.assigned_to||'',lastInventory:a.last_inventory||'',sortOrder:a.sort_order||0};}
+function mapAreaFromDb(a){return{id:a.id,name:a.name,sections:a.sections||[],prep:a.prep||0,isWarehouse:a.is_warehouse||0,invFrequency:a.inv_frequency||'',assignedTo:a.assigned_to||'',lastInventory:a.last_inventory||'',sortOrder:a.sort_order||0,groupName:a.group_name||''};}
 function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area_id,subArea:i.sub_area||'',defUnit:i.unit||'ea',archived:i.archived||0,standalone:i.standalone||0,minQty:i.par||0,autoShop:i.auto_shop||0,cost:i.cost||0,isMenuItem:i.is_menu_item||0,menuId:i.menu_id||0,vendorId:i.vendor_id||0,priceHistory:i.price_history||[],barcode:i.barcode||''};}
 function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,menuId:i.menu_id||0,prepId:i.prep_id||0,qty:i.qty||0,unit:i.unit||'ea',outOfStock:i.out_of_stock||0,sortOrder:i.sort_order||0};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0};}
@@ -2198,7 +2198,7 @@ function mapConvFromDb(c){return{id:c.id,ingId:c.ing_id,storageUnit:c.storage_un
 function mapVendorFromDb(v){return{id:v.id,name:v.name||'',contactName:v.contact_name||'',email:v.email||'',phone:v.phone||'',website:v.website||'',notes:v.notes||'',archived:v.archived||0};}
 
 // Mapping functions for saving (local camelCase to database snake_case)
-function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep,is_warehouse:a.isWarehouse||0,inv_frequency:a.invFrequency||'',assigned_to:a.assignedTo||'',last_inventory:a.lastInventory||'',sort_order:a.sortOrder||0};}
+function mapAreaToDb(a){return{id:a.id,name:a.name,sections:a.sections,prep:a.prep,is_warehouse:a.isWarehouse||0,inv_frequency:a.invFrequency||'',assigned_to:a.assignedTo||'',last_inventory:a.lastInventory||'',sort_order:a.sortOrder||0,group_name:a.groupName||''};}
 function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaId,sub_area:i.subArea,unit:i.defUnit,archived:i.archived,standalone:i.standalone,par:i.minQty,auto_shop:i.autoShop,cost:i.cost||0,is_menu_item:i.isMenuItem||0,menu_id:i.menuId||0,vendor_id:i.vendorId||0,price_history:i.priceHistory||[],barcode:i.barcode||null};}
 function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,menu_id:i.menuId||null,prep_id:i.prepId||null,qty:i.qty,unit:i.unit,out_of_stock:i.outOfStock||0,sort_order:i.sortOrder||0};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater};}
@@ -3540,6 +3540,19 @@ function applyReorder(listType, orderedIds){
     }
     if(typeof render==='function') render();
 }
+// ===== Inventory location groups (admin): groupName label on each area =====
+function _findArea(areaId){ return (typeof IDX!=='undefined'&&IDX.areas&&IDX.areas.get(+areaId))||(D.areas||[]).find(function(x){return x.id===+areaId;}); }
+function setAreaGroup(areaId, val){ var a=_findArea(areaId); if(!a) return; a.groupName=(val||'').trim(); markChanged('areas',a.id); render(); }
+function setAreaGroupFromInput(areaId){
+    var el=document.getElementById('ng-'+areaId), name=el?(el.value||'').trim():'';
+    if(!name){ if(typeof showToast==='function') showToast('Enter a group name','warning'); return; }
+    var a=_findArea(areaId); if(!a) return; a.groupName=name; markChanged('areas',a.id); render();
+}
+function deleteAreaGroup(name){
+    if(!confirm('Remove group "'+name+'"? Its locations move to Ungrouped (locations are not deleted).')) return;
+    (D.areas||[]).forEach(function(a){ if((a.groupName||'')===name){ a.groupName=''; markChanged('areas',a.id); } });
+    render();
+}
 (function(){
     if(window._dragReorderInit) return; window._dragReorderInit=true;
     var st=null;
@@ -3815,8 +3828,22 @@ function renderInv(c,s){
         html+='</div>';
     }
 
-    html+='<div data-reorder-list="area">';
-    D.areas.slice().sort(function(a,b){return _so(a)-_so(b)||(a.isWarehouse?1:0)-(b.isWarehouse?1:0)||a.id-b.id;}).forEach(function(area){
+    var _sortedAreas=D.areas.slice().sort(function(a,b){return _so(a)-_so(b)||(a.isWarehouse?1:0)-(b.isWarehouse?1:0)||a.id-b.id;});
+    var _byGroup={}, _groupOrder=[];
+    _sortedAreas.forEach(function(ar){ var g=ar.groupName||''; if(!(g in _byGroup)){_byGroup[g]=[];_groupOrder.push(g);} _byGroup[g].push(ar); });
+    _groupOrder.sort(function(a,b){ return (a===''?1:0)-(b===''?1:0); });
+    var _hasGroups=_groupOrder.some(function(g){return g!=='';});
+    _groupOrder.forEach(function(_gname){
+        var _gAreas=_byGroup[_gname];
+        if(_hasGroups){
+            var _gkey='areagrp-'+(_gname||'__un__');
+            var _gOpen=exp[_gkey]!==false;
+            var _gDel=(isOwner()&&_gname)?'<span onclick="event.stopPropagation();deleteAreaGroup(decodeURIComponent(\''+encodeURIComponent(_gname)+'\'))" title="Remove group" style="cursor:pointer;color:#e74c3c;margin-right:10px">&#x1F5D1;&#xFE0F;</span>':'';
+            html+='<div class="sec" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:14px;color:#fdcb6e" onclick="tog(\''+_gkey+'\')"><span>&#x1F4C1; '+escHtml(_gname||'Ungrouped')+' ('+_gAreas.length+')</span><span>'+_gDel+(_gOpen?'&#9650;':'&#9660;')+'</span></div>';
+            if(!_gOpen) return;
+        }
+        html+='<div data-reorder-list="area">';
+        _gAreas.forEach(function(area){
         var areaItems=D.inv.filter(function(i){return i.areaId===area.id&&(!area.sections.length||!i.subArea);});
         var subItems={};
         if(area.sections.length){
@@ -3836,6 +3863,17 @@ function renderInv(c,s){
         
         if(isExp){
             html+='<div style="margin-top:12px">';
+            if(isOwner()){
+                var _grpOpts='<option value=""'+(!area.groupName?' selected':'')+'>Ungrouped</option>';
+                var _allG={}; (D.areas||[]).forEach(function(a){ if(a.groupName) _allG[a.groupName]=1; });
+                Object.keys(_allG).sort().forEach(function(gn){ _grpOpts+='<option value="'+escHtml(gn)+'"'+(area.groupName===gn?' selected':'')+'>'+escHtml(gn)+'</option>'; });
+                html+='<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;font-size:calc(11px * var(--font-scale))">'
+                    +'<span style="color:#a0aec0">Group:</span>'
+                    +'<select onchange="setAreaGroup('+area.id+',this.value)" onclick="event.stopPropagation()" style="padding:4px 6px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(11px * var(--font-scale))">'+_grpOpts+'</select>'
+                    +'<input id="ng-'+area.id+'" placeholder="New group" onclick="event.stopPropagation()" style="width:110px;padding:4px 6px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e0e6ed;font-size:calc(11px * var(--font-scale))">'
+                    +'<button onclick="event.stopPropagation();setAreaGroupFromInput('+area.id+')" style="padding:4px 10px;background:rgba(108,92,231,.25);border:1px solid rgba(108,92,231,.4);border-radius:6px;color:#a29bfe;cursor:pointer;font-size:calc(11px * var(--font-scale))">+ Group</button>'
+                    +'</div>';
+            }
             // Main area items (drag-sortable by sortOrder)
             html+='<div data-reorder-list="inv-'+area.id+'">';
             areaItems.slice().sort(function(a,b){return _so(a)-_so(b)||a.id-b.id;}).forEach(function(inv){
@@ -3934,8 +3972,9 @@ function renderInv(c,s){
             html+='</div>';
         }
         html+='</div>';
+        });
+        html+='</div>';
     });
-    html+='</div>';
     c.innerHTML=html;
 }
 
