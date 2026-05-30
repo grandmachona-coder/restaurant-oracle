@@ -5519,20 +5519,28 @@ function renderPrep(c,s){
             ch += '</div>';
             return ch;
         };
-        // Category = the prep's recipe category (recCats); 0/unknown → "Other"
-        var prepCatId = function(prep){ var rec = prep.recId ? IDX.recs.get(prep.recId) : null; return (rec && rec.catId) ? rec.catId : 0; };
-        var knownCatIds = (D.recCats||[]).map(function(c){return c.id;});
-        (D.recCats||[]).forEach(function(cat){
-            var catPreps = D.preps.filter(function(p){ return prepCatId(p) === cat.id; });
+        // Group by MENU category. Prep's recipe category (recCats) → menu category (menuCats) by name, with aliases. Verified against live data.
+        var rcAlias = {Fillings:'Empanadas', Doughs:'Empanadas', Salads:'Ensalada', Sauces:'Tapas'};
+        var prepMenuCatName = function(prep){
+            var rec = prep.recId ? ((IDX.recs && IDX.recs.get(prep.recId)) || (D.recs||[]).find(function(r){return r.id===prep.recId;})) : null;
+            if(!rec || !rec.catId) return '';
+            var rcObj = (IDX.recCats && IDX.recCats.get(rec.catId)) || (D.recCats||[]).find(function(x){return x.id===rec.catId;});
+            var rcName = rcObj ? rcObj.name : '';
+            return rcAlias[rcName] || rcName;
+        };
+        var assignedPrep = {};
+        (D.menuCats||[]).forEach(function(cat){
+            var catPreps = D.preps.filter(function(p){ return prepMenuCatName(p) === cat.name; });
             if(!catPreps.length) return;
-            var key = 'prep-cat-' + cat.id;
+            catPreps.forEach(function(p){ assignedPrep[p.id] = true; });
+            var key = 'prep-mc-' + cat.id;
             var open = exp[key] !== false; // default open
             html += '<div class="sec" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:8px" onclick="tog(\''+key+'\')"><span>'+escHtml(cat.name)+' ('+catPreps.length+')</span><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+(open?'▲':'▼')+'</span></div>';
             if(open) catPreps.forEach(function(prep){ html += prepCardHtml(prep); });
         });
-        var otherPreps = D.preps.filter(function(p){ return knownCatIds.indexOf(prepCatId(p)) === -1; });
+        var otherPreps = D.preps.filter(function(p){ return !assignedPrep[p.id]; });
         if(otherPreps.length){
-            var okey = 'prep-cat-other';
+            var okey = 'prep-mc-other';
             var oopen = exp[okey] !== false;
             html += '<div class="sec" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:8px" onclick="tog(\''+okey+'\')"><span>Other ('+otherPreps.length+')</span><span style="color:#a0aec0;font-size:calc(10px * var(--font-scale))">'+(oopen?'▲':'▼')+'</span></div>';
             if(oopen) otherPreps.forEach(function(prep){ html += prepCardHtml(prep); });
