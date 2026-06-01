@@ -71,6 +71,38 @@ On Tony's iPhone 16 Pro Max, all confirmed working:
 
 **Remaining = App Store submission** (§10): icon set ✓, screenshots (iPhone+iPad), privacy nutrition label, B2B-billing copy (§3.1.3), description/keywords, submit. Plus §2 production items (real Sentry DSN, monitoring, legal review).
 
+---
+
+## 0.2 — Post-device session (2026-05-30 → 06-01): features + infra shipped
+
+All on `ios-capacitor`, deployed live (hosting + functions), verified. Native shell unchanged except the **app icon** (rebuilt + reinstalled to Tony's device).
+
+**Update pipeline (CRITICAL — the multi-tenant OTA mechanism).** Web/JS/CSS ships to ALL tenants via `firebase deploy --only hosting`; no App Store resubmit. **Bug found + fixed (`71e1d02`):** the app loads `/app` (a clean-URL *rewrite*), which the `**/*.html` no-cache rule didn't match → served `max-age=3600` → WKWebView cached the app ~1h and deploys silently didn't land. Fix: `firebase.json` no-cache for `/@(app|signup|admin|billing|super-admin|terms|privacy)` + `sw.js` v13 HTML fetch `{cache:'no-store'}`. **Verify after any deploy:** `curl -sI https://restaurant-oracle.web.app/app | grep cache-control` → must be `no-cache`. Only NATIVE changes (plugins, icon, Info.plist) need a rebuild.
+
+**iOS input-zoom fix (`71e1d02`):** WKWebView auto-zooms a focused input <16px and ignores `user-scalable=no` → `@media(pointer:coarse){ inputs … 16px !important }` (app.html); viewport got `viewport-fit=cover`.
+
+**App icon (`71e1d02`):** cropped to the center serving-plate + steam (was the full cycle). `AppIcon.appiconset/AppIcon-512@2x.png` (1024² universal). Rebuild+install via `xcodebuild … -destination 'id=<UDID>'` then `xcrun devicectl device install app`. Login/PWA logo stays full `icon.png`; login bg now seamless linen.
+
+**Inventory features (admin/owner, deployed):**
+- **Prep → Menu-category groups (`11dafac`):** batches grouped under collapsible menuCat headers (recCat→menuCat by name+alias). Verified vs live data.
+- **Drag-reorder (`4f91d30`):** items within a location + locations. `sortOrder` field (+ CF `sort_order`), delegated pointer-events drag, owner-only ☰ handle.
+- **Location groups (`30f329a`):** assign locations to named groups (collapsible 📁 headers). `groupName` on area — no new collection.
+
+**UPC scanner — free lookup cascade (`34eb03b` + this session):** `upc_cache (shared root) → USDA FoodData Central → Open Food Facts → UPCitemdb (free trial) → eandata (paid, OFF)`. USDA key in `functions/.env` (`UPC_USDA_API_KEY`, gitignored). Dropped Open Product Facts (SSL-broken) + Datakick (dead). **User-built shared catalog:** on total miss, the typed product is written to the root `upc_cache` (`source:'user'`, CF op `upcContribute`, all scan roles) → every tenant resolves it next scan. Paid tier OFF (eandata stale; if needed: Go-UPC live API, or UPC Data 4 Beverage Alcohol file for liquor).
+
+### Outstanding to ship (current — supersedes §0.1 "Remaining")
+**App Store (critical path → TestFlight):**
+1. **Apple demo account** — login-wall app, reviewers can't do Google/Apple SSO → need an email/pass demo tenant (Claude can create). **Hard gate.**
+2. App Store Connect record (bundle `com.bistrosteward.app`, category, age rating, pricing).
+3. Screenshots (6.9" + 6.7"; iPad if supported).
+4. App Privacy nutrition label (email/auth, PostHog usage, Sentry crash, camera).
+5. Listing copy (name, subtitle, description, keywords; support/marketing URLs; `/privacy` + `/terms` live).
+6. **Release build → TestFlight → submit** (archive Release, `npx cap sync ios`, bump build, upload).
+
+**Production-readiness:** 7. Square env = **production** (CSP has sandbox+prod — confirm live keys before billing). 8. Firebase **App Check** (none found — add/confirm). 9. Firestore rules audit (tenant isolation). 10. Cost caps (Gemini cap exists; add Functions budget alert).
+
+**Go-to-market:** signup→provisioning E2E; Square billing live (plan vars exist); onboarding/approval; support email + docs.
+
 ## 1. Scope
 
 - **In scope:** ship a native iPhone app to the App Store that wraps the existing PWA, with **native barcode capture** (the deciding criterion) and the native plugins that remove web friction.
