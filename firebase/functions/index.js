@@ -125,7 +125,12 @@ const cors = require('cors')({
 });
 
 admin.initializeApp({
-  projectId: 'restaurant-oracle'
+  projectId: 'restaurant-oracle',
+  // Receipt-photo storage (Margin/Receipts feature). Override via STORAGE_BUCKET in
+  // functions/.env if the project's bucket uses the newer .firebasestorage.app form.
+  // Referenced lazily by admin.storage().bucket(); harmless if Storage isn't enabled yet
+  // (the receiptScan image write is wrapped non-fatal).
+  storageBucket: process.env.STORAGE_BUCKET || 'restaurant-oracle.appspot.com',
 });
 const db = admin.firestore();
 const auth = admin.auth();
@@ -262,6 +267,50 @@ function sanitizeAnnouncementText(str) {
   // Remove any residual lone angle brackets.
   out = out.replace(/[<>]/g, '');
   return out.substring(0, MAX_STRING_LENGTH);
+}
+
+// ── Receipt line-item sanitizer (Margin/Receipts) ───────────────────────────
+// Pure: coerces AI-extracted receipt lines into safe, typed records and flags
+// lines where qty × unitCost disagrees with the printed lineTotal (likely OCR
+// digit errors) so the dashboard can surface them for confirmation. Pure &
+// self-contained so _test_receipt_scan.js can extract+eval it against live src.
+function sanitizeReceiptItems(rawItems) {
+  if (!Array.isArray(rawItems)) return [];
+  const num = function (v) { const n = typeof v === 'number' ? v : parseFloat(v); return isFinite(n) ? n : 0; };
+  return rawItems.map(function (it) {
+    it = it || {};
+    const qty = num(it.qty);
+    const unitCost = num(it.unitCost);
+    const lineTotal = num(it.lineTotal);
+    const mismatch = (qty > 0 && unitCost > 0 && lineTotal > 0)
+      ? Math.abs(qty * unitCost - lineTotal) > Math.max(0.02, 0.02 * lineTotal)
+      : false;
+    return {
+      description: String(it.description || '').substring(0, 200),
+      qty: qty,
+      unit: String(it.unit || 'ea').substring(0, 20),
+      unitCost: Math.round(unitCost * 10000) / 10000,
+      lineTotal: Math.round(lineTotal * 100) / 100,
+      barcode: String(it.barcode || '').replace(/[^0-9]/g, '').substring(0, 14),
+      matchName: String(it.matchName || '').substring(0, 200),
+      confidence: ['high', 'medium', 'low'].indexOf(it.confidence) !== -1 ? it.confidence : 'medium',
+      mismatch: mismatch,
+      assignedIngId: null, assignedBrandId: null,
+      assignedAreaId: null, assignedSubArea: '',
+      applied: false,
+    };
+  }).filter(function (it) { return it.description; })
+    // lineId assigned AFTER filtering so kept rows are contiguous (L1..Ln) and
+    // stable as the line key for later assignment edits.
+    .map(function (it, i) { it.lineId = 'L' + (i + 1); return it; });
+}
+
+// Pure: validate that a receipt imageRef lives under the caller's tenant prefix
+// (cross-tenant guard for the signed-URL op). Extracted for unit testing.
+function isValidReceiptImageRef(imageRef, tenantId) {
+  if (typeof imageRef !== 'string' || !imageRef) return false;
+  if (imageRef.indexOf('..') !== -1) return false;
+  return imageRef.indexOf('tenants/' + tenantId + '/receipts/') === 0;
 }
 
 function validateData(data, maxSize) {
@@ -997,8 +1046,8 @@ async function handleRequest(req, res) {
       return;
     }
 
-    // Validate input data (1.11) - use larger limit for scan operations
-    const validation = validateData(data, operation === 'scan' ? MAX_SCAN_PAYLOAD_SIZE : undefined);
+    // Validate input data (1.11) - use larger limit for image-bearing ops (scan + receiptScan)
+    const validation = validateData(data, (operation === 'scan' || operation === 'receiptScan') ? MAX_SCAN_PAYLOAD_SIZE : undefined);
     if (!validation.valid) {
       res.status(400).json({ error: validation.error });
       return;
@@ -1407,6 +1456,271 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
         }
         return;
       }
+    }
+
+    // ==================== RECEIPT SCAN (Gemini Vision → line items) ============
+    // Reads a photo of a supplier receipt/invoice and returns structured line
+    // items, each with a best-guess match to one of the tenant's ingredients.
+    // Mirrors the `scan` op (validation, gemini-2.5-flash, usage logging, audit)
+    // but additionally: (a) constrains output with a responseSchema (with the
+    // proven JSON+regex fallback kept), (b) persists the photo to Cloud Storage
+    // server-side (NON-FATAL — receipt still works if Storage isn't enabled yet),
+    // and (c) writes the receipt doc via Admin SDK so the client's `receipts`
+    // listener delivers it (no client upsert needed for creation).
+    if (operation === 'receiptScan') {
+      const imageData = (data && data.image) || '';
+      const mimeType = (data && data.mimeType) || 'image/jpeg';
+      const vendorId = (data && data.vendorId !== undefined && data.vendorId !== null && data.vendorId !== '')
+        ? data.vendorId : null;
+      const knownIngredients = Array.isArray(data && data.knownIngredients)
+        ? data.knownIngredients.slice(0, 2000) : [];
+
+      if (!imageData || imageData.length < 100) {
+        res.status(400).json({ error: 'No image data provided' });
+        return;
+      }
+      if (!/^[A-Za-z0-9+/=]+$/.test(imageData.substring(0, 100))) {
+        res.status(400).json({ error: 'Invalid image data format' });
+        return;
+      }
+      const imageSizeBytes = imageData.length * 0.75;
+      if (imageSizeBytes > 1500000) {
+        res.status(400).json({ error: 'Image too large. Please compress further.' });
+        return;
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        console.error('GEMINI_API_KEY not configured');
+        res.status(500).json({ error: 'Receipt scan service not configured' });
+        return;
+      }
+
+      const __rcptT0 = Date.now();
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const ingList = knownIngredients
+          .map(function (n) { return String(n || '').substring(0, 120); })
+          .filter(Boolean);
+
+        const systemPrompt = `You read photographed restaurant SUPPLIER RECEIPTS / INVOICES for a kitchen management app.
+
+You will receive one photo of a printed receipt or invoice (often a thermal till receipt).
+
+KNOWN INGREDIENTS in this kitchen: ${ingList.join(', ') || 'none'}
+
+YOUR TASK:
+1. Read every purchased line item on the receipt.
+2. For each line return: the printed description, quantity, unit, unit cost, and line total.
+3. Suggest the closest match from KNOWN INGREDIENTS as "matchName" — use the EXACT spelling from that list, or "" if none is a reasonable match.
+4. If the line prints a UPC/barcode, return it in "barcode" (digits only), else "".
+5. Also return the receipt "date" (as printed; ISO yyyy-mm-dd if you can) and the receipt grand "total".
+
+RULES:
+- Skip non-item lines (subtotal, tax, tip, change, card/auth info, store address/phone).
+- Quantities and money are numbers only (no currency symbols), using a dot decimal.
+- If a unit isn't printed, infer a sensible one (ea, lb, oz, case, gal, etc.).
+- "confidence" is your read confidence for that line: "high" | "medium" | "low". Use "low" for faint/ambiguous lines.
+- Prefer returning BOTH unitCost and lineTotal; if only one is printed, compute the other when qty is known.`;
+
+        // Schema-constrained output. The proven JSON.parse + regex fallback below
+        // still runs, so malformed output is handled; if a future SDK/API rejects
+        // the schema, removing `responseSchema` falls back to prompt-only (the
+        // exact mechanism the `scan` op uses today).
+        const receiptSchema = {
+          type: 'object',
+          properties: {
+            date: { type: 'string' },
+            total: { type: 'number' },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  description: { type: 'string' },
+                  qty: { type: 'number' },
+                  unit: { type: 'string' },
+                  unitCost: { type: 'number' },
+                  lineTotal: { type: 'number' },
+                  barcode: { type: 'string' },
+                  matchName: { type: 'string' },
+                  confidence: { type: 'string' },
+                },
+                required: ['description', 'qty', 'unitCost', 'lineTotal'],
+              },
+            },
+          },
+          required: ['items'],
+        };
+
+        const result = await withTimeout(model.generateContent({
+          contents: [{ role: 'user', parts: [
+            { text: 'Extract the purchased line items from this supplier receipt.' },
+            { inlineData: { mimeType: mimeType, data: imageData } },
+          ]}],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 4096,
+            responseMimeType: 'application/json',
+            responseSchema: receiptSchema,
+          },
+        }), 45000, 'gemini-receipt');
+
+        const __rcptUsage = (result && result.response && result.response.usageMetadata) || {};
+        await logGeminiUsage({
+          tenantId, userId,
+          op: 'receiptScan',
+          model: 'gemini-2.5-flash',
+          inputTokens: __rcptUsage.promptTokenCount || 0,
+          outputTokens: __rcptUsage.candidatesTokenCount || 0,
+          totalTokens: __rcptUsage.totalTokenCount || 0,
+          latencyMs: Date.now() - __rcptT0,
+          success: true,
+        });
+
+        const responseText = result.response.text().trim();
+        let parsed;
+        try {
+          parsed = JSON.parse(responseText);
+        } catch (parseErr) {
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            parsed = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Invalid JSON from AI');
+          }
+        }
+        if (!parsed || !Array.isArray(parsed.items)) parsed = { items: [] };
+
+        // Sanitize lines + flag qty×unitCost vs lineTotal mismatches (extracted to
+        // a pure, unit-tested helper — see sanitizeReceiptItems / _test_receipt_scan.js).
+        const items = sanitizeReceiptItems(parsed.items);
+        const __ptotal = typeof parsed.total === 'number' ? parsed.total : parseFloat(parsed.total);
+        const total = Math.round((isFinite(__ptotal) ? __ptotal : 0) * 100) / 100;
+        const receiptDate = String(parsed.date || '').substring(0, 40);
+
+        // Receipt doc id (also names the stored image).
+        const receiptId = db.collection('tenants').doc(tenantId).collection('receipts').doc().id;
+
+        // Store the photo. Non-fatal: if Storage isn't enabled / bucket name is
+        // wrong, the receipt still saves — imageRef just stays null.
+        let imageRef = null;
+        try {
+          const objectPath = 'tenants/' + tenantId + '/receipts/' + receiptId + '.jpg';
+          await admin.storage().bucket().file(objectPath).save(Buffer.from(imageData, 'base64'), {
+            contentType: mimeType || 'image/jpeg',
+            resumable: false,
+            metadata: { metadata: { tenantId: String(tenantId), uploadedBy: String(userId || '') } },
+          });
+          imageRef = objectPath;
+        } catch (storageErr) {
+          console.warn('[receiptScan] image store failed (non-fatal):', storageErr.message);
+        }
+
+        // Top-level fields snake_case (house DB convention); items[] inner keys
+        // stay camelCase, exactly like rec.ings entries are stored as-is.
+        const receiptDoc = {
+          id: receiptId,
+          vendor_id: vendorId,
+          receipt_date: receiptDate || null,
+          total: total,
+          status: 'unassigned',
+          image_ref: imageRef,
+          items: items,
+          uploaded_by: userId || null,
+          uploaded_at: admin.firestore.FieldValue.serverTimestamp(),
+          _version: 1,
+        };
+        await db.collection('tenants').doc(tenantId).collection('receipts').doc(receiptId).set(receiptDoc);
+
+        await writeAuditLog(userId, userEmail, 'receipt_scan', 'receipts', items.length, tenantId, { receiptId: receiptId, vendorId: vendorId });
+
+        res.status(200).json({
+          data: { receiptId: receiptId, imageRef: imageRef, items: items, total: total, receiptDate: receiptDate },
+          error: null,
+          _rateLimit: { remaining: rateCheck.remaining },
+        });
+        return;
+
+      } catch (geminiError) {
+        console.error('Receipt scan error:', geminiError.message);
+        await logGeminiUsage({
+          tenantId, userId,
+          op: 'receiptScan',
+          model: 'gemini-2.5-flash',
+          inputTokens: 0, outputTokens: 0, totalTokens: 0,
+          latencyMs: Date.now() - __rcptT0,
+          success: false,
+          errorCode: geminiError.code === 'TIMEOUT' ? 'timeout'
+            : (geminiError.message || '').includes('429') ? 'rate_limit' : 'gemini_error',
+        });
+        if (geminiError.code === 'TIMEOUT') {
+          res.status(504).json({ error: 'Receipt scan timed out. Try a smaller / clearer photo.' });
+        } else if (geminiError.message && geminiError.message.includes('429')) {
+          res.status(429).json({ error: 'Receipt scan rate limit reached. Try again in a minute.' });
+        } else {
+          res.status(500).json({ error: 'Receipt scan service temporarily unavailable' });
+        }
+        return;
+      }
+    }
+
+    // ==================== RECEIPT IMAGE URL (signed, short-lived) ==============
+    // Mints a ~15-minute V4 signed URL for a stored receipt photo. Enforces that
+    // the requested object lives under THIS tenant's receipts prefix (defense
+    // against cross-tenant reference). Keeps the bucket private — no public ACLs.
+    if (operation === 'receiptImageUrl') {
+      const imageRef = sanitizeString((data && data.imageRef) || '');
+      if (!isValidReceiptImageRef(imageRef, tenantId)) {
+        res.status(400).json({ error: 'Invalid image reference' });
+        return;
+      }
+      try {
+        const signed = await admin.storage().bucket().file(imageRef).getSignedUrl({
+          version: 'v4',
+          action: 'read',
+          expires: Date.now() + 15 * 60 * 1000,
+        });
+        res.status(200).json({
+          data: { url: signed[0] },
+          error: null,
+          _rateLimit: { remaining: rateCheck.remaining },
+        });
+      } catch (e) {
+        console.warn('[receiptImageUrl] sign failed (non-fatal):', e.message);
+        res.status(500).json({ error: 'Could not generate receipt image link' });
+      }
+      return;
+    }
+
+    // ==================== RECEIPT IMAGE DATA (base64, for QB export bundle) ====
+    // Returns the raw image as base64 so the client can bundle it into the
+    // QuickBooks export zip (client can't fetch the signed GCS URL directly —
+    // CORS). Same tenant-prefix guard as receiptImageUrl.
+    if (operation === 'receiptImageData') {
+      const imageRef = sanitizeString((data && data.imageRef) || '');
+      if (!isValidReceiptImageRef(imageRef, tenantId)) {
+        res.status(400).json({ error: 'Invalid image reference' });
+        return;
+      }
+      try {
+        const file = admin.storage().bucket().file(imageRef);
+        const dl = await file.download();
+        let contentType = 'image/jpeg';
+        try { const mt = await file.getMetadata(); contentType = (mt && mt[0] && mt[0].contentType) || contentType; } catch (e2) {}
+        res.status(200).json({
+          data: { base64: dl[0].toString('base64'), contentType: contentType },
+          error: null,
+          _rateLimit: { remaining: rateCheck.remaining },
+        });
+      } catch (e) {
+        console.warn('[receiptImageData] fetch failed (non-fatal):', e.message);
+        res.status(404).json({ error: 'Receipt image not found' });
+      }
+      return;
     }
 
     // ==================== UPC / BARCODE LOOKUP (camera-scan inventory) ========

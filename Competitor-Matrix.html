@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bistro Steward — Feature Matrix</title>
+<style>
+  :root{
+    --bg:#0e0e10; --panel:#1c1c1e; --panel2:#242427; --head:#2a2a2c;
+    --line:#3a3a3d; --txt:#e6e6e8; --mut:#9a9aa0;
+    --ok:#3fb950; --no:#f85149; --part:#e3a008; --bs:#3b82f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+    padding:28px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 16px}
+  .legend{display:flex;gap:18px;margin:0 0 16px;font-size:13px;color:var(--mut);flex-wrap:wrap}
+  .legend b{font-weight:700}
+  .ok{color:var(--ok)} .no{color:var(--no)} .part{color:var(--part)}
+  table{border-collapse:separate;border-spacing:0;width:100%;max-width:1180px;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:11px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center}
+  th:last-child,td:last-child{border-right:none}
+  tr:last-child td{border-bottom:none}
+  thead th{background:var(--head);font-weight:600;font-size:13px;color:#d6d6da;position:sticky;top:0}
+  th.prod,td.prod{text-align:left;white-space:nowrap;font-weight:600}
+  td.price{text-align:left;color:var(--mut);font-size:13px;white-space:nowrap}
+  tbody tr:nth-child(odd) td{background:var(--panel)}
+  tbody tr:nth-child(even) td{background:var(--panel2)}
+  .mark{font-size:18px;font-weight:800;line-height:1}
+  .vx{font-size:11px;color:var(--mut);margin-left:3px}
+  tr.bs td{background:#14233f !important}
+  tr.bs td.prod{color:#cfe0ff}
+  .tag{display:inline-block;width:13px;height:13px;border-radius:3px;background:var(--bs);
+    vertical-align:-2px;margin-right:7px}
+  .rank{color:var(--mut);font-weight:400;font-size:12px;margin-right:8px}
+  .foot{color:var(--mut);font-size:12px;margin-top:14px;max-width:1180px}
+</style>
+</head>
+<body>
+  <h1>Bistro Steward — Competitor Feature Matrix</h1>
+  <p class="sub">Sorted cheapest → most expensive (top = lowest cost). Generated 2026-06-03.</p>
+  <div class="legend">
+    <span><b class="ok">✓</b> has it</span>
+    <span><b class="part">~</b> partial</span>
+    <span><b class="no">✗</b> missing</span>
+    <span><span class="tag"></span>Bistro Steward — full suite, $0 setup (6-mo commit)</span>
+  </div>
+
+  <table id="t">
+    <thead>
+      <tr>
+        <th class="prod">Product</th>
+        <th class="prod">$/mo</th>
+        <th>Recipe$</th><th>Inv</th><th>AIscan</th><th>Barcode</th><th>Prep</th>
+        <th>Order</th><th>OCR</th><th>POS</th><th>Multi</th><th>Acct</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p class="foot">AIscan = AI/photo <i>inventory</i> scan (photograph shelf → auto-count). Most rivals' "AI" is invoice OCR, not inventory counting (marked ~). Receipt OCR now shipped on Bistro Steward → ✓ on every capability row.</p>
+
+<script>
+  // [name, price, bsFlag, voiceNote, Recipe$,Inv,AIscan,Barcode,Prep,Order,OCR,POS,Multi,Acct]
+  // cells: 1=ok 0=no h=partial
+  const rows = [
+    ["BlueCart / Cheetah","~$10 + ~5% buys",0,0, 0,'h','h',0,0,1,'h','h','h',1],
+    ["Meez","$19 / $79 / $179",0,0, 1,'h','h',0,1,'h',1,'h',1,1],
+    ["Bistro Steward","$29–99 flat · $0 setup",1,0, 1,1,1,1,1,1,1,1,1,1],
+    ["Galley","$99 (+free)",0,0, 1,1,0,'h',1,1,0,'h',1,'h'],
+    ["Craftable","~$99/user–$300",0,0, 1,1,0,1,'h',1,1,1,1,1],
+    ["Parsley","$129–379 (+OCR $69)",0,0, 1,1,0,'h',1,1,'h','h',1,'h'],
+    ["xtraCHEF (Toast)","~$149–349",0,0, 1,1,'h',1,0,'h',1,1,1,1],
+    ["MarketMan","$199–249/loc +$1.5k setup",0,0, 1,1,'h',1,0,1,1,1,1,1],
+    ["Apicbase","€249/module × sites",0,0, 1,1,1,1,1,1,0,1,1,1],
+    ["Sculpture","$250 (others custom)",0,0, 1,1,0,1,0,'h','h',1,1,1],
+    ["MarginEdge","$350/loc",0,0, 1,1,'h',1,'h',1,1,1,1,1],
+    ["Restaurant365","~$469–749/loc",0,0, 1,1,'h',1,1,1,1,1,1,1],
+    ["Crunchtime","$5,000+",0,'voice', 1,1,1,1,1,1,1,1,1,1],
+  ];
+  function cell(v,note){
+    if(v===1) return '<span class="mark ok">✓</span>'+(note?'<span class="vx">'+note+'</span>':'');
+    if(v==='h') return '<span class="mark part">~</span>';
+    return '<span class="mark no">✗</span>';
+  }
+  const tb=document.querySelector('#t tbody');
+  rows.forEach((r,i)=>{
+    const [name,price,bs,voice,...c]=r;
+    const tr=document.createElement('tr');
+    if(bs) tr.className='bs';
+    const tag = bs ? '<span class="tag"></span>' : '';
+    const rank = '<span class="rank">'+(i+1)+'</span>';
+    let html = '<td class="prod">'+rank+tag+name+'</td><td class="price">'+price+'</td>';
+    // AIscan is index 2 in c → attach voice note there
+    c.forEach((v,j)=>{ html += '<td>'+cell(v, j===2?voice:0)+'</td>'; });
+    tr.innerHTML=html;
+    tb.appendChild(tr);
+  });
+</script>
+</body>
+</html>

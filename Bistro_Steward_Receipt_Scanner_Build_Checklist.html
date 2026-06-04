@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receipt Scanner — Build Checklist</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1d212c; --line:#2a2f3d;
+    --txt:#e0e6ed; --mut:#9aa6b8; --accent:#a29bfe; --accent2:#74acdf;
+    --good:#00b894; --warn:#fdcb6e; --bad:#ff7675; --code:#0b0d12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;padding:40px 20px}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+  h1 .sub{display:block;font-size:14px;font-weight:500;color:var(--mut);margin-top:8px;letter-spacing:0}
+  h2{font-size:18px;font-weight:700;color:var(--accent);margin:30px 0 6px}
+  .stage{font-size:12px;color:var(--mut);margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:10px}
+  p{margin:8px 0;color:#cdd5e0}
+  code{background:var(--code);color:#a8e6cf;padding:1px 6px;border-radius:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 48px;margin:10px 0;position:relative}
+  .step .id{position:absolute;left:12px;top:14px;width:26px;height:26px;border-radius:7px;background:var(--accent);color:#0b0d12;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center}
+  .step h3{font-size:14.5px;color:#fff;margin-bottom:4px}
+  .step .file{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--accent2);margin-bottom:7px}
+  .step ul{margin:6px 0 6px 18px}
+  .step li{margin:4px 0;font-size:13.5px;color:#cdd5e0}
+  .ac{margin-top:8px;font-size:12.5px;color:var(--good)}
+  .ac b{color:var(--good)}
+  .dep{margin-top:6px;font-size:12.5px;color:var(--warn)}
+  .reuse{color:var(--accent2);font-weight:600}
+  .note{background:rgba(116,172,223,.08);border:1px solid rgba(116,172,223,.25);border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13.5px}
+  .warnote{background:rgba(253,203,110,.08);border:1px solid rgba(253,203,110,.3)}
+  .lock{background:rgba(0,184,148,.07);border:1px solid rgba(0,184,148,.25);border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13.5px}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#a8e6cf;white-space:pre-wrap;background:var(--code);border-radius:10px;padding:12px 14px;border:1px solid var(--line);margin:8px 0;overflow-x:auto}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:20px;background:rgba(162,155,254,.15);color:var(--accent);margin-left:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Receipt Scanner — Build Checklist
+  <span class="sub">Bistro Steward · companion to the Margin/Receipts plan · 2026-06-01 · server-spine-first (matches UPC Phase 1 order)</span>
+</h1>
+
+<div class="lock" style="border-color:rgba(0,184,148,.5);background:rgba(0,184,148,.10)">
+<b>✅ BUILT &amp; VERIFIED — 2026-06-02 (code-complete, not yet deployed).</b> Stages A0–C are implemented and pass <b>13/13 test suites</b> (incl. 30 new receipt tests). Capture uses native file-input + canvas compression (no Apple Vision, no getUserMedia for receipts); extraction is Gemini 2.5 Flash with a responseSchema; photos persist to Cloud Storage; the Margin ▸ Receipts dashboard does best-guess assignment + Apply (priceHistory stamped with the receipt's vendor). <b>To go live:</b> enable Cloud Storage, grant the functions service account the <i>Service Account Token Creator</i> role (for signed URLs), deploy rules→functions→hosting, then <code>node enable-receipts-lachona.js --execute</code>.
+</div>
+
+<div class="lock">
+<b>Locked from the plan:</b> brand lives on the ingredient (<code>ing.brands[]</code>), recipes pick a brand per line (<code>rec.ings[].brandId</code>), one brand may be checkbox-<code>isDefault</code>. A receipt carries one <b>supplier</b> (<code>vendorId</code>); each line resolves to a <b>brand</b>. Apply writes <code>priceHistory {date,price,vendorId,brandId}</code>. Capture = phone; triage dashboard = web only. Two flags: <code>receiptScanner</code>, <code>brandSources</code> — both off / fail-closed, lachona first.
+</div>
+
+<div class="note">
+<b>Two grounding facts that shape these steps</b> (verified in code 2026-06-01):
+<br>1. <span class="reuse">Firebase Storage is not configured yet</span> (no <code>storage.rules</code>, no Storage in <code>firebase.json</code> or <code>app.html</code>) — so keeping receipt photos means standing it up (step <b>A0</b>). The receipt <b>image is retained</b> in Cloud Storage; the receipt <b>doc</b> in Firestore holds the line items + vendor + totals + an <code>imageRef</code> pointer.
+<br>2. <span class="reuse">Receipt-OCR Gemini cost is already captured</span> by the existing <code>geminiInput/geminiOutput</code> rollup, as long as we tag <code>logGeminiUsage({op:'receiptScan'})</code>. A dedicated <code>RATE_CARD</code> line is optional polish, not a blocker.
+</div>
+
+<h2>Stage A · Backend data spine</h2>
+<div class="stage">No UI. Ships and is reviewed on its own — same as the UPC server spine. This is the first PR.</div>
+
+<div class="step"><div class="id">A0</div>
+  <h3>Stand up Firebase Cloud Storage (for receipt photos)</h3>
+  <div class="file">firebase/firebase.json · firebase/storage.rules (new) · GCP bucket</div>
+  <ul>
+    <li>Enable the default Storage bucket on the <code>restaurant-oracle</code> project; add a <code>"storage": { "rules": "storage.rules" }</code> block to <code>firebase.json</code>.</li>
+    <li>New <code>storage.rules</code>: lock everything to the tenant path — <code>match /tenants/{tid}/receipts/{file}</code>, allow read only to members of <code>tid</code> (mirror the Firestore tenant check); <b>deny all client writes</b> (writes happen server-side via the Admin SDK, which bypasses rules). Defense-in-depth.</li>
+    <li>Path convention: <code>tenants/{tenantId}/receipts/{receiptId}.jpg</code>.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> <code>firebase deploy --only storage</code> succeeds; a non-member is denied read; no client can write.</div>
+</div>
+
+<div class="step"><div class="id">A1</div>
+  <h3>Add the <code>receipts</code> collection rules</h3>
+  <div class="file">firebase/firestore.rules</div>
+  <ul>
+    <li>Add a per-tenant <code>match /tenants/{tid}/receipts/{rid}</code> block, mirroring an existing tenant-scoped collection's read/write (tenant-membership + role check).</li>
+    <li>No shared/global access (unlike <code>upc_cache</code>) — receipts are tenant-private.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> <code>firebase deploy --only firestore:rules</code> dry-run / emulator compiles; a non-member can't read another tenant's receipts.</div>
+</div>
+
+<div class="step"><div class="id">A2</div>
+  <h3>Register the op + collection in RBAC</h3>
+  <div class="file">firebase/functions/permissions.js  (+ _test_permissions.js)</div>
+  <ul>
+    <li>Add <code>'receipts'</code> to <code>ALLOWED_COLLECTIONS</code> (lets the client persist receipts through the normal <code>upsert</code>/<code>select</code> path).</li>
+    <li>Add <code>'receiptScan'</code> <b>and</b> <code>'receiptImageUrl'</code> (step C5) to <code>ALLOWED_OPERATIONS</code> <b>and</b> <code>BOOL_OPS</code>.</li>
+    <li>Add <code>receiptScan: true</code> + <code>receiptImageUrl: true</code> to <code>PERMISSION_MATRIX</code> for <code>super_admin / owner / admin / employee</code> (mirror <code>scan</code>). For <code>employee</code>, also add <code>'receipts'</code> to its <code>insert</code>/<code>update</code>/<code>upsert</code> arrays if employees should triage.</li>
+    <li>Extend <code>_test_permissions.js</code> to assert the new op/collection per role.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> permission tests green; <code>checkPermission(role,'receiptScan')</code> matches <code>scan</code> for every role.</div>
+</div>
+
+<div class="step"><div class="id">A3</div>
+  <h3>Let the receipt payload use the larger image cap</h3>
+  <div class="file">firebase/functions/index.js  (~line 1001)</div>
+  <ul>
+    <li>Change the size guard to <code>operation === 'scan' || operation === 'receiptScan' ? MAX_SCAN_PAYLOAD_SIZE : undefined</code> so the 2 MB base64 image limit applies to receipts too.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> a ~1 MB receipt image passes validation; an oversized one is rejected with the same error as scan.</div>
+</div>
+
+<div class="step"><div class="id">A4</div>
+  <h3>Add <code>op:'receiptScan'</code> — clone of <code>scan</code>, receipt prompt</h3>
+  <div class="file">firebase/functions/index.js  (new <code>if (operation === 'receiptScan')</code> block, right after the <code>scan</code> block ~line 1400)</div>
+  <ul>
+    <li><span class="reuse">Reuse verbatim from scan:</span> base64 format check, <code>imageSizeBytes</code> cap, <code>GEMINI_API_KEY</code> guard, <code>gemini-2.5-flash</code> model, <code>responseMimeType:'application/json'</code>, the JSON parse-with-regex-fallback, and the sanitize-then-filter pass.</li>
+    <li><b>New input:</b> <code>data.image</code>, <code>data.mimeType</code>, <code>data.vendorId</code>, <code>data.knownIngredients</code> (D.ings names — feeds best-guess, same as scan's <code>allIngredients</code>).</li>
+    <li><b>New prompt</b> = "read this restaurant supplier receipt." Output JSON: <code>items:[{description, qty, unit, unitCost, lineTotal, barcode?, matchName, confidence}]</code> plus optional <code>total</code>. Instruct it to set <code>matchName</code> to the closest exact name from <code>knownIngredients</code>.</li>
+    <li>Sanitize each line (clamp strings, coerce numbers) like scan does; drop empty rows.</li>
+    <li><b>Persist the image:</b> generate a <code>receiptId</code>, write the decoded buffer to Cloud Storage at <code>tenants/{tenantId}/receipts/{receiptId}.jpg</code> via the Admin SDK (<code>admin.storage().bucket().file(path).save(buf, {contentType})</code>). Keep the <code>imageRef</code> (the gs/object path).</li>
+    <li><code>logGeminiUsage({ op:'receiptScan', ... })</code> and <code>writeAuditLog(userId,userEmail,'receipt_scan', vendorName, items.length, tenantId)</code>.</li>
+    <li>Return <code>{ data:{ receiptId, imageRef, items, total }, error:null, _rateLimit }</code> — the client stores these on the receipt doc.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> a posted receipt returns structured line items + a stored <code>imageRef</code>; the JPEG is in the tenant's Storage path; usage + audit rows are written.</div>
+</div>
+
+<div class="step"><div class="id">A5</div>
+  <h3>Cost attribution <span class="pill">optional</span></h3>
+  <div class="file">firebase/functions/index.js  (RATE_CARD ~3928 + rollup ~5845)</div>
+  <ul>
+    <li>Receipt Gemini cost already lands in the <code>geminiInput/geminiOutput</code> rollup via the op-tagged usage log — nothing required.</li>
+    <li><i>Only if you want a per-receipt flat estimate column</i> in the super-admin cost dashboard: add <code>RATE_CARD.receiptScanUsd</code> + a <code>tally.receiptScans</code> counter + a column, mirroring the <code>upcPaidLookups</code> wiring. Defer unless asked.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> (default) receipt OCR spend shows up under Gemini in the costs tab — no code change needed.</div>
+</div>
+
+<div class="step"><div class="id">A6</div>
+  <h3>Test + suite</h3>
+  <div class="file">firebase/functions/_test_receipt_scan.js (new) + _test_all.js</div>
+  <ul>
+    <li>Mirror <code>_test_upc_lookup.js</code>: assert RBAC gating, payload validation (bad base64 / oversized), and prompt-output parse+sanitize against a mocked Gemini JSON response (incl. a malformed-JSON-with-regex-fallback case).</li>
+    <li>Register it in <code>_test_all.js</code>.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> full function suite is green (currently 12/12 + UPC).</div>
+</div>
+
+<h2>Stage B · Capture (phone)</h2>
+<div class="stage">Behind <code>receiptScanner</code> flag. Reuses the existing camera overlay + image compression. Depends on Stage A.</div>
+
+<div class="warnote note">
+<b>No Apple Vision / no native OCR.</b> Capture is web-standard <code>getUserMedia</code> + a canvas grab; OCR + line-item extraction + ingredient matching all happen in the <code>receiptScan</code> Cloud Function via Gemini. This keeps a <b>single cross-platform codepath</b> (web PWA, Android, Capacitor iOS) and avoids a repeat of the UPC <code>BarcodeDetector</code> iOS saga (v6→v13). Apple's Vision framework is iOS-native only (no web API) and returns raw text — it wouldn't structure the receipt or match ingredients, so it'd still need an LLM pass downstream. Not used.
+</div>
+
+<div class="step"><div class="id">B1</div>
+  <h3>Create + enable the feature flag</h3>
+  <div class="file">feature_flags/receiptScanner doc · reuse enable-upc-lachona.js pattern</div>
+  <ul>
+    <li><code>{ defaultValue:false, enabledTenants:['lachona'] }</code>. Client already captures <code>window.__bsFlags</code> at login; reuse <code>flagOn('receiptScanner')</code>.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> <code>flagOn('receiptScanner')</code> is true for lachona, false elsewhere.</div>
+</div>
+
+<div class="step"><div class="id">B2</div>
+  <h3>Data layer for receipts</h3>
+  <div class="file">firebase/public/app.html  (~map fns 2184, subscribe 2342, D.* 3090)</div>
+  <ul>
+    <li>Add <code>mapReceiptFromDb</code>/<code>mapReceiptToDb</code> (mirror <code>mapVendor*</code>) for the <code>receipts</code> shape from the plan (§3).</li>
+    <li>Add <code>D.receipts=[]</code> and <code>subscribeCollection('receipts','receipts',mapReceiptFromDb)</code>.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> receipts round-trip through Firestore and appear in <code>D.receipts</code>.</div>
+</div>
+
+<div class="step"><div class="id">B3</div>
+  <h3>"Scan Receipt" capture flow</h3>
+  <div class="file">firebase/public/app.html  (reuse scanner module ~10329; canvas grab ~10184; secureApi ~10217)</div>
+  <ul>
+    <li>Add a <code>flagOn('receiptScanner')</code>-gated "Scan Receipt" button (alongside "Scan Barcode" in the Inventory toolbar ~3807).</li>
+    <li><span class="reuse">Reuse</span> the getUserMedia overlay, but a <b>single full-frame capture</b> (no barcode-decode loop): <code>canvas.toDataURL('image/jpeg',0.75)</code>.</li>
+    <li>Add a <b>vendor (supplier) picker</b> from <code>D.vendors</code> at capture.</li>
+    <li>Call <code>secureApi('receiptScan',null,{image,mimeType,vendorId,knownIngredients:D.ings.map(name)})</code>.</li>
+    <li>On result, build a <code>receipts</code> doc (status <code>'unassigned'</code>, items carry <code>matchName</code>→resolved <code>matchIngId</code>) and persist via <code>upsert</code> + <code>markChanged</code>.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> scanning a supplier receipt on the lachona iPhone creates a <code>receipts</code> doc with parsed lines + best-guess matches.</div>
+</div>
+
+<h2>Stage C · Margin ▸ Receipts dashboard (web only)</h2>
+<div class="stage">Desktop-gated. Depends on Stage B. The Apply step (C4) depends on the brands[] data spine — see dependency note.</div>
+
+<div class="step"><div class="id">C1</div>
+  <h3>Add a Margin sub-view toggle</h3>
+  <div class="file">firebase/public/app.html  (<code>renderMargin</code> ~7001)</div>
+  <ul>
+    <li>Margin has no sub-views today. Add state <code>var marginSub='recipes'</code> and render a 2-button toggle (Recipes | Receipts) at the top of <code>renderMargin</code>.</li>
+    <li>Gate the Receipts toggle to desktop width; on phone, Margin stays recipes-only (capture lives in Inventory).</li>
+    <li>When <code>marginSub==='receipts'</code>, call <code>renderReceipts(c,s)</code> and return.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> on desktop the toggle switches views; phone shows no Receipts dashboard.</div>
+</div>
+
+<div class="step"><div class="id">C2</div>
+  <h3>Receipt list</h3>
+  <div class="file">firebase/public/app.html  (new <code>renderReceipts</code>)</div>
+  <ul>
+    <li>Table of <code>D.receipts</code>: vendor (resolve <code>vendorId</code>→name), date, total, # items, status badge (unassigned / partial / done). Sort newest first.</li>
+    <li>Row click → open the receipt detail (C3).</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> all scanned receipts list with correct vendor, totals, and status.</div>
+</div>
+
+<div class="step"><div class="id">C3</div>
+  <h3>Receipt detail — per-item assignment</h3>
+  <div class="file">firebase/public/app.html  (<code>renderReceipts</code> detail)</div>
+  <ul>
+    <li>One row per line: description, qty, unit, unit cost, line total.</li>
+    <li><b>Ingredient picker</b> (search/dropdown over <code>D.ings</code>) <b>pre-selected to <code>matchIngId</code></b>; confidence shown when low. Barcode lines that hit an existing <code>brand.barcode</code> are pre-locked.</li>
+    <li><b>Location picker</b>: area / sub-area from <code>D.areas</code>.</li>
+    <li>Vendor (supplier) shown read-only from the receipt header.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> every line shows an editable best-guess ingredient + a location selector.</div>
+</div>
+
+<div class="step"><div class="id">C4</div>
+  <h3>Apply — write costs &amp; (optionally) inventory</h3>
+  <div class="file">firebase/public/app.html  (mirror <code>applyScanResults</code> ~10281)</div>
+  <ul>
+    <li>Per-line or whole-receipt Apply: append <code>priceHistory {date, price:unitCost, vendorId, brandId}</code> to the matched ingredient; update its default-brand cost.</li>
+    <li>If the line has a barcode + no matching brand yet, attach it as a new <code>brand</code> on that ingredient (carry barcode + packSize).</li>
+    <li>Optionally bump inventory at the chosen location (qty received) — gated by the open question below.</li>
+    <li>Mark line <code>applied:true</code>; flip receipt status toward <code>done</code>; <code>markChanged</code> + <code>saveAllData</code>.</li>
+  </ul>
+  <div class="dep"><b>Depends on:</b> the <code>brands[]</code> data spine (master-plan Phase 1). If receipts ship first, C4 writes <code>priceHistory {vendorId}</code> + <code>ing.cost</code> only, and brand attachment lands when <code>brands[]</code> exists. Sequence brands[] before C4 to avoid rework.</div>
+  <div class="ac"><b>Done when:</b> assigning lines updates ingredient cost + price history (and inventory if enabled) and the receipt reaches <code>done</code>.</div>
+</div>
+
+<div class="step"><div class="id">C5</div>
+  <h3>View the stored receipt image</h3>
+  <div class="file">firebase/functions/index.js (new <code>op:'receiptImageUrl'</code>) · app.html (detail view) · firebase.json CSP</div>
+  <ul>
+    <li>Add a tiny op <code>receiptImageUrl</code> that, after the tenant/RBAC check, returns a short-lived <b>V4 signed URL</b> (~15 min) for the receipt's <code>imageRef</code>. Keeps the bucket private — no public objects.</li>
+    <li>Receipt detail (C3) shows a thumbnail / "View receipt" that fetches the signed URL on demand.</li>
+    <li>Add the Storage host (<code>https://storage.googleapis.com</code>) to CSP <code>img-src</code> in <code>firebase.json</code> so the image renders. (Current <code>img-src</code> is <code>'self' data: …</code>.)</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> a user can open the original photo for any receipt they're allowed to see; the URL expires; non-members get nothing.</div>
+</div>
+
+<h2>Stage D · Review &amp; verify</h2>
+<div class="stage">Your standard F/X/S/C convergence loop, then the verification gate — before any deploy.</div>
+<div class="step"><div class="id">D1</div>
+  <h3>4-lens review loop</h3>
+  <ul>
+    <li><b>F</b> scan→match→assign→cost works end to end, image retained + viewable; <b>X</b> capture fast on phone, triage fast on desktop, guess pre-selected; <b>S</b> Firestore <i>and</i> Storage rules tenant-scoped, bucket private (signed URLs only), client writes to Storage denied, RBAC on <code>receiptScan</code>/<code>receiptImageUrl</code>, payload cap, Gemini cost cap; <b>C</b> no frontend/backend field-name drift, map fns symmetric, inline JS parses.</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> no actionable P0/P1/P2 remains.</div>
+</div>
+<div class="step"><div class="id">D2</div>
+  <h3>Verification gate + deploy order</h3>
+  <ul>
+    <li>Full suite green; <code>app.html</code> inline JS parses; flags off/fail-closed; deploy <code>rules → functions → hosting</code> (half-deploys non-breaking).</li>
+  </ul>
+  <div class="ac"><b>Done when:</b> SHIP-READY verdict; enabled for lachona only.</div>
+</div>
+
+<div class="warnote note">
+<b>Recommended first PR = Stage A only</b> (rules + permissions + <code>receiptScan</code> op + tests). It's self-contained, has no UI surface, and mirrors exactly how the UPC server spine shipped and was hardened before any camera work. Stages B→C follow once A is reviewed.
+</div>
+
+<h2>Still-open decisions (don't block Stage A)</h2>
+<p>From the plan's §9, these only matter at C4: (1) does Apply <b>auto-add to inventory</b> (receipts = goods received → likely yes)? (2) when several suppliers carry the chosen brand, default cost = <b>most recent</b> / cheapest / preferred? (3) vendor <b>required at capture</b> or fillable later on the dashboard?</p>
+<p><b>New, for storage:</b> (4) <b>retention period</b> for receipt photos — tax/audit records are often kept 3–7 years; set a Storage lifecycle policy and make sure <code>retention.js</code> (tenant offboarding) also purges the <code>tenants/{id}/receipts/</code> prefix. (5) Do you want a <b>manual upload</b> path on the web dashboard (drag-drop a photo/PDF) in addition to phone capture?</p>
+
+</div>
+</body>
+</html>

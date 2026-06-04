@@ -100,22 +100,22 @@ group('employee', () => {
       assert.strictEqual(checkPermission('employee', 'select', c), true, 'select ' + c);
     }
   });
-  t('insert restricted to inv/log/shopping', () => {
-    const allowed = ['inv', 'log', 'shopping'];
+  t('insert restricted to inv/log/shopping + receipts', () => {
+    const allowed = ['inv', 'log', 'shopping', 'receipts'];
     for (const c of ALLOWED_COLLECTIONS) {
       const expect = allowed.includes(c);
       assert.strictEqual(checkPermission('employee', 'insert', c), expect, 'insert ' + c);
     }
   });
-  t('update restricted to inv/log/shopping', () => {
-    const allowed = ['inv', 'log', 'shopping'];
+  t('update restricted to inv/log/shopping + receipts', () => {
+    const allowed = ['inv', 'log', 'shopping', 'receipts'];
     for (const c of ALLOWED_COLLECTIONS) {
       const expect = allowed.includes(c);
       assert.strictEqual(checkPermission('employee', 'update', c), expect, 'update ' + c);
     }
   });
   t('upsert allowed for catalog edits but not vendors/menus_full/etc', () => {
-    const allowed = ['inv', 'log', 'shopping', 'ings', 'areas', 'cats', 'menu_cats', 'rec_cats', 'units', 'recs', 'menus', 'preps', 'conversions'];
+    const allowed = ['inv', 'log', 'shopping', 'ings', 'areas', 'cats', 'menu_cats', 'rec_cats', 'units', 'recs', 'menus', 'preps', 'conversions', 'receipts'];
     for (const c of ALLOWED_COLLECTIONS) {
       const expect = allowed.includes(c);
       assert.strictEqual(checkPermission('employee', 'upsert', c), expect, 'upsert ' + c);

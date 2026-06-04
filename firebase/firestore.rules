@@ -148,6 +148,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Receipts (Margin/Receipts feature): scanned supplier receipts + extracted
+    // line items. Created server-side by the `receiptScan` op and edited via the
+    // `upsert` op (both Admin SDK, bypass rules). Tenant members read their own;
+    // super admins read all. No client writes.
+    match /tenants/{tenantId}/receipts/{document=**} {
+      allow read: if isSuperAdmin() || isApprovedForTenant(tenantId);
+      allow write: if false;
+    }
+
     // ── Per-tenant server-side-only collections ──────────────────────────────
     // approved_emails: never readable by clients, stamped by Cloud Function only.
     // (Super admin reads via Admin SDK which bypasses rules.)

@@ -92,7 +92,12 @@ All on `ios-capacitor`, deployed live (hosting + functions), verified. Native sh
 
 ### Outstanding to ship (current — supersedes §0.1 "Remaining")
 **App Store (critical path → TestFlight):**
-1. **Apple demo account** — login-wall app, reviewers can't do Google/Apple SSO → need an email/pass demo tenant (Claude can create). **Hard gate.**
+1. ~~**Apple demo account**~~ — ✅ **DONE & E2E-VERIFIED (2026-06-01).** Created via `create-demo-account.js` (repo root, ADC, re-runnable with abort-if-exists guard). Reviewer creds → **App Store Connect → App Review Information → Sign-In Required**:
+   - **Username:** `demo@bistrosteward.com`  **Password:** `***REMOVED***`
+   - Isolated `tenants/demo` (id==slug=='demo', `status:'active'`, `onboardingComplete:true`, plan pro, owner role). LaChona's real data is **not** exposed — fully separate, seeded fictional "Demo Bistro" (14 ingredients, 14 inventory rows, 4 recipes, 3 menus, 2 prep items, all areas/cats/units). Auth user `emailVerified:true` (clears the password-user verify gate); claims `{tenantId,tenantSlug,approved:true,role:owner}`.
+   - **Tenant resolves from JWT claims, not hostname** → this account opens the demo tenant on the native iOS app too (loads `restaurant-oracle.web.app/app`).
+   - **Barcode scanner (headline native feature) is ON** for demo: `feature_flags/upcScanner.enabledTenants` now `["lachona","demo"]` (flag keys on tenantId/doc-id).
+   - Verified through the real reviewer path (REST email/pw sign-in → claims gate → `getTenantConfig` status=active + upcScanner=true → CF `select` returns all seeded rows): **claims PASS · config PASS · data PASS.**
 2. App Store Connect record (bundle `com.bistrosteward.app`, category, age rating, pricing).
 3. Screenshots (6.9" + 6.7"; iPad if supported).
 4. App Privacy nutrition label (email/auth, PostHog usage, Sentry crash, camera).

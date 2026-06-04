@@ -9,12 +9,13 @@ const ALLOWED_COLLECTIONS = [
   'units', 'ings', 'inv', 'shopping', 'preps', 'recs',
   'menus', 'log', 'conversions', 'vendors', 'settings',
   'approved_emails', 'audit_log', 'counters', 'invoices', 'feedback_events',
-  'ai_insight_cache'
+  'ai_insight_cache', 'receipts'
 ];
 
 const ALLOWED_OPERATIONS = [
   'select', 'insert', 'update', 'upsert', 'delete',
   'invite_user', 'voice', 'scan', 'upcLookup', 'upcContribute', 'reserve_ids',
+  'receiptScan', 'receiptImageUrl', 'receiptImageData',
   'provisionTenant', 'deprovisionTenant', 'getTenantConfig', 'checkSlugAvailable',
   'submitFeedback',
   'get_tenant_settings', 'rotate_invoice_token', 'list_invoices',
@@ -23,6 +24,7 @@ const ALLOWED_OPERATIONS = [
 
 const BOOL_OPS = [
   'invite_user', 'voice', 'scan', 'upcLookup', 'upcContribute', 'reserve_ids',
+  'receiptScan', 'receiptImageUrl', 'receiptImageData',
   'provisionTenant', 'deprovisionTenant', 'getTenantConfig', 'checkSlugAvailable',
   'submitFeedback',
   'get_tenant_settings', 'rotate_invoice_token', 'list_invoices',
@@ -32,7 +34,7 @@ const BOOL_OPS = [
 const PERMISSION_MATRIX = {
   super_admin: {
     select: '*', insert: '*', update: '*', upsert: '*', delete: '*',
-    invite_user: true, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true,
+    invite_user: true, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true, receiptScan: true, receiptImageUrl: true, receiptImageData: true,
     provisionTenant: true, deprovisionTenant: true,
     getTenantConfig: true, checkSlugAvailable: true,
     submitFeedback: true, get_tenant_settings: true,
@@ -40,7 +42,7 @@ const PERMISSION_MATRIX = {
   },
   owner: {
     select: '*', insert: '*', update: '*', upsert: '*', delete: '*',
-    invite_user: true, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true,
+    invite_user: true, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true, receiptScan: true, receiptImageUrl: true, receiptImageData: true,
     getTenantConfig: true, checkSlugAvailable: true,
     provisionTenant: false, deprovisionTenant: false,
     submitFeedback: true, get_tenant_settings: true,
@@ -48,7 +50,7 @@ const PERMISSION_MATRIX = {
   },
   admin: {
     select: '*', insert: '*', update: '*', upsert: '*', delete: '*',
-    invite_user: true, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true,
+    invite_user: true, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true, receiptScan: true, receiptImageUrl: true, receiptImageData: true,
     getTenantConfig: true, checkSlugAvailable: false,
     provisionTenant: false, deprovisionTenant: false,
     submitFeedback: true, get_tenant_settings: true,
@@ -56,11 +58,11 @@ const PERMISSION_MATRIX = {
   },
   employee: {
     select: '*',
-    insert: ['inv', 'log', 'shopping'],
-    update: ['inv', 'log', 'shopping'],
-    upsert: ['inv', 'log', 'shopping', 'ings', 'areas', 'cats', 'menu_cats', 'rec_cats', 'units', 'recs', 'menus', 'preps', 'conversions'],
+    insert: ['inv', 'log', 'shopping', 'receipts'],
+    update: ['inv', 'log', 'shopping', 'receipts'],
+    upsert: ['inv', 'log', 'shopping', 'ings', 'areas', 'cats', 'menu_cats', 'rec_cats', 'units', 'recs', 'menus', 'preps', 'conversions', 'receipts'],
     delete: [],
-    invite_user: false, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true,
+    invite_user: false, voice: true, scan: true, upcLookup: true, upcContribute: true, reserve_ids: true, receiptScan: true, receiptImageUrl: true, receiptImageData: true,
     getTenantConfig: false, checkSlugAvailable: false,
     provisionTenant: false, deprovisionTenant: false,
     submitFeedback: true, get_tenant_settings: false,

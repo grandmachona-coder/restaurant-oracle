@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bistro Steward — Brands, Receipt Scanning & Vendor-Level Costing Plan</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1d212c; --line:#2a2f3d;
+    --txt:#e0e6ed; --mut:#9aa6b8; --accent:#a29bfe; --accent2:#74acdf;
+    --good:#00b894; --warn:#fdcb6e; --bad:#ff7675; --code:#0b0d12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;padding:40px 20px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+  h1 .sub{display:block;font-size:14px;font-weight:500;color:var(--mut);margin-top:8px;letter-spacing:0}
+  h2{font-size:20px;font-weight:700;color:var(--accent);margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  h3{font-size:15px;font-weight:700;color:var(--accent2);margin:20px 0 6px}
+  p{margin:8px 0;color:#cdd5e0}
+  ul,ol{margin:8px 0 8px 22px}
+  li{margin:5px 0;color:#cdd5e0}
+  code{background:var(--code);color:#a8e6cf;padding:1px 6px;border-radius:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:14px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.04em;vertical-align:middle}
+  .t-new{background:rgba(0,184,148,.15);color:var(--good)}
+  .t-reuse{background:rgba(116,172,223,.15);color:var(--accent2)}
+  .t-change{background:rgba(253,203,110,.15);color:var(--warn)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  tr:last-child td{border-bottom:none}
+  .agent{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:14px 16px;margin:10px 0}
+  .agent h3{margin-top:0;color:#fff}
+  .pill{font-size:11px;color:var(--mut);font-weight:600}
+  .phase{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+  .phase .n{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#0b0d12;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .note{background:rgba(116,172,223,.08);border:1px solid rgba(116,172,223,.25);border-radius:10px;padding:12px 16px;margin:12px 0;font-size:13.5px}
+  .warnote{background:rgba(253,203,110,.08);border:1px solid rgba(253,203,110,.3)}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#a8e6cf;white-space:pre-wrap;background:var(--code);border-radius:10px;padding:14px 16px;border:1px solid var(--line);overflow-x:auto}
+  .legend span{margin-right:16px;font-size:12px;color:var(--mut)}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Brands, Receipt Scanning &amp; Vendor-Level Costing
+  <span class="sub">Bistro Steward · Margin &amp; Inventory expansion · plan v1 · 2026-06-01</span>
+</h1>
+
+<div class="legend panel" style="padding:12px 18px">
+  <span><span class="tag t-new">NEW</span> net-new code</span>
+  <span><span class="tag t-reuse">REUSE</span> existing infra</span>
+  <span><span class="tag t-change">CHANGE</span> modifies existing shape</span>
+</div>
+
+<h2>1 · What you asked for</h2>
+<div class="panel">
+<ol>
+  <li><b>Brand list per ingredient, each with its own barcode</b> — a packaged ingredient can be bought as several brands; scanning any of their UPCs should resolve to the same ingredient.</li>
+  <li><b>Fresh produce uses Supplier as the brand stand-in</b> — no barcode; the vendor <i>is</i> the "brand".</li>
+  <li><b>A way to identify which brand a recipe's ingredient is actually using</b> (for accurate costing).</li>
+  <li><b>Receipt scanning</b> as a capture option — reuse the UPC/camera + Gemini-Vision setup.</li>
+  <li><b>Assign receipt line-items to ingredients with an inventory location</b>, best-guess match shown first.</li>
+  <li><b>A Receipts sub-dashboard inside the Margin tab</b> — <i>web app only</i>, not the phone — showing each scanned receipt and its extracted items with cost/qty.</li>
+  <li><b>Each receipt is assigned a vendor</b> → feeds <b>vendor-level recipe costing</b>.</li>
+</ol>
+</div>
+
+<h2>2 · How this fits the current code</h2>
+<p>Grounding the plan in what's actually there (verified against <code>app.html</code> + <code>functions/index.js</code> on 2026-06-01):</p>
+<table>
+  <tr><th>Existing piece</th><th>Where</th><th>How we reuse it</th></tr>
+  <tr><td>Ingredient model has <code>barcode</code>, <code>vendorId</code>, <code>cost</code>, <code>priceHistory[]</code></td><td><code>mapIngFromDb / mapIngToDb</code> app.html ~2184</td><td>Extend, don't replace — see §3.</td></tr>
+  <tr><td>UPC scanner + <code>upcLookup</code> op + shared <code>upc_cache</code></td><td>app.html "Phase 2" module; index.js ~1419</td><td>Same camera overlay drives receipt capture.</td></tr>
+  <tr><td>Gemini-Vision <code>op:'scan'</code> (count-sheet OCR → JSON items, usage logged, rate-limited, audited)</td><td>index.js ~1262–1400</td><td>Clone into <code>op:'receiptScan'</code> with a receipt prompt.</td></tr>
+  <tr><td><code>getBestVendorForIng()</code> already groups <code>priceHistory</code> by <code>vendorId</code></td><td>app.html ~6940</td><td>This is the seed of vendor-level costing.</td></tr>
+  <tr><td><code>calcLineIngCost()/calcRecipeCost()</code> use a single <code>ing.cost</code></td><td>app.html ~6820–6900</td><td>Add an optional vendor/source overlay (§5).</td></tr>
+  <tr><td>Vendors collection (<code>D.vendors</code>), areas/sub-areas, feature-flag gating (<code>upcScanner</code>)</td><td>app.html ~1963, ~2183; flags ~login</td><td>Receipts get a vendor; assignment picks area/subArea; new flags gate rollout.</td></tr>
+</table>
+<div class="note">Key distinction: <b>brand and supplier are two independent axes for packaged goods.</b> The <b>brand</b> is the product identity and carries the barcode (General Mills cereal — the UPC identifies the branded product). The <b>supplier</b> is where you bought it (Costco) and determines the price you actually paid. The same brand can be bought from several suppliers at different prices, so <b>cost lives at the <i>intersection</i> of brand × supplier × date</b>. For <b>produce</b> (strawberries, corn, steak) the two axes collapse: there's no barcode and the supplier <i>is</i> the brand. The model below handles both with one code path.</div>
+
+<h2>3 · Data model</h2>
+
+<h3><span class="tag t-change">CHANGE</span> Ingredient gains a <code>brands[]</code> array; pricing is keyed by brand × supplier</h3>
+<p>Two structures, because the two axes are independent:</p>
+<div class="mono">// AXIS 1 — Brand (product identity; carries the barcode). A sub-category of the
+//          ingredient ONLY. Lives on the ingredient; recipes reference it by choice.
+ing.brands = [
+  {
+    brandId,             // stable id
+    name,                // "General Mills Cheerios 18oz"  (for produce: the supplier name)
+    barcode|null,        // UPC/EAN identifies the BRANDED PRODUCT; null for produce
+    packSize, packUnit,  // e.g. 18 / "oz"  -> normalizes to recipe unit cost
+    isProduce,           // true -> brand == supplier, no barcode
+    isDefault            // checkbox: default brand for EVERY recipe using this ingredient
+  }, ...
+]
+// Exactly one brand per ingredient may have isDefault:true (setting one clears the rest).
+
+// AXIS 2 — Supplier × brand pricing. Reuses the EXISTING priceHistory array,
+//          just adds brandId alongside the vendorId it already stores.
+ing.priceHistory = [
+  { date, price, vendorId, brandId, packSize }   // "GM cereal cost $4.20/box at Costco on 6/1"
+]
+// ing.barcode + ing.cost stay as legacy/fallback (back-compat, lazy migration)</div>
+<ul>
+  <li><b>Packaged goods:</b> each brand is one entry in <code>brands[]</code> with its barcode. Scanning any brand's UPC resolves to the ingredient <i>and</i> the specific brand. The <i>same</i> brand can appear in <code>priceHistory</code> against multiple <code>vendorId</code>s at different prices — that's the Costco-vs-Sysco distinction.</li>
+  <li><b>Fresh produce:</b> brand entries have <code>barcode:null</code> and <code>isProduce:true</code>; here brand and supplier are one and the same, so each "brand" maps 1:1 to a <code>vendorId</code>. One code path, no separate produce system.</li>
+  <li><b>Back-compat:</b> existing single <code>barcode</code>/<code>cost</code> stay; a lazy migration folds them into <code>brands[0]</code> (flagged <code>isDefault</code>) + a seed <code>priceHistory</code> row on first edit. Non-destructive, mirrors UPC Phase 1.</li>
+</ul>
+
+<h3><span class="tag t-change">CHANGE</span> Recipe lines can pick a brand</h3>
+<p>Recipe ingredient lines (<code>rec.ings = [{ingId, qty, unit}]</code>) gain one optional field:</p>
+<div class="mono">rec.ings = [ { ingId, qty, unit, brandId|null } ]
+//  brandId set    -> this recipe uses that specific brand (per-line override)
+//  brandId null   -> falls back to the ingredient's isDefault brand</div>
+<p>This is the resolution order the cost engine uses, most specific first:</p>
+<ol>
+  <li><b>Recipe-line <code>brandId</code></b> — the brand explicitly chosen while building the recipe.</li>
+  <li><b>Ingredient's <code>isDefault</code> brand</b> — the checkbox-flagged default for all recipes.</li>
+  <li><b>Legacy <code>ing.cost</code></b> — pre-migration fallback.</li>
+</ol>
+<p>So the checkbox sets the house default everywhere at once; the recipe builder's brand picker overrides it for a single dish without touching others.</p>
+
+<h3><span class="tag t-new">NEW</span> <code>receipts</code> collection (per-tenant)</h3>
+<div class="mono">tenants/{tenantId}/receipts/{receiptId} = {
+  id, vendorId,            // REQUIRED -> the SUPPLIER for every line on this receipt
+  receiptDate, uploadedAt, uploadedBy,
+  imageRef,                // Storage path of the captured photo
+  total, currency,
+  status: 'unassigned' | 'partial' | 'done',
+  items: [ {
+     lineId, rawText, description,
+     qty, unit, unitCost, lineTotal,
+     barcode|null,                 // if printed -> identifies the BRAND
+     matchIngId|null, matchBrandId|null, matchConfidence,  // best-guess, see §4
+     assignedIngId|null, assignedBrandId|null,             // brand <- barcode/desc
+     assignedAreaId|null, assignedSubArea|null,
+     applied: false                // true once written to ingredient/inventory
+  } ... ]
+}
+// receipt.vendorId is the supplier; each line resolves to a brand. Together they
+// write one priceHistory row {vendorId, brandId, price} on the matched ingredient.</div>
+
+<h3>Storage, rules &amp; cost</h3>
+<ul>
+  <li><span class="tag t-new">NEW</span> <b>Firebase Cloud Storage</b> for the receipt photos (not configured today). The <code>receiptScan</code> function writes the image server-side to <code>tenants/{tenantId}/receipts/{receiptId}.jpg</code> and stores the <code>imageRef</code> on the receipt doc; a signed-URL op serves it back for viewing. Bucket stays private. Add a retention/lifecycle policy and include the receipts prefix in <code>retention.js</code> tenant-offboarding purge.</li>
+  <li><span class="tag t-new">NEW</span> per-tenant <code>receipts</code> Firestore rules + tenant-scoped <code>storage.rules</code> (read = members only; client writes denied — writes are Admin-SDK server-side).</li>
+  <li><span class="tag t-reuse">REUSE</span> <code>geminiUsage</code> ledger + <code>tenant_costs_daily</code> rollup — receipt-OCR Gemini cost is auto-captured once usage is tagged <code>op:'receiptScan'</code>. A dedicated <code>RATE_CARD.receiptScanUsd</code> column is optional polish.</li>
+  <li><span class="tag t-reuse">REUSE</span> existing UPC-resolution cascade (<code>upc_cache</code> → free providers → paid) for any barcodes a receipt prints.</li>
+</ul>
+
+<h2>4 · Best-guess ingredient matching</h2>
+<p>Reuse the exact technique already in the count-sheet OCR: the <code>scan</code> op passes <i>ALL KNOWN INGREDIENTS</i> into the Gemini prompt and asks it to return the closest exact name. For receipts:</p>
+<ol>
+  <li><b>Server (Gemini)</b> returns, per line, a <code>description</code> + a suggested <code>matchName</code> chosen from the tenant's ingredient list + a <code>confidence</code>.</li>
+  <li><b>Client</b> resolves <code>matchName</code> → <code>matchIngId</code>; a lightweight token/Levenshtein fallback re-ranks when confidence is low.</li>
+  <li><b>Barcode short-circuit:</b> a printed UPC identifies the <i>brand</i>. If it maps to an existing <code>brand.barcode</code>, both the ingredient <i>and</i> the brand are matched exactly (confidence = high), skipping fuzzy matching. If it's a new barcode, it resolves via the UPC cascade and becomes a candidate new brand on the chosen ingredient.</li>
+  <li>The dropdown in the dashboard is <b>pre-selected to the best guess</b> (ingredient + brand); the user confirms or overrides. The receipt's <code>vendorId</code> supplies the supplier automatically.</li>
+</ol>
+
+<h2>5 · Vendor-level recipe costing</h2>
+<p>Today <code>calcLineIngCost</code> uses one <code>ing.cost</code>. Because cost lives at brand × supplier, there are now two knobs — but we keep the single-number path working untouched:</p>
+<ul>
+  <li>Per line, the brand is resolved by the order in §3 (recipe-line <code>brandId</code> → ingredient <code>isDefault</code> brand → legacy). Cost = that brand's most recent <code>priceHistory</code> price, normalized to the recipe unit via <code>packSize</code>.</li>
+  <li>Add <code>calcRecipeCost(rec, {vendorId, brandPref})</code> — an optional overlay. For each line ingredient it picks the price from the matching <code>priceHistory</code> row, filtered by supplier (<code>vendorId</code>) and/or brand. Already half-built: <code>getBestVendorForIng</code> groups history by vendor — we extend it to group by brand too.</li>
+  <li>Assigning a receipt line writes a <code>priceHistory</code> entry <code>{date, price, vendorId, brandId}</code> — a superset of the shape the function already reads — so both supplier and brand costing sharpen automatically as receipts come in.</li>
+  <li><b>Margin tab</b> gains two optional selectors: <i>"cost as if bought from [supplier ▾]"</i> and <i>"using [brand ▾]"</i>, so you can compare a recipe's margin across suppliers and across brand choices (e.g. premium vs. store brand).</li>
+</ul>
+
+<h2>6 · Capture &amp; the Receipts sub-dashboard</h2>
+<div class="grid">
+  <div class="panel">
+    <h3>Capture (phone)</h3>
+    <p><span class="tag t-reuse">REUSE</span> the UPC camera overlay (web <code>getUserMedia</code> — no Apple Vision/native OCR). A "Scan Receipt" mode takes a full photo (not a barcode decode) and sends it to <code>op:'receiptScan'</code>, which stores the image in Cloud Storage and returns the parsed lines + <code>imageRef</code>; the client then creates a <code>receipts</code> doc with <code>status:'unassigned'</code>. Vendor can be picked at capture or later.</p>
+  </div>
+  <div class="panel">
+    <h3>Triage (web only — Margin ▸ Receipts)</h3>
+    <p><span class="tag t-new">NEW</span> sub-view listing receipts (vendor, date, total, #items, status). Open one → table of extracted items; each row has qty/unit/unit-cost + an <b>ingredient search/dropdown pre-filled with the best guess</b> and an <b>inventory-location</b> picker (area / sub-area). Web-only, gated to desktop width.</p>
+  </div>
+</div>
+<p><b>On "Apply"</b> (per line or whole receipt), mirroring <code>applyScanResults</code>: upsert/attach the <i>brand</i> to the ingredient (carry barcode + pack), append a <code>priceHistory</code> entry pairing the receipt's <code>vendorId</code> (supplier) with the line's <code>brandId</code> + price, optionally bump inventory at the chosen location, mark the line <code>applied</code>, and flip receipt status toward <code>done</code>.</p>
+
+<h2>7 · Phasing &amp; flags</h2>
+<div class="panel">
+  <div class="phase"><div class="n">1</div><div><b>Data spine</b> <span class="tag t-change">CHANGE</span> — add <code>brands[]</code> to ing map fns + <code>brandId</code> to <code>priceHistory</code> + lazy migration; create <code>receipts</code> collection + rules; <code>RATE_CARD.receiptScanUsd</code>. Server + tests only, no UI. <span class="pill">Mirrors UPC Phase 1.</span></div></div>
+  <div class="phase"><div class="n">2</div><div><b>Receipt OCR op</b> <span class="tag t-new">NEW</span> — <code>op:'receiptScan'</code> (Gemini prompt, JSON line-items, usage logging, audit, rate limit) + camera capture mode behind flag <code>receiptScanner</code>.</div></div>
+  <div class="phase"><div class="n">3</div><div><b>Margin ▸ Receipts dashboard</b> <span class="tag t-new">NEW</span> — list, item table, best-guess assignment, location picker, Apply. Web/desktop-gated.</div></div>
+  <div class="phase"><div class="n">4</div><div><b>Brands + vendor costing UX</b> <span class="tag t-new">NEW</span> — brand manager in the ingredient drawer (incl. "default for all recipes" checkbox), per-line brand picker in the recipe builder, and the "by supplier ▾ / by brand ▾" cost overlays in Margin. Flag <code>brandSources</code>.</div></div>
+</div>
+<div class="note warnote">Both flags ship <b>off, fail-closed</b>, enabled for <code>lachona</code> first — same pilot pattern as <code>upcScanner</code>. Deploy order stays rules → functions → hosting (half-deploys non-breaking).</div>
+
+<h2>8 · The multi-agent team — one task each</h2>
+<p>This follows your established build-then-converge pattern: parallel <b>builders</b>, then a <b>4-lens F/X/S/C review loop</b> that iterates fix→review until no actionable P0/P1/P2 remains, then a <b>verification</b> gate.</p>
+
+<div class="agent">
+  <h3>A0 · Architect / Orchestrator <span class="pill">— owns the contract</span></h3>
+  <p><b>Task:</b> Lock the <code>sources[]</code> + <code>receipts</code> schemas and the field-name contract between <code>app.html</code> and <code>index.js</code> (the recurring drift-bug class). Sequence the phases, own the lazy-migration spec, and hand each builder a frozen interface. Final arbiter of the convergence loop.</p>
+</div>
+<div class="agent">
+  <h3>A1 · Backend / Server builder</h3>
+  <p><b>Task:</b> Add <code>op:'receiptScan'</code> (clone of <code>scan</code>) with the receipt prompt + line-item sanitizer; persist <code>brands[]</code> + <code>brandId</code> on <code>priceHistory</code> in <code>mapIngTo/FromDb</code>; write <code>receipts</code> Firestore rules; wire <code>geminiUsage</code> + <code>RATE_CARD.receiptScanUsd</code> + audit + rate-limit + payload-size cap; add <code>_test_receipt_scan.js</code>. Reuse the UPC cascade for printed barcodes (barcode → brand).</p>
+</div>
+<div class="agent">
+  <h3>A2 · Capture / Frontend builder</h3>
+  <p><b>Task:</b> Extend the camera overlay with a "Scan Receipt" mode (full-frame photo → Storage → <code>receiptScan</code> → create <code>receipts</code> doc), gated behind <code>receiptScanner</code>. Build the ingredient-drawer <b>brand manager</b> (add/edit brands + barcodes + pack size + the <b>"default for all recipes" checkbox</b>, enforcing one default per ingredient) and the <b>per-line brand picker in the recipe builder</b> (writes <code>rec.ings[].brandId</code>), all behind <code>brandSources</code>.</p>
+</div>
+<div class="agent">
+  <h3>A3 · Margin dashboard builder <span class="pill">— web only</span></h3>
+  <p><b>Task:</b> Build Margin ▸ Receipts: receipt list, per-item table, best-guess ingredient dropdown + inventory-location picker, per-line/whole-receipt Apply (mirror <code>applyScanResults</code>: priceHistory + vendorId + inventory bump). Add the "cost by vendor ▾" overlay to <code>calcRecipeCost</code>/<code>renderMargin</code>. Desktop-gated.</p>
+</div>
+<div class="agent">
+  <h3>A4 · Best-guess / matching builder</h3>
+  <p><b>Task:</b> Own the matching layer — Gemini prompt's match-name field, client resolution to <code>ingId</code>, token/Levenshtein fallback re-ranking, and barcode short-circuit. Tune confidence thresholds so the pre-selected guess is right often enough to trust.</p>
+</div>
+
+<h3 style="margin-top:18px">Review convergence loop — 4 lenses</h3>
+<table>
+  <tr><th>Lens</th><th>Reviewer task</th></tr>
+  <tr><td><b>F — Functionality</b></td><td>Does scan→match→assign→cost actually work end-to-end? Migration safe? Vendor overlay math correct? Inventory bumps land?</td></tr>
+  <tr><td><b>X — eXperience</b></td><td>Capture flow fast on a phone; dashboard assignment quick on desktop; best guess pre-selected; nothing phone-broken by the web-only gate.</td></tr>
+  <tr><td><b>S — Security</b></td><td>Receipts rules tenant-scoped; RBAC on <code>receiptScan</code>; payload-size cap; Gemini cost caps + daily runaway guard; Storage paths scoped; PII on receipts handled.</td></tr>
+  <tr><td><b>C — Code quality</b></td><td>No frontend/backend field-name drift; map fns symmetric; <code>app.html</code> inline JS parses; no dead/fragile inline args; tests meaningful.</td></tr>
+</table>
+<div class="agent">
+  <h3>A5 · Verification gate</h3>
+  <p><b>Task:</b> Run the full function test suite + new receipt tests (green required), confirm <code>app.html</code> inline JS parses, dry-run the rules→functions→hosting deploy order, and verify flags are off/fail-closed before sign-off. Produces the SHIP-READY verdict.</p>
+</div>
+
+<h2>9 · Open questions for Tony</h2>
+<div class="panel">
+<ul>
+  <li><b>Costing default:</b> when several suppliers carry the chosen brand, should default cost use the <i>most recent</i> price, the <i>cheapest</i>, or a preferred supplier? v1 assumes most recent.</li>
+  <li><b>Inventory bump on Apply:</b> should assigning a receipt line <i>add</i> to on-hand inventory automatically, or only update cost/price-history? (Receipts = goods received, so auto-add is the natural default — confirm.)</li>
+  <li><b>Receipt vendor required at capture</b> or allowed to stay blank until triage on the dashboard?</li>
+  <li><b>Produce sources:</b> auto-create a source from the receipt's vendor when no barcode exists, or require manual confirm?</li>
+</ul>
+</div>
+
+</div>
+</body>
+</html>

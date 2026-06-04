@@ -1,7 +1,7 @@
 {
   "name": "Bistro Steward",
   "short_name": "Steward",
-  "description": "Smart Kitchen Management",
+  "description": "Smart Restaurant Management",
   "start_url": "/app.html",
   "scope": "/",
   "display": "standalone",

@@ -6,7 +6,7 @@
 <title>Bistro Steward — Kitchen management, food cost, AI inventory scan</title>
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
-<meta name="theme-color" content="#162d45">
+<meta name="theme-color" content="#241a10">
 <meta name="description" content="Bistro Steward is the kitchen operating system for modern restaurants — live food cost, AI-powered inventory scan, prep sheets, vendor orders. 30-day free trial. No card charged.">
 <meta name="robots" content="index,follow">
 
@@ -58,33 +58,33 @@
   html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body{
     font-family:'Inter',system-ui,-apple-system,sans-serif;
-    background:radial-gradient(ellipse at 100% 100%,#cce4f7 0%,#74acdf 25%,#2e6090 55%,#162d45 100%);
+    background:radial-gradient(ellipse at 100% 100%,#ece6d8 0%,#c2a063 25%,#5a4226 55%,#241a10 100%);
     background-attachment:fixed;
-    color:#e0e6ed;
+    color:#efe6d6;
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
-    -webkit-tap-highlight-color:rgba(116,172,223,.35);
+    -webkit-tap-highlight-color:rgba(176,146,104,.35);
     overflow-x:hidden;
   }
   img{max-width:100%;display:block}
   button,a{touch-action:manipulation}
-  a{color:#74acdf;text-decoration:none}
+  a{color:#c2a063;text-decoration:none}
   a:hover{text-decoration:underline}
 
   .wrap{max-width:1200px;margin:0 auto;padding:0 20px}
   .wrap-narrow{max-width:960px;margin:0 auto;padding:0 20px}
 
   /* ── Nav ── */
-  .nav{position:sticky;top:0;z-index:50;background:rgba(10,20,46,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(116,172,223,.18)}
+  .nav{position:sticky;top:0;z-index:50;background:rgba(46,36,26,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(176,146,104,.18)}
   .nav-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;max-width:1200px;margin:0 auto}
   .nav-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;color:#fff;letter-spacing:-.01em}
   .nav-brand img{width:32px;height:32px;border-radius:8px}
   .nav-links{display:flex;align-items:center;gap:24px}
-  .nav-links a{color:#c8d3e0;font-weight:500;font-size:14px}
+  .nav-links a{color:#d8c9b2;font-weight:500;font-size:14px}
   .nav-links a:hover{color:#fff;text-decoration:none}
-  .nav-cta{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13.5px;box-shadow:0 4px 14px rgba(46,120,184,.35);transition:all .15s}
-  .nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(46,120,184,.55);text-decoration:none}
+  .nav-cta{background:linear-gradient(135deg,#c2a063,#9c7838);color:#fff;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13.5px;box-shadow:0 4px 14px rgba(156,120,56,.35);transition:all .15s}
+  .nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(156,120,56,.55);text-decoration:none}
   @media(max-width:640px){
     .nav-links{gap:12px}
     .nav-links .link-signin{display:none}
@@ -93,150 +93,234 @@
 
   /* ── Hero ── */
   .hero{padding:72px 0 60px;text-align:center;position:relative}
-  .hero-eyebrow{display:inline-block;font-size:12px;font-weight:700;color:#0d1e33;background:rgba(204,228,247,.92);padding:6px 14px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:24px;border:1px solid rgba(255,255,255,.7);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .hero-logo{width:572px;height:572px;max-width:92%;border-radius:130px;display:block;margin:0 auto 30px;box-shadow:0 40px 90px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.1)}
+  .hero-eyebrow{display:inline-block;font-size:12px;font-weight:700;color:#2a1d10;background:rgba(236,230,216,.92);padding:6px 14px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:24px;border:1px solid rgba(255,255,255,.7);box-shadow:0 4px 14px rgba(0,0,0,.18)}
   .hero-title{font-size:56px;font-weight:900;color:#fff;letter-spacing:-.03em;line-height:1.02;max-width:900px;margin:0 auto 20px;text-shadow:0 2px 14px rgba(0,0,0,.35)}
-  .hero-title .accent{background:linear-gradient(135deg,#cce4f7,#9cc4e4);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
-  .hero-sub{font-size:19px;color:#e8eef5;font-weight:500;max-width:680px;margin:0 auto 32px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  .hero-title .accent{background:linear-gradient(118deg,#ffeabb,#edc578 46%,#d6a652);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;text-shadow:none;filter:drop-shadow(0 2px 10px rgba(0,0,0,.6)) drop-shadow(0 0 2px rgba(0,0,0,.5))}
+  .hero-sub{font-size:19px;color:#efe6d6;font-weight:500;max-width:680px;margin:0 auto 32px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.35)}
   .hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
-  .btn-primary{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;padding:17px 30px;border-radius:14px;font-weight:700;font-size:16px;box-shadow:0 10px 30px rgba(46,120,184,.5);transition:all .15s;border:1px solid rgba(255,255,255,.18)}
-  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(46,120,184,.7);text-decoration:none}
-  .btn-secondary{background:rgba(255,255,255,.9);color:#0d1e33;padding:17px 28px;border-radius:14px;font-weight:700;font-size:16px;border:1px solid rgba(255,255,255,.9);transition:all .15s}
+  .btn-primary{background:linear-gradient(135deg,#c2a063,#9c7838);color:#fff;padding:17px 30px;border-radius:14px;font-weight:700;font-size:16px;box-shadow:0 10px 30px rgba(156,120,56,.5);transition:all .15s;border:1px solid rgba(255,255,255,.18)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(156,120,56,.7);text-decoration:none}
+  .btn-secondary{background:rgba(255,255,255,.9);color:#2a1d10;padding:17px 28px;border-radius:14px;font-weight:700;font-size:16px;border:1px solid rgba(255,255,255,.9);transition:all .15s}
   .btn-secondary:hover{background:#fff;text-decoration:none;transform:translateY(-2px)}
-  .hero-trust{font-size:13px;color:#cce4f7;font-weight:500;opacity:.95;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .hero-trust{font-size:13px;color:#ece6d8;font-weight:500;opacity:.95;text-shadow:0 1px 4px rgba(0,0,0,.3)}
   .hero-trust strong{font-weight:700;color:#fff}
+  .hero-segments{font-size:17px;font-weight:600;color:#efe6d6;letter-spacing:.01em;max-width:800px;margin:6px auto 0;line-height:1.7;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  .hero-segments .seg-sep{color:#caa765;margin:0 11px;font-weight:400}
 
   /* ── Hero visual ── */
   .hero-visual{margin:56px auto 0;max-width:980px;position:relative}
-  .mock{background:linear-gradient(180deg,rgba(10,20,46,.96),rgba(10,20,46,.92));border:1px solid rgba(116,172,223,.35);border-radius:18px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.05) inset}
-  .mock-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(116,172,223,.15);margin-bottom:18px}
+  .mock{background:linear-gradient(180deg,rgba(46,36,26,.96),rgba(46,36,26,.92));border:1px solid rgba(176,146,104,.35);border-radius:18px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.05) inset}
+  .mock-head{display:flex;align-items:center;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(176,146,104,.15);margin-bottom:18px}
   .mock-dot{width:11px;height:11px;border-radius:50%}
   .mock-dot.r{background:#ff6b6b}.mock-dot.y{background:#fdcb6e}.mock-dot.g{background:#74b781}
-  .mock-url{flex:1;text-align:center;font-size:12px;color:#7a8a9b;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .mock-url{flex:1;text-align:center;font-size:12px;color:#9c8d76;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .mock-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
   @media(max-width:700px){.mock-grid{grid-template-columns:1fr}}
   .mock-panel{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px}
-  .mock-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#74acdf;margin-bottom:14px}
+  .mock-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#c2a063;margin-bottom:14px}
   .mock-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13.5px}
   .mock-row:last-child{border-bottom:0}
-  .mock-row .n{color:#e8eef5;font-weight:500}
-  .mock-row .v{color:#74acdf;font-weight:700;font-variant-numeric:tabular-nums}
+  .mock-row .n{color:#efe6d6;font-weight:500}
+  .mock-row .v{color:#c2a063;font-weight:700;font-variant-numeric:tabular-nums}
   .mock-row .v.warn{color:#fdcb6e}
   .mock-row .v.bad{color:#ff7675}
   .mock-row .v.good{color:#74b781}
   .mock-kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-  .mock-kpi-card{background:rgba(116,172,223,.08);border:1px solid rgba(116,172,223,.2);border-radius:10px;padding:12px}
-  .mock-kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8da3bb;font-weight:600;margin-bottom:4px}
+  .mock-kpi-card{background:rgba(176,146,104,.08);border:1px solid rgba(176,146,104,.2);border-radius:10px;padding:12px}
+  .mock-kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#b0a088;font-weight:600;margin-bottom:4px}
   .mock-kpi-val{font-size:22px;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums}
   .mock-kpi-delta{font-size:11px;font-weight:600;color:#74b781;margin-top:3px}
   .mock-kpi-delta.bad{color:#ff7675}
   .mock-bar{height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-top:6px}
-  .mock-bar-fill{height:100%;background:linear-gradient(90deg,#74acdf,#9cc4e4);border-radius:4px}
-  .mock-chat{padding:12px;background:rgba(116,172,223,.08);border:1px solid rgba(116,172,223,.2);border-radius:10px;font-size:12.5px;color:#cce4f7;line-height:1.5;margin-top:12px;position:relative}
-  .mock-chat::before{content:"💬 Oracle";position:absolute;top:-9px;left:12px;font-size:10px;background:#0a1422;padding:2px 8px;color:#74acdf;border-radius:6px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .mock-bar-fill{height:100%;background:linear-gradient(90deg,#c2a063,#caa765);border-radius:4px}
+  .mock-chat{padding:12px;background:rgba(176,146,104,.08);border:1px solid rgba(176,146,104,.2);border-radius:10px;font-size:12.5px;color:#ece6d8;line-height:1.5;margin-top:12px;position:relative}
+  .mock-chat::before{content:"💬 Steward";position:absolute;top:-9px;left:12px;font-size:10px;background:#0a1422;padding:2px 8px;color:#c2a063;border-radius:6px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .mock-desc{font-size:13px;color:#cbbfa9;line-height:1.6}
+  .mock-desc strong{color:#ece6d8;font-weight:700}
+  .mock-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#c2a063;background:rgba(176,146,104,.12);border:1px solid rgba(176,146,104,.25);padding:3px 9px;border-radius:999px;margin-top:12px}
+
+  /* ── Hero carousel ── */
+  .mock-carousel{position:relative}
+  .mock-viewport{overflow:hidden;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45);transition:height .45s cubic-bezier(.4,0,.2,1)}
+  .mock-track{display:flex;align-items:flex-start;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+  .mock-slide{flex:0 0 100%;min-width:0;display:flex}
+  .mock-slide>.mock{flex:1;display:flex;flex-direction:column}
+  .mock-carousel .mock{box-shadow:0 0 0 1px rgba(255,255,255,.05) inset}
+  .mock-nav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:1px solid rgba(176,146,104,.4);background:rgba(46,36,26,.9);color:#ece6d8;font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;backdrop-filter:blur(4px);transition:background .2s,transform .2s}
+  .mock-nav:hover{background:rgba(176,146,104,.32)}
+  .mock-nav:active{transform:translateY(-50%) scale(.94)}
+  .mock-nav.prev{left:-20px}.mock-nav.next{right:-20px}
+  .mock-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:22px}
+  .mock-tab{font-size:12px;font-weight:700;letter-spacing:.03em;color:#cdbfa6;background:rgba(176,146,104,.08);border:1px solid rgba(176,146,104,.22);padding:7px 14px;border-radius:999px;cursor:pointer;transition:color .2s,background .2s,border-color .2s;font-family:inherit}
+  .mock-tab:hover{color:#fff;border-color:rgba(176,146,104,.55)}
+  .mock-tab.active{color:#2a1d10;background:linear-gradient(135deg,#ece6d8,#caa765);border-color:transparent}
+  @media(max-width:760px){
+    .mock-nav.prev{left:6px}.mock-nav.next{right:6px}
+    .mock-nav{width:38px;height:38px;font-size:17px}
+    .mock-tab{font-size:11px;padding:6px 11px}
+  }
+
+  /* ── Phone flow carousel ── */
+  .flow-slide{flex:0 0 100%;min-width:0;display:flex;gap:46px;align-items:center;justify-content:center;padding:8px 6px 4px}
+  .flow-explain{flex:1;max-width:430px}
+  .flow-step{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#c2a063;background:rgba(176,146,104,.12);border:1px solid rgba(176,146,104,.28);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+  .flow-explain h3{font-size:27px;font-weight:800;color:#fff;letter-spacing:-.02em;margin:0 0 13px;line-height:1.15}
+  .flow-explain p{font-size:16px;color:#cbbfa9;line-height:1.62;margin:0}
+  .flow-explain p strong{color:#ece6d8;font-weight:700}
+  @media(max-width:780px){.flow-slide{flex-direction:column;gap:26px;padding-top:4px}.flow-explain{max-width:none;text-align:center}.flow-explain h3{font-size:22px}}
+
+  /* phone frame */
+  .phone{flex:0 0 246px;width:246px;background:#0c0a07;border:2px solid rgba(176,146,104,.4);border-radius:36px;padding:9px;box-shadow:0 30px 70px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.05) inset;position:relative}
+  .phone::before{content:"";position:absolute;top:19px;left:50%;transform:translateX(-50%);width:84px;height:6px;background:rgba(255,255,255,.16);border-radius:3px;z-index:3}
+  .phone-screen{background:linear-gradient(180deg,#241a12,#15100b);border-radius:28px;height:486px;overflow:hidden;display:flex;flex-direction:column}
+  .phone-status{display:flex;justify-content:space-between;align-items:center;padding:13px 18px 7px;font-size:10px;color:#9c8d76;font-weight:700;letter-spacing:.02em}
+  .phone-app{display:flex;align-items:center;gap:8px;padding:6px 16px 11px;border-bottom:1px solid rgba(176,146,104,.14)}
+  .phone-app .t{font-size:13.5px;font-weight:800;color:#ece6d8;letter-spacing:-.01em}
+  .phone-app .s{font-size:9.5px;color:#c2a063;margin-left:auto;text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+  .phone-body{padding:14px 15px;flex:1;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+  .ph-prompt{font-size:11.5px;color:#b0a088;margin:2px 0 1px;line-height:1.4}
+  .ph-tap{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;background:rgba(176,146,104,.08);border:1px solid rgba(176,146,104,.2);border-radius:12px;font-size:13px;color:#ece6d8;font-weight:600}
+  .ph-tap.sel{background:rgba(176,146,104,.22);border-color:rgba(202,167,101,.65)}
+  .ph-tap .chev{color:#9c8d76;font-weight:700}
+  .ph-scan{flex:1;border-radius:16px;background:radial-gradient(120% 80% at 50% 42%,rgba(176,146,104,.14),rgba(0,0,0,.45));position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:228px}
+  .ph-barcode{width:118px;height:62px;background:repeating-linear-gradient(90deg,#e8e2d4 0 3px,transparent 3px 5px,#e8e2d4 5px 7px,transparent 7px 12px,#e8e2d4 12px 15px,transparent 15px 18px);border-radius:3px;opacity:.92}
+  .ph-frame{position:absolute;inset:21% 15%;border:2px solid rgba(202,167,101,.85);border-radius:14px}
+  .ph-frame::before,.ph-frame::after{content:"";position:absolute;width:20px;height:20px;border:3px solid #ffd98a}
+  .ph-frame::before{top:-3px;left:-3px;border-right:0;border-bottom:0;border-radius:10px 0 0 0}
+  .ph-frame::after{bottom:-3px;right:-3px;border-left:0;border-top:0;border-radius:0 0 10px 0}
+  .ph-laser{position:absolute;left:17%;right:17%;top:50%;height:2px;background:#ffd98a;box-shadow:0 0 11px 2px rgba(255,217,138,.75)}
+  .ph-cap{position:absolute;bottom:11px;left:0;right:0;text-align:center;font-size:11px;color:#cbbfa9}
+  .ph-receipt{width:122px;height:152px;background:linear-gradient(180deg,#efe9dc,#dcd3c0);border-radius:6px;transform:rotate(-5deg);padding:13px 11px;box-shadow:0 12px 26px rgba(0,0,0,.45)}
+  .ph-receipt i{display:block;height:5px;background:rgba(42,29,16,.4);border-radius:2px;margin-bottom:7px}
+  .ph-receipt i:nth-child(1){width:62%;height:7px;background:rgba(42,29,16,.6)}
+  .ph-receipt i:nth-child(2){width:92%}.ph-receipt i:nth-child(3){width:78%}.ph-receipt i:nth-child(4){width:88%}.ph-receipt i:nth-child(5){width:54%}.ph-receipt i:nth-child(6){width:84%}
+  .ph-match{display:flex;align-items:flex-start;gap:10px;padding:13px;background:rgba(116,183,129,.1);border:1px solid rgba(116,183,129,.32);border-radius:12px}
+  .ph-check{width:22px;height:22px;border-radius:50%;background:#74b781;color:#10220f;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ph-match .nm{font-size:14px;font-weight:700;color:#fff}
+  .ph-match .meta{font-size:11px;color:#b0a088;margin-top:2px}
+  .ph-srow{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px}
+  .ph-srow .lbl{font-size:12px;color:#b0a088;font-weight:600}
+  .ph-stepper{display:flex;align-items:center;gap:13px}
+  .ph-stepper .b{width:28px;height:28px;border-radius:8px;background:rgba(176,146,104,.18);border:1px solid rgba(176,146,104,.38);color:#ece6d8;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .ph-stepper .num{font-size:17px;font-weight:800;color:#fff;min-width:46px;text-align:center}
+  .ph-field{display:flex;flex-direction:column;gap:4px}
+  .ph-field label{font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;color:#9c8d76;font-weight:700}
+  .ph-field .val{padding:9px 11px;background:rgba(0,0,0,.25);border:1px solid rgba(176,146,104,.25);border-radius:10px;font-size:13px;color:#ece6d8;font-weight:600}
+  .ph-raw{padding:11px;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#cbbfa9;letter-spacing:.01em}
+  .ph-arrow{text-align:center;color:#c2a063;font-size:17px;line-height:1}
+  .ph-btn{margin-top:auto;text-align:center;padding:12px;border-radius:12px;background:linear-gradient(135deg,#ece6d8,#caa765);color:#2a1d10;font-weight:800;font-size:13px}
+  .ph-btn.ghost{background:rgba(176,146,104,.12);border:1px solid rgba(176,146,104,.32);color:#ece6d8}
+  .ph-btns{display:flex;gap:9px;margin-top:auto}.ph-btns .ph-btn{flex:1;margin-top:0}
+  .ph-chart{display:flex;align-items:flex-end;gap:6px;height:122px;padding:8px 2px 0}
+  .ph-chart i{flex:1;background:linear-gradient(180deg,#d8b876,#8a6e3e);border-radius:3px 3px 0 0;opacity:.92}
+  .ph-chart i:last-child{background:linear-gradient(180deg,#ffd98a,#caa765);opacity:1}
+  .ph-note{font-size:11px;color:#b0a088;text-align:center}
 
   /* ── Section frame ── */
   section{padding:72px 0;position:relative}
-  .section-bg-dark{background:rgba(10,20,46,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid rgba(116,172,223,.18);border-bottom:1px solid rgba(116,172,223,.18)}
-  .eyebrow{font-size:12px;font-weight:700;color:#74acdf;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;text-align:center}
+  .section-bg-dark{background:rgba(46,36,26,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid rgba(176,146,104,.18);border-bottom:1px solid rgba(176,146,104,.18)}
+  .eyebrow{font-size:12px;font-weight:700;color:#c2a063;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;text-align:center}
   .section-title{font-size:40px;font-weight:800;color:#fff;letter-spacing:-.02em;text-align:center;max-width:760px;margin:0 auto 18px;line-height:1.1}
-  .section-sub{font-size:17px;color:#a0b4c8;max-width:640px;margin:0 auto 48px;text-align:center;line-height:1.55}
+  .section-sub{font-size:17px;color:#c2b094;max-width:640px;margin:0 auto 48px;text-align:center;line-height:1.55}
 
   /* Social proof */
   .social{padding:28px 0;text-align:center;opacity:.85}
-  .social-label{font-size:11px;font-weight:700;color:#cce4f7;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .social-label{font-size:11px;font-weight:700;color:#ece6d8;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px;text-shadow:0 1px 4px rgba(0,0,0,.3)}
   .social-logos{display:flex;justify-content:center;align-items:center;gap:42px;flex-wrap:wrap;opacity:.7}
-  .social-slot{width:110px;height:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#cce4f7;letter-spacing:.1em}
+  .social-slot{width:110px;height:32px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#ece6d8;letter-spacing:.1em}
 
   /* Problems */
   .problem-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;max-width:980px;margin:0 auto}
-  .problem-card{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.2);border-radius:16px;padding:22px;display:flex;align-items:flex-start;gap:14px}
+  .problem-card{background:rgba(46,36,26,.94);border:1px solid rgba(176,146,104,.2);border-radius:16px;padding:22px;display:flex;align-items:flex-start;gap:14px}
   .problem-x{flex-shrink:0;width:32px;height:32px;border-radius:8px;background:rgba(255,118,117,.15);color:#ff7675;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;border:1px solid rgba(255,118,117,.3)}
-  .problem-text{font-size:15px;color:#e8eef5;font-weight:600;line-height:1.4}
-  .problem-text small{display:block;color:#a0b4c8;font-weight:400;font-size:13.5px;margin-top:4px}
+  .problem-text{font-size:15px;color:#efe6d6;font-weight:600;line-height:1.4}
+  .problem-text small{display:block;color:#c2b094;font-weight:400;font-size:13.5px;margin-top:4px}
 
   /* Features */
   .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1200px;margin:0 auto}
   @media(max-width:900px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:560px){.feat-grid{grid-template-columns:1fr}}
-  .feat-card{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.22);border-radius:16px;padding:26px;transition:all .2s}
-  .feat-card:hover{border-color:rgba(116,172,223,.45);transform:translateY(-3px);box-shadow:0 14px 40px rgba(0,0,0,.3)}
-  .feat-icon{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,rgba(116,172,223,.25),rgba(46,120,184,.25));border:1px solid rgba(116,172,223,.4);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
+  .feat-card{background:rgba(46,36,26,.94);border:1px solid rgba(176,146,104,.22);border-radius:16px;padding:26px;transition:all .2s}
+  .feat-card:hover{border-color:rgba(176,146,104,.45);transform:translateY(-3px);box-shadow:0 14px 40px rgba(0,0,0,.3)}
+  .feat-icon{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,rgba(176,146,104,.25),rgba(156,120,56,.25));border:1px solid rgba(176,146,104,.4);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
   .feat-name{font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-.01em}
-  .feat-desc{font-size:14px;color:#a0b4c8;line-height:1.55}
+  .feat-desc{font-size:14px;color:#c2b094;line-height:1.55}
 
   /* How it works */
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:1000px;margin:0 auto;position:relative}
   @media(max-width:760px){.steps{grid-template-columns:1fr}}
-  .step{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.22);border-radius:16px;padding:28px;position:relative}
-  .step-num{position:absolute;top:-16px;left:22px;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(46,120,184,.4)}
+  .step{background:rgba(46,36,26,.94);border:1px solid rgba(176,146,104,.22);border-radius:16px;padding:28px;position:relative}
+  .step-num{position:absolute;top:-16px;left:22px;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#c2a063,#9c7838);color:#fff;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(156,120,56,.4)}
   .step-title{font-size:18px;font-weight:700;color:#fff;margin:12px 0 8px;letter-spacing:-.01em}
-  .step-desc{font-size:14px;color:#a0b4c8;line-height:1.55}
-  .step-detail{font-size:12.5px;color:#74acdf;margin-top:10px;font-weight:600}
+  .step-desc{font-size:14px;color:#c2b094;line-height:1.55}
+  .step-detail{font-size:12.5px;color:#c2a063;margin-top:10px;font-weight:600}
 
   /* Pricing */
   .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1100px;margin:0 auto;align-items:stretch}
   @media(max-width:900px){.plans{grid-template-columns:1fr;max-width:480px}}
-  .plan{position:relative;background:rgba(10,20,46,.94);border:2px solid rgba(116,172,223,.22);border-radius:18px;padding:28px 24px;display:flex;flex-direction:column;transition:all .2s}
-  .plan:hover{border-color:rgba(116,172,223,.45);transform:translateY(-3px)}
-  .plan.popular{border-color:#74acdf;background:linear-gradient(180deg,rgba(116,172,223,.12),rgba(10,20,46,.94));box-shadow:0 0 0 4px rgba(116,172,223,.12),0 14px 40px rgba(0,0,0,.3)}
-  .plan-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;font-size:10px;font-weight:700;padding:5px 14px;border-radius:999px;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 4px 14px rgba(46,120,184,.5)}
+  .plan{position:relative;background:rgba(46,36,26,.94);border:2px solid rgba(176,146,104,.22);border-radius:18px;padding:28px 24px;display:flex;flex-direction:column;transition:all .2s}
+  .plan:hover{border-color:rgba(176,146,104,.45);transform:translateY(-3px)}
+  .plan.popular{border-color:#c2a063;background:linear-gradient(180deg,rgba(176,146,104,.12),rgba(46,36,26,.94));box-shadow:0 0 0 4px rgba(176,146,104,.12),0 14px 40px rgba(0,0,0,.3)}
+  .plan-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#c2a063,#9c7838);color:#fff;font-size:10px;font-weight:700;padding:5px 14px;border-radius:999px;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 4px 14px rgba(156,120,56,.5)}
   .plan-name{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;letter-spacing:.02em}
   .plan-price{font-size:38px;font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;margin-bottom:4px}
-  .plan-price .unit{font-size:15px;font-weight:500;color:#8da3bb;letter-spacing:0}
-  .plan-blurb{font-size:13px;color:#a0b4c8;margin-bottom:20px;line-height:1.4}
-  .plan-cta{display:block;text-align:center;padding:13px;border-radius:11px;font-weight:700;font-size:14px;margin-bottom:22px;transition:all .15s;border:1px solid rgba(116,172,223,.25);background:rgba(116,172,223,.08);color:#e8eef5}
-  .plan-cta:hover{background:rgba(116,172,223,.2);text-decoration:none}
-  .plan.popular .plan-cta{background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(46,120,184,.35)}
-  .plan.popular .plan-cta:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(46,120,184,.5)}
+  .plan-price .unit{font-size:15px;font-weight:500;color:#b0a088;letter-spacing:0}
+  .plan-blurb{font-size:13px;color:#c2b094;margin-bottom:20px;line-height:1.4}
+  .plan-cta{display:block;text-align:center;padding:13px;border-radius:11px;font-weight:700;font-size:14px;margin-bottom:22px;transition:all .15s;border:1px solid rgba(176,146,104,.25);background:rgba(176,146,104,.08);color:#efe6d6}
+  .plan-cta:hover{background:rgba(176,146,104,.2);text-decoration:none}
+  .plan.popular .plan-cta{background:linear-gradient(135deg,#c2a063,#9c7838);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(156,120,56,.35)}
+  .plan.popular .plan-cta:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(156,120,56,.5)}
   .plan-feats{list-style:none;padding:0;margin:0;flex:1}
   .plan-feats li{font-size:13.5px;color:#d4dde6;padding:8px 0 8px 24px;position:relative;line-height:1.4;border-bottom:1px solid rgba(255,255,255,.05)}
   .plan-feats li:last-child{border-bottom:0}
-  .plan-feats li::before{content:"✓";position:absolute;left:0;top:8px;color:#74acdf;font-weight:800;font-size:14px}
+  .plan-feats li::before{content:"✓";position:absolute;left:0;top:8px;color:#c2a063;font-weight:800;font-size:14px}
   .plan-feats li.muted{color:#56677a;opacity:.65}
   .plan-feats li.muted::before{content:"—";color:#56677a}
-  .pricing-foot{text-align:center;font-size:13px;color:#a0b4c8;margin-top:32px}
+  .pricing-foot{text-align:center;font-size:13px;color:#c2b094;margin-top:32px}
 
   /* FAQ */
   .faq{max-width:820px;margin:0 auto}
-  .faq-item{background:rgba(10,20,46,.94);border:1px solid rgba(116,172,223,.2);border-radius:14px;margin-bottom:12px;overflow:hidden}
-  .faq-item summary{padding:20px 24px;cursor:pointer;font-size:16px;font-weight:600;color:#e8eef5;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .faq-item{background:rgba(46,36,26,.94);border:1px solid rgba(176,146,104,.2);border-radius:14px;margin-bottom:12px;overflow:hidden}
+  .faq-item summary{padding:20px 24px;cursor:pointer;font-size:16px;font-weight:600;color:#efe6d6;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:14px}
   .faq-item summary::-webkit-details-marker{display:none}
-  .faq-item summary::after{content:"+";font-size:22px;font-weight:400;color:#74acdf;transition:transform .2s;flex-shrink:0}
+  .faq-item summary::after{content:"+";font-size:22px;font-weight:400;color:#c2a063;transition:transform .2s;flex-shrink:0}
   .faq-item[open] summary::after{transform:rotate(45deg)}
   .faq-item summary:hover{color:#fff}
-  .faq-answer{padding:0 24px 22px;font-size:14.5px;color:#a0b4c8;line-height:1.6}
+  .faq-answer{padding:0 24px 22px;font-size:14.5px;color:#c2b094;line-height:1.6}
   .faq-answer p{margin-bottom:10px}
   .faq-answer p:last-child{margin-bottom:0}
 
   /* Final CTA */
   .final{padding:84px 0;text-align:center}
-  .final-card{background:linear-gradient(135deg,rgba(10,20,46,.98),rgba(22,45,69,.98));border:1px solid rgba(116,172,223,.35);border-radius:24px;padding:56px 32px;max-width:820px;margin:0 auto;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .final-card{background:linear-gradient(135deg,rgba(46,36,26,.98),rgba(22,45,69,.98));border:1px solid rgba(176,146,104,.35);border-radius:24px;padding:56px 32px;max-width:820px;margin:0 auto;box-shadow:0 30px 80px rgba(0,0,0,.4)}
   .final-title{font-size:40px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px}
-  .final-sub{font-size:17px;color:#a0b4c8;max-width:520px;margin:0 auto 32px;line-height:1.5}
-  .final-cta{display:inline-block;background:linear-gradient(135deg,#74acdf,#2e78b8);color:#fff;padding:19px 40px;border-radius:14px;font-weight:700;font-size:17px;box-shadow:0 12px 36px rgba(46,120,184,.5);transition:all .15s}
-  .final-cta:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(46,120,184,.65);text-decoration:none}
-  .final-note{font-size:13px;color:#8da3bb;margin-top:18px}
+  .final-sub{font-size:17px;color:#c2b094;max-width:520px;margin:0 auto 32px;line-height:1.5}
+  .final-cta{display:inline-block;background:linear-gradient(135deg,#c2a063,#9c7838);color:#fff;padding:19px 40px;border-radius:14px;font-weight:700;font-size:17px;box-shadow:0 12px 36px rgba(156,120,56,.5);transition:all .15s}
+  .final-cta:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(156,120,56,.65);text-decoration:none}
+  .final-note{font-size:13px;color:#b0a088;margin-top:18px}
 
   /* Footer */
-  footer{background:rgba(10,20,46,.94);border-top:1px solid rgba(116,172,223,.22);padding:44px 20px 30px;color:#8da3bb}
+  footer{background:rgba(46,36,26,.94);border-top:1px solid rgba(176,146,104,.22);padding:44px 20px 30px;color:#b0a088}
   .foot-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:36px}
   @media(max-width:760px){.foot-inner{grid-template-columns:1fr 1fr;gap:24px}}
   .foot-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:#fff;margin-bottom:10px}
   .foot-brand img{width:30px;height:30px;border-radius:7px}
-  .foot-blurb{font-size:13px;color:#8da3bb;line-height:1.55;max-width:320px}
+  .foot-blurb{font-size:13px;color:#b0a088;line-height:1.55;max-width:320px}
   .foot-col h4{font-size:11px;font-weight:700;color:#fff;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
-  .foot-col a{display:block;font-size:13.5px;color:#a0b4c8;margin-bottom:8px;font-weight:500}
+  .foot-col a{display:block;font-size:13.5px;color:#c2b094;margin-bottom:8px;font-weight:500}
   .foot-col a:hover{color:#fff;text-decoration:none}
-  .foot-bar{max-width:1200px;margin:36px auto 0;padding-top:20px;border-top:1px solid rgba(116,172,223,.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12.5px;color:#7a8a9b}
-  .foot-bar a{color:#7a8a9b}
+  .foot-bar{max-width:1200px;margin:36px auto 0;padding-top:20px;border-top:1px solid rgba(176,146,104,.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12.5px;color:#9c8d76}
+  .foot-bar a{color:#9c8d76}
 
   /* ── Responsive ── */
   @media(max-width:760px){
     .hero{padding:48px 0 44px}
+    .hero-logo{width:min(368px,84vw);height:auto;aspect-ratio:1;border-radius:22%;margin-bottom:24px}
     .hero-title{font-size:36px}
     .hero-sub{font-size:16px}
-    .hero-ctas{flex-direction:column;gap:10px}
-    .hero-ctas a{width:100%}
+    .hero-segments{font-size:14.5px;line-height:1.9}
+    .hero-segments .seg-sep{margin:0 7px}
     .section-title{font-size:28px}
     .section-sub{font-size:15px;margin-bottom:32px}
     section{padding:56px 0}
@@ -265,7 +349,6 @@
 <nav class="nav" aria-label="Primary">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
-      <img src="icon.png" alt="" aria-hidden="true">
       <span>Bistro Steward</span>
     </a>
     <div class="nav-links">
@@ -280,74 +363,222 @@
 <!-- ── Hero ── -->
 <header class="hero">
   <div class="wrap">
+    <img src="icon.png?v=2026-06-02-bslogo" class="hero-logo" alt="Bistro Steward" width="572" height="572">
     <div class="hero-eyebrow">30-day free trial · no card charged</div>
-    <h1 class="hero-title">Stop guessing your food cost.<br><span class="accent">Know every plate's margin.</span></h1>
-    <p class="hero-sub">Bistro Steward is the kitchen operating system for modern restaurants — live recipe costing, AI-powered inventory scan, auto-generated prep sheets, and one-click vendor orders. All in one place.</p>
-    <div class="hero-ctas">
-      <a href="/signup" class="btn-primary">Start 30-day free trial →</a>
-      <a href="/app" class="btn-secondary">Sign in</a>
-    </div>
-    <div class="hero-trust">No credit card charged for 30 days · <strong>Cancel anytime</strong></div>
+    <h1 class="hero-title">Menu. Recipes. Ingredients. Prep. Inventory. Purchasing.<br><span class="accent">Rinse and Repeat.</span></h1>
+    <div class="hero-segments">Food Cart <span class="seg-sep">|</span> Family Restaurant <span class="seg-sep">|</span> Cafe <span class="seg-sep">|</span> Bistro <span class="seg-sep">|</span> Local Chain</div>
 
-    <!-- Product visual -->
-    <div class="hero-visual" aria-hidden="true">
-      <div class="mock">
-        <div class="mock-head">
-          <span class="mock-dot r"></span>
-          <span class="mock-dot y"></span>
-          <span class="mock-dot g"></span>
-          <span class="mock-url">bistrosteward.com / recipes</span>
-        </div>
-        <div class="mock-grid">
-          <div class="mock-panel">
-            <div class="mock-title">Recipe · Lamb Ragù</div>
-            <div class="mock-kpi">
-              <div class="mock-kpi-card">
-                <div class="mock-kpi-label">Food cost</div>
-                <div class="mock-kpi-val">$6.41</div>
-                <div class="mock-kpi-delta">↓ $0.18 vs last week</div>
-              </div>
-              <div class="mock-kpi-card">
-                <div class="mock-kpi-label">Margin</div>
-                <div class="mock-kpi-val">72.3%</div>
-                <div class="mock-kpi-delta">Target: 70%</div>
+    <!-- Product visual — feature carousel -->
+    <div class="hero-visual">
+      <div class="mock-carousel" data-carousel role="region" aria-roledescription="carousel" aria-label="Bistro Steward product tour" tabindex="0">
+        <div class="mock-viewport">
+          <div class="mock-track">
+
+            <!-- 1 · Menu -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="1 of 8: Menu">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / menu</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Menu · Dinner Service</div>
+                    <div class="mock-row"><span class="n">Lamb Ragù Pappardelle</span><span class="v">$28</span></div>
+                    <div class="mock-row"><span class="n">Wood-Oven Focaccia</span><span class="v">$9</span></div>
+                    <div class="mock-row"><span class="n">Burrata · Heirloom Tomato</span><span class="v">$16</span></div>
+                    <div class="mock-row"><span class="n">Chocolate Budino</span><span class="v">$12</span></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Menu</div>
+                    <div class="mock-desc">List your live menu items and see the <strong>recipes behind each plate</strong>. Pull the whole menu straight from your POS — no re-typing.</div>
+                    <span class="mock-tag">Synced from Toast POS</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="mock-row"><span class="n">Lamb shoulder · 180 g</span><span class="v">$3.42</span></div>
-            <div class="mock-row"><span class="n">Pappardelle · 120 g</span><span class="v">$1.08</span></div>
-            <div class="mock-row"><span class="n">San Marzano · 90 g</span><span class="v">$0.68</span></div>
-            <div class="mock-row"><span class="n">Pecorino Romano · 20 g</span><span class="v">$1.23</span></div>
+
+            <!-- 2 · Recipes -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="2 of 8: Recipes">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / recipes</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Recipe · Lamb Ragù</div>
+                    <div class="mock-row"><span class="n">Lamb shoulder · 180 g</span><span class="v">$3.42</span></div>
+                    <div class="mock-row"><span class="n">Soffritto base</span><span class="v">↳ sub-recipe</span></div>
+                    <div class="mock-row"><span class="n">Pappardelle · 120 g</span><span class="v">$1.08</span></div>
+                    <div class="mock-row"><span class="n">Yield</span><span class="v">12 portions</span></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Recipes</div>
+                    <div class="mock-desc">Build from ingredients, <strong>sub-recipes</strong> and prep items. Attach menu items, plating notes and training videos for the line.</div>
+                    <span class="mock-tag">1 video · 12 steps</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 · Ingredients -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="3 of 8: Ingredients">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / ingredients</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Ingredient · Pecorino Romano</div>
+                    <div class="mock-row"><span class="n">Category</span><span class="v">Dairy</span></div>
+                    <div class="mock-row"><span class="n">Default brand</span><span class="v">★ Locatelli</span></div>
+                    <div class="mock-row"><span class="n">Pack size</span><span class="v">1 kg wheel</span></div>
+                    <div class="mock-row"><span class="n">Used in</span><span class="v">6 recipes</span></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Ingredients</div>
+                    <div class="mock-desc">Organize by <strong>category and brand</strong>. Star a favorite brand as the default so every recipe costs itself.</div>
+                    <span class="mock-tag">Default brand set</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 · Prep -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="4 of 8: Prep">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / prep</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Prep sheet · Today &nbsp;·&nbsp; on hand / par</div>
+                    <div class="mock-row"><span class="n">Ragù base</span><span class="v warn">2.5 / 4 L</span></div>
+                    <div class="mock-row"><span class="n">Focaccia dough</span><span class="v good">18 / 18</span></div>
+                    <div class="mock-row"><span class="n">Roasted-garlic aioli</span><span class="v warn">400 / 600 g</span></div>
+                    <div class="mock-row"><span class="n">Pommes purée</span><span class="v bad">0 / 3 kg</span></div>
+                    <div class="mock-bar"><div class="mock-bar-fill" style="width:58%"></div></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Prep</div>
+                    <div class="mock-desc">Live prep on hand against tonight's target. Catch the <strong>gaps before service</strong>, not in the weeds at 7pm.</div>
+                    <div class="mock-chat">3 items below par for <strong style="color:#fff">80 covers</strong> tonight — start with pommes purée.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5 · Inventory -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="5 of 8: Inventory">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / inventory</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Inventory · Walk-in</div>
+                    <div class="mock-row"><span class="n">San Marzano DOP</span><span class="v">12 cases</span></div>
+                    <div class="mock-row"><span class="n">Lamb shoulder</span><span class="v">8.2 kg</span></div>
+                    <div class="mock-row"><span class="n">Pecorino Romano</span><span class="v warn">2.4 kg</span></div>
+                    <div class="mock-row"><span class="n">Heirloom tomato</span><span class="v">6.0 kg</span></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Inventory</div>
+                    <div class="mock-desc">Define your locations, then count by phone <strong>barcode scan</strong>, inventory-sheet photo, or by hand.</div>
+                    <div class="mock-chat">Scanned <strong style="color:#fff">37 items</strong> in 4 min — count auto-saved.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6 · Shopping List -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="6 of 8: Shopping List">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / shopping</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Shopping list · By vendor</div>
+                    <div class="mock-row"><span class="n">Pecorino Romano</span><span class="v">4 kg</span></div>
+                    <div class="mock-row"><span class="n">Lamb shoulder</span><span class="v">10 kg</span></div>
+                    <div class="mock-row"><span class="n">San Marzano DOP</span><span class="v">6 cases</span></div>
+                    <div class="mock-row"><span class="n">Heirloom tomato</span><span class="v">8 kg</span></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Shopping List</div>
+                    <div class="mock-desc">Every shortfall, totaled and <strong>grouped by vendor</strong> — compiled so purchasing is a single tap.</div>
+                    <div class="mock-chat">Send to <strong style="color:#fff">Provvista + 2 vendors</strong>? One email each.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 7 · Margin (existing card) -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="7 of 8: Margin">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / margin</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Recipe · Lamb Ragù</div>
+                    <div class="mock-kpi">
+                      <div class="mock-kpi-card">
+                        <div class="mock-kpi-label">Food cost</div>
+                        <div class="mock-kpi-val">$6.41</div>
+                        <div class="mock-kpi-delta">↓ $0.18 vs last week</div>
+                      </div>
+                      <div class="mock-kpi-card">
+                        <div class="mock-kpi-label">Margin</div>
+                        <div class="mock-kpi-val">72.3%</div>
+                        <div class="mock-kpi-delta">Target: 70%</div>
+                      </div>
+                    </div>
+                    <div class="mock-row"><span class="n">Lamb shoulder · 180 g</span><span class="v">$3.42</span></div>
+                    <div class="mock-row"><span class="n">Pappardelle · 120 g</span><span class="v">$1.08</span></div>
+                    <div class="mock-row"><span class="n">San Marzano · 90 g</span><span class="v">$0.68</span></div>
+                    <div class="mock-row"><span class="n">Pecorino Romano · 20 g</span><span class="v">$1.23</span></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Prep sheet · Today</div>
+                    <div class="mock-row"><span class="n">Ragù base</span><span class="v warn">2.5 L</span></div>
+                    <div class="mock-row"><span class="n">Focaccia dough</span><span class="v good">Done</span></div>
+                    <div class="mock-row"><span class="n">Aioli (roasted garlic)</span><span class="v">400 g</span></div>
+                    <div class="mock-bar"><div class="mock-bar-fill" style="width:64%"></div></div>
+                    <div class="mock-chat">Low-stock: <strong style="color:#fff">pecorino</strong> will run out Friday at current pace. Draft email order to Provvista?</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 8 · Vendors -->
+            <div class="mock-slide" role="group" aria-roledescription="slide" aria-label="8 of 8: Vendors">
+              <div class="mock">
+                <div class="mock-head"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-url">bistrosteward.com / vendors</span></div>
+                <div class="mock-grid">
+                  <div class="mock-panel">
+                    <div class="mock-title">Vendors</div>
+                    <div class="mock-row"><span class="n">Provvista Specialty</span><span class="v">24 items</span></div>
+                    <div class="mock-row"><span class="n">Charlie's Produce</span><span class="v">18 items</span></div>
+                    <div class="mock-row"><span class="n">Pacific Seafood</span><span class="v">6 items</span></div>
+                    <div class="mock-row"><span class="n">Sysco PNW</span><span class="v">31 items</span></div>
+                  </div>
+                  <div class="mock-panel">
+                    <div class="mock-title">Vendors</div>
+                    <div class="mock-desc">Keep your go-to suppliers in one place with the <strong>contact details</strong> every shopping list needs to share.</div>
+                    <span class="mock-tag">Provvista · default for 24</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
-          <div class="mock-panel">
-            <div class="mock-title">Prep sheet · Today</div>
-            <div class="mock-row"><span class="n">Ragù base</span><span class="v warn">2.5 L</span></div>
-            <div class="mock-row"><span class="n">Focaccia dough</span><span class="v good">Done</span></div>
-            <div class="mock-row"><span class="n">Aioli (roasted garlic)</span><span class="v">400 g</span></div>
-            <div class="mock-bar"><div class="mock-bar-fill" style="width:64%"></div></div>
-            <div class="mock-chat">Low-stock: <strong style="color:#fff">pecorino</strong> will run out Friday at current pace. Draft email order to Provvista?</div>
-          </div>
+        </div>
+        <button class="mock-nav prev" type="button" aria-label="Previous feature">‹</button>
+        <button class="mock-nav next" type="button" aria-label="Next feature">›</button>
+        <div class="mock-tabs" role="tablist" aria-label="Product tour features">
+          <button class="mock-tab active" type="button" role="tab" aria-selected="true">Menu</button>
+          <button class="mock-tab" type="button" role="tab" aria-selected="false">Recipes</button>
+          <button class="mock-tab" type="button" role="tab" aria-selected="false">Ingredients</button>
+          <button class="mock-tab" type="button" role="tab" aria-selected="false">Prep</button>
+          <button class="mock-tab" type="button" role="tab" aria-selected="false">Inventory</button>
+          <button class="mock-tab" type="button" role="tab" aria-selected="false">Shopping List</button>
+          <button class="mock-tab" type="button" role="tab" aria-selected="false">Margin</button>
+          <button class="mock-tab" type="button" role="tab" aria-selected="false">Vendors</button>
         </div>
       </div>
     </div>
   </div>
 </header>
 
-<!-- ── Social proof ── -->
-<div class="social">
-  <div class="wrap">
-    <div class="social-label">Trusted by restaurants in Portland &amp; the Pacific Northwest</div>
-    <div class="social-logos" aria-hidden="true">
-      <span class="social-slot">BISTRO</span>
-      <span class="social-slot">TAQUERIA</span>
-      <span class="social-slot">OSTERIA</span>
-      <span class="social-slot">CAFÉ</span>
-      <span class="social-slot">GRILL</span>
-    </div>
-  </div>
-</div>
-
-<!-- ── Problems ── -->
-<section class="section-bg-dark" id="problems">
+<!-- ── Problems (moved before carousels) ── -->
+<section id="problems">
   <div class="wrap-narrow">
     <div class="eyebrow">Sound familiar?</div>
     <h2 class="section-title">Your kitchen runs on spreadsheets and memory.</h2>
@@ -373,71 +604,225 @@
   </div>
 </section>
 
-<!-- ── Features ── -->
-<section id="features">
+<!-- ── How it works · Inventory ── -->
+<section class="section-bg-dark" id="how-inventory">
   <div class="wrap">
-    <div class="eyebrow">Everything your kitchen needs</div>
-    <h2 class="section-title">One tool. Six jobs done.</h2>
-    <p class="section-sub">No plugins. No integrations to wire up. Built for restaurants that want to know their numbers without hiring a consultant.</p>
-    <div class="feat-grid">
-      <div class="feat-card">
-        <div class="feat-icon">📐</div>
-        <div class="feat-name">Recipe Costing</div>
-        <div class="feat-desc">Live cost per plate — down to the gram. Sub-recipes roll up automatically. See margin the second an ingredient price changes.</div>
+    <div class="eyebrow">Barcode inventory · on your phone</div>
+    <h2 class="section-title">Count inventory in your hand, not on paper.</h2>
+    <p class="section-sub">Every step happens right on your phone — pick a location, scan, confirm. When you're done, today's prep sheet has already updated itself.</p>
+    <div class="mock-carousel" data-carousel role="region" aria-roledescription="carousel" aria-label="Barcode inventory walkthrough" tabindex="0">
+      <div class="mock-viewport">
+        <div class="mock-track">
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 1 of 6: Pick a location">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">New count</span><span class="s">Step 1</span></div>
+              <div class="phone-body">
+                <div class="ph-prompt">Where are you counting?</div>
+                <div class="ph-tap sel"><span>❄️&nbsp; Walk-in cooler</span><span class="chev">›</span></div>
+                <div class="ph-tap"><span>🧊&nbsp; Freezer</span><span class="chev">›</span></div>
+                <div class="ph-tap"><span>📦&nbsp; Dry storage</span><span class="chev">›</span></div>
+                <div class="ph-tap"><span>🍳&nbsp; Line / lowboy</span><span class="chev">›</span></div>
+                <div class="ph-btn">Start counting</div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 1 of 6</span><h3>Pick a location</h3><p>Open Bistro Steward, tap <strong>New Count</strong>, and choose the storage area. Every location keeps its own live count, so nothing gets double-counted.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 2 of 6: Scan the barcode">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Walk-in cooler</span><span class="s">Scanning</span></div>
+              <div class="phone-body">
+                <div class="ph-scan"><div class="ph-barcode"></div><div class="ph-frame"></div><div class="ph-laser"></div><div class="ph-cap">Align the barcode — auto-detects</div></div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 2 of 6</span><h3>Scan the barcode</h3><p>Point your phone at any UPC. The camera reads it in a fraction of a second — <strong>no scanner gun, no typing SKUs</strong>.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 3 of 6: Confirm the count">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Match found</span><span class="s">Step 3</span></div>
+              <div class="phone-body">
+                <div class="ph-match"><div class="ph-check">✓</div><div><div class="nm">San Marzano DOP</div><div class="meta">Whole tomato · #10 can · Cento</div></div></div>
+                <div class="ph-srow"><span class="lbl">Quantity · cases</span><span class="ph-stepper"><span class="b">−</span><span class="num">12</span><span class="b">＋</span></span></div>
+                <div class="ph-btn">Add to count</div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 3 of 6</span><h3>Confirm the count</h3><p>The product pops up matched to your catalog. Tap how many — <strong>cases, units, or weight</strong> — and add it. Two taps, done.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 4 of 6: Add unknowns once">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">New product</span><span class="s">Not in catalog</span></div>
+              <div class="phone-body">
+                <div class="ph-prompt">Barcode 8&nbsp;004&nbsp;56… isn't in your catalog yet.</div>
+                <div class="ph-field"><label>Name</label><div class="val">Pecorino Romano</div></div>
+                <div class="ph-field"><label>Category</label><div class="val">Dairy ▾</div></div>
+                <div class="ph-field"><label>Default brand</label><div class="val">Locatelli</div></div>
+                <div class="ph-field"><label>Pack size</label><div class="val">1 kg wheel</div></div>
+                <div class="ph-btn">Save &amp; remember</div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 4 of 6</span><h3>Add unknowns once</h3><p>Hit an unfamiliar barcode? Add it in seconds. Bistro Steward <strong>remembers it forever</strong> — the next scan, anywhere, matches automatically.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 5 of 6: A live count">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Walk-in cooler</span><span class="s">18 items · live</span></div>
+              <div class="phone-body">
+                <div class="mock-row"><span class="n">San Marzano DOP</span><span class="v">12 cases</span></div>
+                <div class="mock-row"><span class="n">Pecorino Romano</span><span class="v">2.4 kg</span></div>
+                <div class="mock-row"><span class="n">Lamb shoulder</span><span class="v">8.2 kg</span></div>
+                <div class="mock-row"><span class="n">Heirloom tomato</span><span class="v">6.0 kg</span></div>
+                <div class="mock-row"><span class="n">Butter, unsalted</span><span class="v">9 lb</span></div>
+                <div class="ph-btn ghost">＋ Keep scanning</div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 5 of 6</span><h3>A live count, no paper</h3><p>Every scan stacks into a running list you can see and edit on the spot — <strong>no clipboard, no re-keying</strong> into Excel at midnight.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 6 of 6: Counts become your prep sheet">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Today's prep</span><span class="s">On-hand / par</span></div>
+              <div class="phone-body">
+                <div class="mock-row"><span class="n">Ragù base</span><span class="v warn">2.5 / 4 L</span></div>
+                <div class="mock-row"><span class="n">Focaccia dough</span><span class="v good">18 / 18</span></div>
+                <div class="mock-row"><span class="n">Roasted-garlic aioli</span><span class="v warn">400 / 600 g</span></div>
+                <div class="mock-row"><span class="n">Pommes purée</span><span class="v bad">0 / 3 kg</span></div>
+                <div class="mock-bar"><div class="mock-bar-fill" style="width:58%"></div></div>
+                <div class="mock-chat">3 items below par for tonight — start with <strong style="color:#fff">pommes purée</strong>.</div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 6 of 6</span><h3>Counts become your prep sheet</h3><p>The second you finish counting, today's prep sheet updates — <strong>on-hand against par</strong> — so the team sees exactly what to make before service.</p></div>
+          </div>
+
+        </div>
       </div>
-      <div class="feat-card">
-        <div class="feat-icon">📷</div>
-        <div class="feat-name">AI Inventory Scan</div>
-        <div class="feat-desc">Point your phone at a shelf. Google Gemini reads labels and counts. Confirm and save — count night in minutes, not hours.</div>
-      </div>
-      <div class="feat-card">
-        <div class="feat-icon">📋</div>
-        <div class="feat-name">Prep Sheets</div>
-        <div class="feat-desc">Today's prep list, auto-compiled from the menu, forecasted covers, and current on-hand. Printable. Tick items off on the line.</div>
-      </div>
-      <div class="feat-card">
-        <div class="feat-icon">📦</div>
-        <div class="feat-name">Vendor Orders</div>
-        <div class="feat-desc">Min-quantity thresholds fire an email to Provvista, Sysco, or your fishmonger. Draft is pre-filled — you press send.</div>
-      </div>
-      <div class="feat-card">
-        <div class="feat-icon">👥</div>
-        <div class="feat-name">Team Roles &amp; Audit</div>
-        <div class="feat-desc">Owner, chef, line, counter — each sees what they need. Every edit is logged with who, when, and what changed.</div>
-      </div>
-      <div class="feat-card">
-        <div class="feat-icon">✨</div>
-        <div class="feat-name">Oracle Assistant</div>
-        <div class="feat-desc">"What's my cost on the ragù?" "Which items run out this week?" Ask in plain English — Oracle answers from your actual data.</div>
+      <button class="mock-nav prev" type="button" aria-label="Previous step">‹</button>
+      <button class="mock-nav next" type="button" aria-label="Next step">›</button>
+      <div class="mock-tabs" role="tablist" aria-label="Inventory steps">
+        <button class="mock-tab active" type="button" role="tab" aria-selected="true">Location</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Scan</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Match</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">New item</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Count</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Prep sheet</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── How it works ── -->
-<section class="section-bg-dark">
-  <div class="wrap-narrow">
-    <div class="eyebrow">Go from zero to live in a day</div>
-    <h2 class="section-title">Three steps. No consultants.</h2>
-    <p class="section-sub">Most kitchens are importing their first recipes within an hour of signup. No onboarding fee on Starter or Pro.</p>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-title">Sign up</div>
-        <div class="step-desc">30-day free trial. Card verified at signup for fraud prevention, but nothing charged for 30 days.</div>
-        <div class="step-detail">~2 min</div>
+<!-- ── How it works · Margin ── -->
+<section id="how-margin">
+  <div class="wrap">
+    <div class="eyebrow">Receipt to recipe cost</div>
+    <h2 class="section-title">From a photo of an invoice to live food cost.</h2>
+    <p class="section-sub">Snap a vendor invoice. Steward reads it, maps every line to your ingredients, and recosts every recipe — automatically.</p>
+    <div class="mock-carousel" data-carousel role="region" aria-roledescription="carousel" aria-label="Receipt scanning and ingredient mapping walkthrough" tabindex="0">
+      <div class="mock-viewport">
+        <div class="mock-track">
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 1 of 6: Photograph the invoice">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">New receipt</span><span class="s">Step 1</span></div>
+              <div class="phone-body">
+                <div class="ph-scan"><div class="ph-receipt"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="ph-frame"></div><div class="ph-cap">Fit the invoice in frame</div></div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 1 of 6</span><h3>Photograph the invoice</h3><p>Snap any vendor invoice or receipt — Provvista, Sysco, the farmers-market scrap of paper. <strong>One photo.</strong></p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 2 of 6: AI reads every line">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Provvista #4821</span><span class="s">12 lines read</span></div>
+              <div class="phone-body">
+                <div class="mock-row"><span class="n">Pecorino Romano 1kg</span><span class="v">$24.10</span></div>
+                <div class="mock-row"><span class="n">Lamb shoulder 5kg</span><span class="v">$58.40</span></div>
+                <div class="mock-row"><span class="n">San Marzano #10</span><span class="v">$7.85</span></div>
+                <div class="mock-row"><span class="n">Pappardelle 2kg</span><span class="v">$9.20</span></div>
+                <div class="mock-row"><span class="n" style="color:#9c8d76">＋ 8 more line items</span><span class="v" style="color:#9c8d76">…</span></div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 2 of 6</span><h3>AI reads every line</h3><p>Steward pulls each line item straight off the photo — <strong>description, pack, quantity, unit price, extended cost</strong>. No manual entry.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 3 of 6: Map to your ingredients">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Map line item</span><span class="s">1 of 12</span></div>
+              <div class="phone-body">
+                <div class="ph-prompt">From the invoice</div>
+                <div class="ph-raw">LOCATELLI PEC ROM 1KG WHL</div>
+                <div class="ph-arrow">↓ matches</div>
+                <div class="ph-match"><div class="ph-check">✓</div><div><div class="nm">Pecorino Romano</div><div class="meta">Dairy · Locatelli · 1 kg wheel</div></div></div>
+                <div class="ph-btns"><div class="ph-btn">Confirm</div><div class="ph-btn ghost">Change</div></div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 3 of 6</span><h3>Map to your ingredients</h3><p>Each cryptic line maps to the right ingredient and brand. Confirm once — Steward <strong>auto-maps that vendor code every time after</strong>.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 4 of 6: Live unit costs">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Pecorino Romano</span><span class="s">Cost updated</span></div>
+              <div class="phone-body">
+                <div class="mock-kpi" style="grid-template-columns:1fr"><div class="mock-kpi-card"><div class="mock-kpi-label">Unit cost</div><div class="mock-kpi-val">$24.10 / kg</div><div class="mock-kpi-delta bad">↑ 4% vs last invoice</div></div></div>
+                <div class="mock-row"><span class="n">Last invoice</span><span class="v">$23.20 / kg</span></div>
+                <div class="mock-row"><span class="n">90-day average</span><span class="v">$22.80 / kg</span></div>
+                <div class="mock-row"><span class="n">Used in</span><span class="v">6 recipes</span></div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 4 of 6</span><h3>Live unit costs</h3><p>The new price updates the ingredient instantly and <strong>ripples into every recipe and sub-recipe</strong> that uses it.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 5 of 6: Margins recalculate">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Lamb Ragù</span><span class="s">Recipe margin</span></div>
+              <div class="phone-body">
+                <div class="mock-kpi">
+                  <div class="mock-kpi-card"><div class="mock-kpi-label">Food cost</div><div class="mock-kpi-val">$6.41</div><div class="mock-kpi-delta">↓ $0.18 / plate</div></div>
+                  <div class="mock-kpi-card"><div class="mock-kpi-label">Margin</div><div class="mock-kpi-val">72.3%</div><div class="mock-kpi-delta">Target: 70%</div></div>
+                </div>
+                <div class="mock-row"><span class="n">Menu price</span><span class="v">$28.00</span></div>
+                <div class="mock-row"><span class="n">Pecorino (updated)</span><span class="v warn">$1.28</span></div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 5 of 6</span><h3>Margins recalculate</h3><p>Food cost and margin move the moment prices change — <strong>per plate, per recipe</strong>. No month-end surprises.</p></div>
+          </div>
+
+          <div class="mock-slide flow-slide" role="group" aria-roledescription="slide" aria-label="Step 6 of 6: Catch creep early">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span>5G ▪ 87%</span></div>
+              <div class="phone-app"><span class="t">Pecorino Romano</span><span class="s">12-week trend</span></div>
+              <div class="phone-body">
+                <div class="ph-chart"><i style="height:42%"></i><i style="height:46%"></i><i style="height:43%"></i><i style="height:52%"></i><i style="height:49%"></i><i style="height:58%"></i><i style="height:61%"></i><i style="height:59%"></i><i style="height:70%"></i><i style="height:75%"></i><i style="height:83%"></i><i style="height:94%"></i></div>
+                <div class="ph-note">Unit cost · last 12 weeks</div>
+                <div class="mock-chat">Pecorino is up <strong style="color:#fff">+9%</strong> this quarter — time to re-quote Provvista?</div>
+              </div>
+            </div></div>
+            <div class="flow-explain"><span class="flow-step">Step 6 of 6</span><h3>Catch creep early</h3><p>Per-ingredient trend lines surface costs <strong>drifting up week over week</strong> — renegotiate or re-spec before it eats your margin.</p></div>
+          </div>
+
+        </div>
       </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-title">Import your menu</div>
-        <div class="step-desc">Add ingredients (paste a Sysco order or start from our 40-item starter set). Build recipes with sub-recipes. Set vendors.</div>
-        <div class="step-detail">~30–60 min</div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-title">Track cost live</div>
-        <div class="step-desc">Every count, every order, every recipe edit updates your food cost in real time. Prep sheets generate themselves.</div>
-        <div class="step-detail">Daily, forever</div>
+      <button class="mock-nav prev" type="button" aria-label="Previous step">‹</button>
+      <button class="mock-nav next" type="button" aria-label="Next step">›</button>
+      <div class="mock-tabs" role="tablist" aria-label="Margin steps">
+        <button class="mock-tab active" type="button" role="tab" aria-selected="true">Snap</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Extract</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Map</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Cost</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Margin</button>
+        <button class="mock-tab" type="button" role="tab" aria-selected="false">Trend</button>
       </div>
     </div>
   </div>
@@ -447,8 +832,8 @@
 <section id="pricing">
   <div class="wrap">
     <div class="eyebrow">Simple pricing</div>
-    <h2 class="section-title" style="color:#0d1e33;text-shadow:0 2px 8px rgba(255,255,255,.25)">Pick a plan. Try 30 days free.</h2>
-    <p class="section-sub" style="color:#1e3d5c">Every plan includes the full feature set — no artificial gates. Difference is team size, locations, and AI scan.</p>
+    <h2 class="section-title" style="color:#2a1d10;text-shadow:0 2px 8px rgba(255,255,255,.25)">Pick a plan. Try 30 days free.</h2>
+    <p class="section-sub" style="color:#4a3826">Every plan includes the full feature set — no artificial gates. Difference is team size, locations, and AI scan.</p>
     <div class="plans">
 
       <div class="plan">
@@ -564,7 +949,7 @@
         <summary>Is my data private?</summary>
         <div class="faq-answer">
           <p>Yes. Each restaurant's data is isolated in its own Firestore namespace — other tenants cannot read or write your data. Firestore security rules enforce this at the database level, not just in application code.</p>
-          <p>AI features (photo-scan, Oracle Assistant) send the relevant data to Google Gemini to return a result. <strong>We do not train public AI models on your Customer Data</strong> and neither does Google Gemini (Google's enterprise terms apply). See our <a href="/privacy.html">Privacy Policy</a> for the full detail.</p>
+          <p>AI features (photo-scan, Steward Assistant) send the relevant data to Google Gemini to return a result. <strong>We do not train public AI models on your Customer Data</strong> and neither does Google Gemini (Google's enterprise terms apply). See our <a href="/privacy.html">Privacy Policy</a> for the full detail.</p>
         </div>
       </details>
 
@@ -597,7 +982,7 @@
   <div class="foot-inner">
     <div>
       <div class="foot-brand">
-        <img src="icon.png" alt="">
+        <img src="icon.png?v=2026-06-02-bslogo" alt="">
         <span>Bistro Steward</span>
       </div>
       <div class="foot-blurb">Bistro Steward — The kitchen operating system for modern restaurants. Live food cost, AI inventory, prep sheets, vendor orders — in one place.</div>
@@ -658,6 +1043,55 @@
       });
     } catch(_) {}
   }, true);
+})();
+</script>
+
+<script>
+/* Hero feature carousel */
+(function(){
+  function initCarousel(car){
+  var track    = car.querySelector('.mock-track');
+  var viewport = car.querySelector('.mock-viewport');
+  var slides = car.querySelectorAll('.mock-slide');
+  var tabs   = car.querySelectorAll('.mock-tab');
+  var n = slides.length, i = 0, timer = null;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  function fit(){ if(slides[i]){ viewport.style.height = slides[i].offsetHeight + 'px'; } }
+  function show(k){
+    i = (k + n) % n;
+    track.style.transform = 'translateX(-' + (i * 100) + '%)';
+    fit();
+    for(var x=0; x<tabs.length; x++){
+      var on = (x === i);
+      tabs[x].classList.toggle('active', on);
+      tabs[x].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    for(var y=0; y<slides.length; y++){
+      slides[y].setAttribute('aria-hidden', (y === i) ? 'false' : 'true');
+    }
+  }
+  function start(){ if(!reduce && !timer){ timer = setInterval(function(){ show(i+1); }, 6000); } }
+  function stop(){ if(timer){ clearInterval(timer); timer = null; } }
+  function reset(){ stop(); start(); }
+
+  car.querySelector('.next').addEventListener('click', function(){ show(i+1); reset(); });
+  car.querySelector('.prev').addEventListener('click', function(){ show(i-1); reset(); });
+  for(var t=0; t<tabs.length; t++){
+    (function(idx){ tabs[idx].addEventListener('click', function(){ show(idx); reset(); }); })(t);
+  }
+  car.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowRight'){ show(i+1); reset(); }
+    else if(e.key === 'ArrowLeft'){ show(i-1); reset(); }
+  });
+  car.addEventListener('mouseenter', stop);
+  car.addEventListener('mouseleave', start);
+  window.addEventListener('resize', fit);
+
+  show(0);
+  start();
+  }
+  document.querySelectorAll('[data-carousel]').forEach(initCarousel);
 })();
 </script>
 
