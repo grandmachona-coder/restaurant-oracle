@@ -665,7 +665,7 @@ var _fs = {}; // Firestore SDK functions (populated in initFirebase)
 var activeListeners = [];
 var listenersReadyCount = 0;
 var listenerFailCount = 0;
-var TOTAL_LISTENERS = 15;
+var TOTAL_LISTENERS = 17;
 var isUpdatingFromListener = false;
 var renderDebounceTimer = null;
 
@@ -942,6 +942,7 @@ function isBOH(){ return !isOwner() && getCurrentSubRole() === 'boh'; }
 // Check if a tab should be visible for the current user
 function isTabVisible(tabName){
     if(isOwner()) return true; // Owner sees all tabs
+    if(isAdmin()) return true; // Admin sees all tabs
     // Employee tab visibility based on sub-role
     var fohTabs = ['inventory','log','recipes'];
     var bohTabs = ['inventory','log','recipes','prep'];
@@ -955,35 +956,35 @@ var permissions = {
     inventory: {
         addExisting: function(){ return true; }, // All can add existing
         createIngredient: function(){ return true; }, // All can create new ingredients
-        deleteRow: function(){ return isOwner(); },
-        addLocation: function(){ return isOwner(); }
+        deleteRow: function(){ return isOwnerOrAdmin(); },
+        addLocation: function(){ return isOwnerOrAdmin(); }
     },
     shopping: {
         checkPurchased: function(){ return true; }, // Both can check items
-        viewOnly: function(){ return !isOwner(); } // Employee is view-only (except checking)
+        viewOnly: function(){ return !isOwnerOrAdmin(); } // Employee is view-only (except checking)
     },
     prep: {
-        viewOnly: function(){ return !isOwner(); } // Employee is view-only
+        viewOnly: function(){ return !isOwnerOrAdmin(); } // Employee is view-only
     },
     ingredients: {
         create: function(){ return true; }, // All can create
-        edit: function(){ return isOwner(); },
-        archive: function(){ return isOwner(); },
-        delete: function(){ return isOwner(); }
+        edit: function(){ return isOwnerOrAdmin(); },
+        archive: function(){ return isOwnerOrAdmin(); },
+        delete: function(){ return isOwnerOrAdmin(); }
     },
     recipes: {
-        viewOnly: function(){ return !isOwner(); }, // Employee is view-only
-        create: function(){ return isOwner(); },
-        edit: function(){ return isOwner(); },
-        archive: function(){ return isOwner(); },
-        delete: function(){ return isOwner(); }
+        viewOnly: function(){ return !isOwnerOrAdmin(); }, // Employee is view-only
+        create: function(){ return isOwnerOrAdmin(); },
+        edit: function(){ return isOwnerOrAdmin(); },
+        archive: function(){ return isOwnerOrAdmin(); },
+        delete: function(){ return isOwnerOrAdmin(); }
     },
     menu: {
-        viewOnly: function(){ return !isOwner(); }, // Employee is view-only
-        create: function(){ return isOwner(); },
-        edit: function(){ return isOwner(); },
-        archive: function(){ return isOwner(); },
-        delete: function(){ return isOwner(); }
+        viewOnly: function(){ return !isOwnerOrAdmin(); }, // Employee is view-only
+        create: function(){ return isOwnerOrAdmin(); },
+        edit: function(){ return isOwnerOrAdmin(); },
+        archive: function(){ return isOwnerOrAdmin(); },
+        delete: function(){ return isOwnerOrAdmin(); }
     },
     log: {
         view: function(){ return true; } // All can view
@@ -992,10 +993,10 @@ var permissions = {
         visible: function(){ return isOwner(); } // Only owner can see Admin tab
     },
     vendors: {
-        visible: function(){ return isOwner(); },
-        create: function(){ return isOwner(); },
-        edit: function(){ return isOwner(); },
-        delete: function(){ return isOwner(); }
+        visible: function(){ return isOwnerOrAdmin(); },
+        create: function(){ return isOwnerOrAdmin(); },
+        edit: function(){ return isOwnerOrAdmin(); },
+        delete: function(){ return isOwnerOrAdmin(); }
     }
 };
 
@@ -2106,10 +2107,13 @@ async function loadFromFirebase(_depth){
                 D.recs.forEach(function(r){ changeLog.recs.add(r.id); });
                 D.menus.forEach(function(m){ changeLog.menus.add(m.id); });
 
-                // Auto-sync local data to cloud
+                // Auto-sync local data to cloud.
+                // takeSyncSnapshot() is intentionally called INSIDE the callback,
+                // AFTER syncNow() completes, so detectAllChanges() can diff against
+                // the old cloud snapshot and see all locally-loaded data as changed.
                 setTimeout(function(){
                     dbg('Auto-syncing local data to cloud...');
-                    syncNow();
+                    syncNow().then(function(){ takeSyncSnapshot(); }).catch(function(){ takeSyncSnapshot(); });
                 }, 1000);
 
                 migrateMenuData();
@@ -2119,7 +2123,6 @@ async function loadFromFirebase(_depth){
                         if(s.key==='autoAddToInv')D.autoAddToInv=s.value?1:0;
                     });
                 }
-                takeSyncSnapshot();
                 showSyncStatus('synced');
                 return; // Exit early, we used local data
             }
@@ -2201,7 +2204,7 @@ function mapIngFromDb(i){return{id:i.id,name:i.name,catId:i.cat_id,areaId:i.area
 function mapInvFromDb(i){return{id:i.id,areaId:i.area_id,subArea:i.sub_area||'',ingId:i.ing_id||0,recId:i.rec_id||0,menuId:i.menu_id||0,prepId:i.prep_id||0,qty:i.qty||0,unit:i.unit||'ea',outOfStock:i.out_of_stock||0,sortOrder:i.sort_order||0,brandId:i.brand_id||0,sizeId:i.size_id||0};}
 function mapShoppingFromDb(s){return{id:s.id,ingId:s.ing_id,qty:s.qty||0,unit:s.unit||'ea',checked:s.checked||0,savedForLater:s.saved_for_later||0,brandId:s.brand_id||0,sizeId:s.size_id||0};}
 function mapPrepFromDb(p){return{id:p.id,name:p.name,recId:p.rec_id,onHand:p.on_hand||0,tgt:p.tgt||0,unit:p.unit||'batch',areaId:p.area_id,isMenuItem:p.is_menu_item||0,menuId:p.menu_id||0};}
-function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',outputMode:r.output_mode||'auto',manualQty:r.manual_qty||0,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],menuItems:r.menu_items||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0,includeInPrep:r.include_in_prep===0?0:1,isMenuItem:r.is_menu_item||0,menuId:r.menu_id||0};}
+function mapRecFromDb(r){return{id:r.id,name:r.name,group:r.group_name||'',catId:r.cat_id,yield:r.yield||98,yieldUnit:r.yield_unit||'',outputMode:r.output_mode||'auto',manualQty:r.manual_qty||0,shelfLife:r.shelf_life||'',notes:r.notes||'',ings:r.ings||[],preps:r.preps||[],subRecs:r.sub_recs||[],menuItems:r.menu_items||[],photos:r.photos||[],videos:r.videos||[],archived:r.archived||0,includeInPrep:r.include_in_prep===0?0:1,isMenuItem:r.is_menu_item||0,menuId:r.menu_id||0,menuPrice:r.menu_price||0};}
 function mapMenuFromDb(m){return{id:m.id,name:m.name,catId:m.cat_id,tgt:m.tgt||0,unitId:m.unit_id,ings:m.ings||[],recs:m.recs||[],preps:m.preps||[],archived:m.archived||0,includeInShop:m.include_in_shop===0?0:1,includeInPrep:m.include_in_prep===0?0:1};}
 function mapLogFromDb(l){
     var item=l.action?(l.action.replace(/^Inventory:\s*/,'')):'';
@@ -2221,7 +2224,7 @@ function mapIngToDb(i){return{id:i.id,name:i.name,cat_id:i.catId,area_id:i.areaI
 function mapInvToDb(i){return{id:i.id,area_id:i.areaId,sub_area:i.subArea,ing_id:i.ingId||null,rec_id:i.recId||null,menu_id:i.menuId||null,prep_id:i.prepId||null,qty:i.qty,unit:i.unit,out_of_stock:i.outOfStock||0,sort_order:i.sortOrder||0,brand_id:i.brandId||null,size_id:i.sizeId||null};}
 function mapShoppingToDb(s){return{id:s.id,ing_id:s.ingId,qty:s.qty,unit:s.unit,checked:s.checked,saved_for_later:s.savedForLater,brand_id:s.brandId||null,size_id:s.sizeId||null};}
 function mapPrepToDb(p){return{id:p.id,name:p.name,rec_id:p.recId,on_hand:p.onHand,tgt:p.tgt,unit:p.unit,area_id:p.areaId,is_menu_item:p.isMenuItem||0,menu_id:p.menuId||0};}
-function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,menu_items:r.menuItems,photos:r.photos,videos:r.videos,archived:r.archived,include_in_prep:r.includeInPrep,is_menu_item:r.isMenuItem||0,menu_id:r.menuId||0};}
+function mapRecToDb(r){return{id:r.id,name:r.name,group_name:r.group,cat_id:r.catId,yield:r.yield,yield_unit:r.yieldUnit,output_mode:r.outputMode,manual_qty:r.manualQty,shelf_life:r.shelfLife,notes:r.notes,ings:r.ings,preps:r.preps,sub_recs:r.subRecs,menu_items:r.menuItems,photos:r.photos,videos:r.videos,archived:r.archived,include_in_prep:r.includeInPrep,is_menu_item:r.isMenuItem||0,menu_id:r.menuId||0,menu_price:r.menuPrice||0};}
 function mapMenuToDb(m){return{id:m.id,name:m.name,cat_id:m.catId,tgt:m.tgt,unit_id:m.unitId,ings:m.ings,recs:m.recs,preps:m.preps,archived:m.archived,include_in_shop:m.includeInShop,include_in_prep:m.includeInPrep};}
 function mapConvToDb(c){return{id:c.id,ing_id:c.ingId,storage_unit:c.storageUnit,recipe_unit:c.recipeUnit,factor:c.factor};}
 function mapLogToDb(l){return{id:l.id,action:'Inventory: '+l.item,location:'',detail:l.oldQty+' '+l.oldUnit+' → '+l.newQty+' '+l.newUnit,user_name:l.user,created_at:l.timestamp};}
@@ -2304,7 +2307,7 @@ function subscribeCollection(collectionName, tableName, mapFn, queryConstraints)
     }, function(error){
         console.error('Listener error for', collectionName, ':', error);
         listenerFailCount++;
-        if(listenerFailCount >= TOTAL_LISTENERS && listenersReadyCount === 0){
+        if((listenersReadyCount + listenerFailCount) >= TOTAL_LISTENERS && listenersReadyCount === 0){
             console.warn('All listeners failed — falling back to Cloud Function load');
             showToast('Switching to backup data load...','warning',3000);
             loadFromFirebase().then(function(){
@@ -2320,6 +2323,7 @@ function subscribeCollection(collectionName, tableName, mapFn, queryConstraints)
 }
 
 function onAllListenersReady(){
+    if(isDataLoaded) return;
     dbg('All listeners ready — initial data loaded');
     loadShoppingPlan();
     if(!D.recCats || !D.recCats.length){
@@ -3642,7 +3646,7 @@ function renderInvItem(inv,isWarehouseArea){
         // Add storage unit if not in standard units
         var storageInList=D.units.some(function(u){return u.abbr===conv.storageUnit;});
         if(!storageInList){
-            html+='<option value="'+conv.storageUnit+'"'+(inv.unit===conv.storageUnit?' selected':'')+'>'+conv.storageUnit+'</option>';
+            html+='<option value="'+escHtml(conv.storageUnit)+'"'+(inv.unit===conv.storageUnit?' selected':'')+'>'+escHtml(conv.storageUnit)+'</option>';
         }
     }
     getSortedUnits().forEach(function(u){html+='<option value="'+escHtml(u.abbr)+'"'+(inv.unit===u.abbr?' selected':'')+'>'+escHtml(u.abbr)+'</option>';});
@@ -3971,7 +3975,7 @@ function renderInv(c,s){
                         catConvs.forEach(function(conv){
                             var ing=D.ings.find(function(i){return i.id===conv.ingId;});
                             var ingName=ing?ing.name:'Unknown';
-                            html+='<option value="'+conv.id+'">'+ingName+': 1 '+conv.storageUnit+' = '+conv.factor+' '+conv.recipeUnit+'</option>';
+                            html+='<option value="'+conv.id+'">'+escHtml(ingName)+': 1 '+escHtml(conv.storageUnit)+' = '+conv.factor+' '+escHtml(conv.recipeUnit)+'</option>';
                         });
                         html+='</optgroup>';
                     }
@@ -3986,7 +3990,7 @@ function renderInv(c,s){
                     uncatConvs.forEach(function(conv){
                         var ing=D.ings.find(function(i){return i.id===conv.ingId;});
                         var ingName=ing?ing.name:'Unknown';
-                        html+='<option value="'+conv.id+'">'+ingName+': 1 '+conv.storageUnit+' = '+conv.factor+' '+conv.recipeUnit+'</option>';
+                        html+='<option value="'+conv.id+'">'+escHtml(ingName)+': 1 '+escHtml(conv.storageUnit)+' = '+conv.factor+' '+escHtml(conv.recipeUnit)+'</option>';
                     });
                     html+='</optgroup>';
                 }
@@ -4156,7 +4160,7 @@ function buildInvDropdownItems(areaId, searchTerm){
         html+='<div style="padding:4px 10px;color:#636e72;font-size:calc(9px * var(--font-scale));font-weight:600">Other</div>';
         uncatIngs.forEach(function(ing){
             var conv=D.conversions?D.conversions.find(function(c){return c.ingId===ing.id;}):null;
-            var convInfo=conv?' <span style="color:#6c5ce7;font-size:calc(9px * var(--font-scale))">('+conv.storageUnit+'→'+conv.recipeUnit+')</span>':'';
+            var convInfo=conv?' <span style="color:#6c5ce7;font-size:calc(9px * var(--font-scale))">('+escHtml(conv.storageUnit)+'→'+escHtml(conv.recipeUnit)+')</span>':'';
             html+='<div class="inv-dropdown-item" data-value="ing-'+ing.id+'" onclick="selectInvItem('+areaId+',\'ing-'+ing.id+'\',\''+escHtml(ing.name).replace(/'/g,"\\'")+'\')">'+escHtml(ing.name)+convInfo+'</div>';
         });
     }
@@ -5059,7 +5063,7 @@ function confirmAddToInv(){
     var subArea=document.getElementById('move-sub').value;
     
     saveState('Add to inventory from shopping');
-    D.inv.push({id:nid++,areaId:areaId,subArea:subArea,ingId:s.ingId,qty:s.qty,unit:s.unit});
+    D.inv.push({id:nid++,areaId:areaId,subArea:subArea,ingId:s.ingId,qty:s.qty,unit:s.unit,brandId:s.brandId||0,sizeId:s.sizeId||0});
     markChanged('inv',nid-1);
     logInventoryChange(getIngName(s.ingId),0,s.unit,s.qty,s.unit);
     D.shopping=D.shopping.filter(function(x){return x.id!==pendingPurchase;});
@@ -5118,7 +5122,7 @@ function formatQty(qty){
 
 // Helper: Convert quantity between units using conversions
 function convertToRecipeUnits(ingId, qty, fromUnit){
-    var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null;
+    var conv = (IDX && IDX.conversions) ? IDX.conversions.get(ingId) : (D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null);
     if(!conv) return {qty: qty, unit: fromUnit};
     // L-6: a negative qty at the conversion boundary is a data error, not a
     // valid request. Pass it through unchanged rather than fabricating a
@@ -5135,7 +5139,7 @@ function convertToRecipeUnits(ingId, qty, fromUnit){
 }
 
 function convertToStorageUnits(ingId, qty, fromUnit){
-    var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null;
+    var conv = (IDX && IDX.conversions) ? IDX.conversions.get(ingId) : (D.conversions ? D.conversions.find(function(c){return c.ingId === ingId;}) : null);
     if(!conv) return {qty: qty, unit: fromUnit};
     // L-6: reject negative qty at the boundary.
     if(!(qty >= 0)) return {qty: qty, unit: fromUnit};
@@ -5253,10 +5257,26 @@ function calculateShoppingList(silent){
         var need = recipeNeeds[recId];
         var output = calcRecipeOutput(rec);
 
-        // Get on-hand prep inventory for this recipe
+        // Get on-hand prep inventory for this recipe (convert to need.unit if possible)
         var onHand = 0;
         D.inv.forEach(function(inv){
-            if(inv.recId === recId) onHand += inv.qty;
+            if(inv.recId !== recId) return;
+            if(!need.unit || inv.unit === need.unit){
+                onHand += inv.qty;
+            } else {
+                // Attempt unit conversion (storage→recipe or same-dimension)
+                var converted = convertToRecipeUnits(recId, inv.qty, inv.unit);
+                if(converted.unit === need.unit){
+                    onHand += converted.qty;
+                } else if(unitConversions[inv.unit] && unitConversions[need.unit]
+                        && unitConversions[inv.unit].type === unitConversions[need.unit].type){
+                    var base = inv.qty * unitConversions[inv.unit].toBase;
+                    var tgt = unitConversions[need.unit].toBase;
+                    if(tgt > 0) onHand += base / tgt;
+                } else {
+                    console.warn('prepShopping step3: unit mismatch for recId='+recId+' inv.unit='+inv.unit+' need.unit='+need.unit+' — skipping subtraction');
+                }
+            }
         });
 
         // Calculate shortfall in output units
@@ -5445,6 +5465,8 @@ function calculateShoppingList(silent){
             existing.recipeUnit = need.recipeUnit;
             updated++;
         } else {
+            var _shopIng = IDX.ings.get(ingId) || D.ings.find(function(x){return x.id===ingId;});
+            var _shopDbs = _shopIng ? getDefaultBrandSize(_shopIng, 0) : null;
             D.shopping.push({
                 id: nid++,
                 ingId: ingId,
@@ -5452,6 +5474,8 @@ function calculateShoppingList(silent){
                 unit: need.unit,
                 checked: 0,
                 savedForLater: 0,
+                brandId: _shopDbs ? _shopDbs.brandId : 0,
+                sizeId: _shopDbs ? _shopDbs.sizeId : 0,
                 usedFor: usedFor,
                 onHand: need.onHand,
                 totalNeed: need.totalNeed,
@@ -5491,6 +5515,31 @@ function _shiftsBadgeHtml(onHand, perShiftTarget){
     return '<span title="On-hand covers '+label+' at current per-shift target" '
          + 'style="color:'+col+';font-size:calc(10px * var(--font-scale));margin-left:8px;font-weight:600">'
          + label + '</span>';
+}
+
+// Log completion of one batch of a recipe and increment the matching inventory row
+function logBatchComplete(recId){
+    var rec = D.recs.find(function(r){return r.id===recId;});
+    if(!rec){ showToast('Recipe not found','error'); return; }
+    var output = calcRecipeOutput(rec);
+    var batchQty = output.qty || 1;
+    var batchUnit = output.unit || 'batch';
+    // Find existing inv row for this recipe
+    var invRow = D.inv.find(function(i){return Number(i.recId)===recId;});
+    if(invRow){
+        saveState('Log batch: '+rec.name);
+        invRow.qty = (invRow.qty||0) + batchQty;
+        markChanged('inv',invRow.id);
+    } else {
+        // No inv row yet — create one (use first area as default)
+        var defaultAreaId = (D.areas&&D.areas.length) ? D.areas[0].id : 0;
+        var newId = nid++;
+        saveState('Log batch: '+rec.name);
+        D.inv.push({id:newId,areaId:defaultAreaId,subArea:'',ingId:0,recId:recId,menuId:0,prepId:0,qty:batchQty,unit:batchUnit,outOfStock:0,sortOrder:0,brandId:0,sizeId:0});
+        markChanged('inv',newId);
+    }
+    showToast('+1 batch logged for '+rec.name+' ('+batchQty+' '+batchUnit+')','success');
+    render();
 }
 
 function renderPrep(c,s){
@@ -5658,6 +5707,9 @@ function renderPrep(c,s){
             html += _shiftsBadgeHtml(prep.onHand, prep.target);
             html += '</div>';
             html += '<div style="margin-top:8px;font-size:calc(10px * var(--font-scale));color:#636e72">' + prep.usedIn.join(', ') + '</div>';
+            if(isOwnerOrAdmin()){
+                html += '<div style="margin-top:8px"><button class="btn btn-s btn-sm" onclick="logBatchComplete('+prep.recId+')" style="background:rgba(0,184,148,.2);border-color:rgba(0,184,148,.4);color:#00b894">+1 Batch</button></div>';
+            }
             html += '</div>';
         });
     }
@@ -5808,7 +5860,7 @@ function renderIngs(c,s){
             if(permissions.ingredients.edit()) ingBtns2+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
             if(permissions.ingredients.archive()) ingBtns2+='<button class="btn btn-s btn-sm" onclick="archiveItem(\'ings\','+ing.id+')" title="Archive">📥</button>';
             if(permissions.ingredients.delete()) ingBtns2+='<button class="del-btn" onclick="deleteIngredient('+ing.id+')" title="Delete">🗑️</button>';
-            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+escHtml(ing.name)+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • Default: '+ing.defUnit+'</div></div><div style="display:flex;gap:4px">'+ingBtns2+'</div></div>';
+            html+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-t">'+escHtml(ing.name)+'</div><div class="card-s">📍 '+getAreaName(ing.areaId,ing.subArea)+' • Default: '+escHtml(ing.defUnit)+'</div></div><div style="display:flex;gap:4px">'+ingBtns2+'</div></div>';
         });
     });
     
@@ -5829,7 +5881,7 @@ function renderIngs(c,s){
                 var s='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
                 s+='<div style="flex:1"><span style="color:#e0e6ed;font-size:calc(13px * var(--font-scale))">'+escHtml(ing.name)+'</span> '+autoShopStatus+'</div>';
                 s+='<div style="display:flex;gap:8px;align-items:center">';
-                s+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Min: '+(ing.minQty||0)+' '+ing.defUnit+'</span>';
+                s+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">Min: '+(ing.minQty||0)+' '+escHtml(ing.defUnit)+'</span>';
                 s+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">On Hand: '+onHand+'</span>';
                 s+='<span style="color:'+statusColor+';font-size:calc(11px * var(--font-scale));font-weight:600;min-width:40px;text-align:right">'+(diff>=0?'+':'')+diff+'</span>';
                 if(permissions.ingredients.edit()) s+='<button class="btn btn-s btn-sm" onclick="editIng('+ing.id+')">✏️</button>';
@@ -5974,12 +6026,16 @@ async function deleteIngredient(id){
 
     saveState('Delete ingredient: '+ingName);
 
+    // Track which recs/menus are mutated for immediate cloud upsert
+    var changedRecIds = [];
+    var changedMenuIds = [];
+
     // Remove from recipes (cascade delete)
     D.recs.forEach(function(rec){
         if(rec.ings){
             var before=rec.ings.length;
             rec.ings=rec.ings.filter(function(ri){return Number(ri.ingId)!==id;});
-            if(rec.ings.length!==before) markChanged('recs',rec.id);
+            if(rec.ings.length!==before){ markChanged('recs',rec.id); changedRecIds.push(rec.id); }
         }
     });
 
@@ -5988,7 +6044,7 @@ async function deleteIngredient(id){
         if(menu.ings){
             var before=menu.ings.length;
             menu.ings=menu.ings.filter(function(mi){return Number(mi.ingId)!==id;});
-            if(menu.ings.length!==before) markChanged('menus',menu.id);
+            if(menu.ings.length!==before){ markChanged('menus',menu.id); changedMenuIds.push(menu.id); }
         }
     });
 
@@ -6011,6 +6067,25 @@ async function deleteIngredient(id){
     D.ings=D.ings.filter(function(i){return Number(i.id)!==id;});
     markDeleted('ings',id);
     dbg('Ingredients: '+beforeCount+' -> '+D.ings.length);
+
+    // Immediately upsert mutated recs/menus to cloud so cascade survives a tab-close before sync
+    if(firebaseAuth && currentAuthUser){
+        var cascadePromises = [];
+        if(changedRecIds.length){
+            var recsToUpsert = D.recs.filter(function(r){return changedRecIds.indexOf(r.id)!==-1;}).map(mapRecToDb);
+            if(recsToUpsert.length) cascadePromises.push(secureApi('upsert','recs',recsToUpsert));
+        }
+        if(changedMenuIds.length){
+            var menusToUpsert = D.menus.filter(function(m){return changedMenuIds.indexOf(m.id)!==-1;}).map(mapMenuToDb);
+            if(menusToUpsert.length) cascadePromises.push(secureApi('upsert','menus',menusToUpsert));
+        }
+        if(cascadePromises.length){
+            Promise.allSettled(cascadePromises).then(function(res){
+                var fails = res.filter(function(r){return r.status==='rejected'||(r.value&&r.value.error);});
+                if(fails.length) console.warn('deleteIngredient cascade upsert: '+fails.length+' failure(s)');
+            });
+        }
+    }
 
     render();
 }
@@ -6064,7 +6139,7 @@ function editIng(id){
     html+='<input type="text" id="edit-storage-unit" class="form-i" placeholder="bottle" value="'+(existingConv?existingConv.storageUnit:'')+'" style="width:80px;font-size:calc(11px * var(--font-scale))">';
     html+='<span style="color:#a0aec0;font-size:calc(11px * var(--font-scale))">=</span>';
     html+='<input type="number" id="edit-conv-factor" class="form-i" placeholder="25" value="'+(existingConv?existingConv.factor:'')+'" style="width:60px;font-size:calc(11px * var(--font-scale))">';
-    html+='<span style="color:#6c5ce7;font-size:calc(11px * var(--font-scale));font-weight:600">'+ing.defUnit+'</span>';
+    html+='<span style="color:#6c5ce7;font-size:calc(11px * var(--font-scale));font-weight:600">'+escHtml(ing.defUnit)+'</span>';
     html+='</div></div>';
     // Brands (sub-records on the ingredient) -- different sizes/UPCs of the same item
     html+='<div class="form-g"><label class="form-l">\U0001F3F7\uFE0F Brands <span style="color:#9c8d76;font-weight:400;font-size:calc(10px * var(--font-scale))">(sizes/UPCs you buy)</span></label>';
@@ -6236,6 +6311,7 @@ function ingAddSize(bid,id){
 function ingRemoveSize(bid,sid,id){
     var ing=D.ings.find(function(x){return x.id===id;}); if(!ing||!ing.brands) return;
     var b=ing.brands.find(function(x){return x.id===bid;}); if(!b||!b.sizes) return;
+    saveState('Remove brand size');
     var was=(b.sizes.find(function(z){return z.id===sid;})||{}).isDefault;
     b.sizes=b.sizes.filter(function(z){return z.id!==sid;});
     if(was && b.sizes.length) b.sizes[0].isDefault=1;
@@ -6244,11 +6320,13 @@ function ingRemoveSize(bid,sid,id){
 function ingSetDefaultSize(bid,sid,id){
     var ing=D.ings.find(function(x){return x.id===id;}); if(!ing||!ing.brands) return;
     var b=ing.brands.find(function(x){return x.id===bid;}); if(!b||!b.sizes) return;
+    saveState('Set default size');
     b.sizes.forEach(function(z){z.isDefault=(z.id===sid)?1:0;});
     markChanged('ings',id); renderIngBrandList(id);
 }
 function ingRemoveBrand(bid,id){
     var ing=D.ings.find(function(x){return x.id===id;}); if(!ing||!ing.brands) return;
+    saveState('Remove brand');
     var was=(ing.brands.find(function(b){return b.id===bid;})||{}).isDefault;
     ing.brands=ing.brands.filter(function(b){return b.id!==bid;});
     if(was && ing.brands.length) ing.brands[0].isDefault=1;
@@ -6256,6 +6334,7 @@ function ingRemoveBrand(bid,id){
 }
 function ingSetDefaultBrand(bid,id){
     var ing=D.ings.find(function(x){return x.id===id;}); if(!ing||!ing.brands) return;
+    saveState('Set default brand');
     ing.brands.forEach(function(b){b.isDefault=(b.id===bid)?1:0;});
     markChanged('ings',id); renderIngBrandList(id);
 }
@@ -6389,7 +6468,7 @@ function renderRecs(c,s){
                                 _bri.brands.forEach(function(b){ html+='<option value="'+b.id+'"'+(b.id===ri.brandId?' selected':'')+'>'+escHtml(b.name)+'</option>'; });
                                 html+='</select>';
                             }
-                            html+='<button class="del-btn" onclick="delRecIng('+rec.id+','+idx+')">×</button></div></div>';
+                            html+='<button class="del-btn" onclick="delRecIng('+rec.id+','+idx+','+(ri.lineId||0)+')">×</button></div></div>';
                         }else{
                             html+='<div class="rec-ing"><span class="rec-ing-name">'+getIngName(ri.ingId)+'</span><span style="color:#a0aec0">'+ri.qty+' '+ri.unit+'</span></div>';
                         }
@@ -6521,11 +6600,16 @@ function updRecIngUnit(recId,idx,unit){
     }
 }
 
-function delRecIng(recId,idx){
+function delRecIng(recId,idx,lineId){
     var rec=D.recs.find(function(r){return r.id===recId;});
     if(rec){
         saveState('Remove recipe ingredient');
-        rec.ings.splice(idx,1);
+        if(lineId){
+            // Prefer stable lineId filter over splice-by-index
+            rec.ings=rec.ings.filter(function(ri){return ri.lineId!==lineId;});
+        } else {
+            rec.ings.splice(idx,1);
+        }
         markChanged('recs',recId);
         render();
     }
@@ -6601,7 +6685,7 @@ function filterRecIngSearch(term){
                 html += '<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── '+escHtml(cat.name).toUpperCase()+' ──</div>';
                 catIngs.forEach(function(ing){
                     var selected = recIngSearchSelected === ing.id ? 'background:var(--accent);color:#fff;' : '';
-                    html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectRecIng('+ing.id+',\''+escHtml(ing.name).replace(/'/g,"\\'")+'\',\''+ing.defUnit+'\')">'+escHtml(ing.name)+'</div>';
+                    html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectRecIng('+ing.id+',\''+escHtml(ing.name).replace(/'/g,"\\'")+'\',\''+escHtml(ing.defUnit).replace(/'/g,"&#39;")+'\')">'+escHtml(ing.name)+'</div>';
                 });
             }
         });
@@ -6610,7 +6694,7 @@ function filterRecIngSearch(term){
             html += '<div style="padding:6px 10px;color:#a29bfe;font-weight:700;font-size:calc(10px * var(--font-scale));background:rgba(0,0,0,.3)">── OTHER ──</div>';
             uncatIngs.forEach(function(ing){
                 var selected = recIngSearchSelected === ing.id ? 'background:var(--accent);color:#fff;' : '';
-                html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectRecIng('+ing.id+',\''+escHtml(ing.name).replace(/'/g,"\\'")+'\',\''+ing.defUnit+'\')">'+escHtml(ing.name)+'</div>';
+                html += '<div class="search-result-item" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);'+selected+'" onclick="selectRecIng('+ing.id+',\''+escHtml(ing.name).replace(/'/g,"\\'")+'\',\''+escHtml(ing.defUnit).replace(/'/g,"&#39;")+'\')">'+escHtml(ing.name)+'</div>';
             });
         }
     }
@@ -6639,9 +6723,12 @@ function saveRecIng(recId){
     var rec=D.recs.find(function(r){return r.id===recId;});
     if(!rec)return;
     if(!rec.ings)rec.ings=[];
+    var _ingId=+document.getElementById('new-ri-ing').value;
+    if(!_ingId){ showToast('Select an ingredient first','warning'); return; }
     saveState('Add recipe ingredient');
     rec.ings.push({
-        ingId:+document.getElementById('new-ri-ing').value,
+        lineId: nid++,
+        ingId:_ingId,
         qty:+document.getElementById('new-ri-qty').value||0,
         unit:document.getElementById('new-ri-unit').value
     });
@@ -6804,10 +6891,16 @@ async function deleteRecipe(id){
     // Delete from Firebase FIRST (cloud-confirm before local delete)
     if(firebaseAuth && currentAuthUser){
         try{
-            var result = await secureApi('delete', 'recs', null, {eq:{id:id}});
-            if(result.error){
-                console.error('Firebase recipe delete failed:', result.error);
-                showToast('Cloud delete failed: ' + (result.error.message || 'Unknown error'), 'error');
+            var recDeleteResults = await Promise.allSettled([
+                secureApi('delete', 'recs', null, {eq:{id:id}}),
+                secureApi('delete', 'inv', null, {eq:{rec_id:id}})
+            ]);
+            var recDeleteFails = recDeleteResults.filter(function(r){ return r.status==='rejected' || (r.value && r.value.error); });
+            if(recDeleteFails.length > 0){
+                var firstFail = recDeleteFails[0];
+                var errMsg = (firstFail.reason && firstFail.reason.message) || (firstFail.value && firstFail.value.error && firstFail.value.error.message) || 'Unknown error';
+                console.error('Firebase recipe delete failed:', errMsg);
+                showToast('Cloud delete failed: ' + errMsg, 'error');
                 return;
             }
         }catch(err){
@@ -6847,6 +6940,10 @@ async function deleteRecipe(id){
     // Remove from prep items that reference this recipe (cascade delete)
     D.preps.filter(function(p){return Number(p.recId)===id;}).forEach(function(p){markDeleted('preps',p.id);});
     D.preps=D.preps.filter(function(p){return Number(p.recId)!==id;});
+
+    // Remove inventory rows that track this recipe (cascade delete)
+    D.inv.filter(function(i){return Number(i.recId)===id;}).forEach(function(i){markDeleted('inv',i.id);});
+    D.inv=D.inv.filter(function(i){return Number(i.recId)!==id;});
 
     // Remove the recipe itself
     D.recs=D.recs.filter(function(r){return Number(r.id)!==id;});
@@ -7083,7 +7180,7 @@ function calcLineIngCost(ingId, qty, unit, brandId){
         }
         return {cost:0, flag:'bad-conversion', ing:ing, unitCost:costPer, unitCostUnit:costUnit};
     }
-    var conv = D.conversions ? D.conversions.find(function(c){return c.ingId === ing.id;}) : null;
+    var conv = (IDX && IDX.conversions) ? IDX.conversions.get(ing.id) : (D.conversions ? D.conversions.find(function(c){return c.ingId === ing.id;}) : null);
     if(conv && conv.factor > 0){
         if(unit === conv.recipeUnit && costUnit === conv.storageUnit){
             return {cost: (qty / conv.factor) * costPer, flag:null, ing:ing, unitCost:costPer, unitCostUnit:costUnit};
@@ -7549,7 +7646,8 @@ function _receiptApplyLineInMemory(rc,line,changedIngs){
     if(price>0 && brandId){ var b=(ing.brands||[]).find(function(x){return x.id===brandId;}); if(b){ var z=sizeId&&b.sizes?b.sizes.find(function(ss){return ss.id===sizeId;}):null; if(z) z.cost=price; } }
     ing.priceHistory=ing.priceHistory||[];
     ing.priceHistory.push({date:new Date().toISOString(),price:price,vendorId:rc.vendorId||0,brandId:brandId||null,sizeId:sizeId||null});
-    if(price>0) ing.cost=price;
+    // Only update the raw ingredient cost when there is no brand match (brand/size z.cost handles the brand case above)
+    if(price>0 && !brandId) ing.cost=price;
     line.applied=true; line.assignedIngId=ingId; line.assignedBrandId=brandId||null; line.assignedSizeId=sizeId||null;
     line.assignedAreaId=(areaSel&&areaSel.value)?(+areaSel.value):null;
     changedIngs[ing.id]=ing;
@@ -7608,7 +7706,12 @@ function _csvCell(v){
     return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
 }
 function _qbDate(s){
-    var d=s?new Date(s):null;
+    var d=null;
+    if(s){
+      var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+      if(m){ d=new Date(+m[1], +m[2]-1, +m[3]); } // local-time parse — avoid UTC TZ off-by-one
+      else { d=new Date(s); }
+    }
     if(!d||isNaN(d.getTime())) d=new Date();
     var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2);
     return mm+'/'+dd+'/'+d.getFullYear();
@@ -7796,7 +7899,7 @@ function openRecipeDrawer(recId){
     html+='<table style="width:100%;border-collapse:collapse;font-size:calc(11px * var(--font-scale));margin-bottom:14px">';
     html+='<thead><tr style="border-bottom:1px solid #2d3748"><th style="padding:6px 4px;text-align:left;color:#636e72">Item</th><th style="padding:6px 4px;text-align:right;color:#636e72">Qty</th><th style="padding:6px 4px;text-align:right;color:#636e72">$</th><th style="padding:6px 4px;text-align:center;color:#636e72">Trend</th></tr></thead><tbody>';
     (r.ings||[]).forEach(function(line){
-        var lc=calcLineIngCost(line.ingId,line.qty,line.unit);
+        var lc=calcLineIngCost(line.ingId,line.qty,line.unit,line.brandId||0);
         var alarm=detectIngAlarm(line.ingId);
         var ingName=lc.ing?lc.ing.name:'Unknown';
         var flagStr=lc.flag==='no-cost'?' <span style="color:#e17055;font-size:calc(9px * var(--font-scale))">(no cost)</span>':(lc.flag==='no-conv'?' <span style="color:#fdcb6e;font-size:calc(9px * var(--font-scale))">(no conv)</span>':'');
@@ -8395,9 +8498,51 @@ function saveMenuEdit(id){
     }
 }
 
-function delMenuItem(id){
+async function delMenuItem(id){
     if(!confirm('Delete this menu item? This cannot be undone.'))return;
+
+    // Delete from cloud first
+    if(firebaseAuth && currentAuthUser){
+        try{
+            var menuDelResults = await Promise.allSettled([
+                secureApi('delete', 'menus', null, {eq:{id:id}}),
+                secureApi('delete', 'inv', null, {eq:{menu_id:id}})
+            ]);
+            var menuDelFails = menuDelResults.filter(function(r){ return r.status==='rejected' || (r.value && r.value.error); });
+            if(menuDelFails.length > 0){
+                var firstFail = menuDelFails[0];
+                var errMsg = (firstFail.reason && firstFail.reason.message) || (firstFail.value && firstFail.value.error && firstFail.value.error.message) || 'Unknown error';
+                console.error('Firebase menu delete failed:', errMsg);
+                showToast('Cloud delete failed: ' + errMsg, 'error');
+                return;
+            }
+        }catch(err){
+            console.error('Firebase menu delete error:', err);
+            showToast('Cloud delete failed: ' + (err.message || err) + '. Try again.', 'error');
+            return;
+        }
+    }
+
     saveState('Delete menu item');
+
+    // Cascade: remove inventory rows tracking this menu item
+    D.inv.filter(function(i){return i.menuId===id;}).forEach(function(i){markDeleted('inv',i.id);});
+    D.inv=D.inv.filter(function(i){return i.menuId!==id;});
+
+    // Cascade: remove menuItems entries in recipes that reference this menu id
+    D.recs.forEach(function(r){
+        if(r.menuItems){
+            var before=r.menuItems.length;
+            r.menuItems=r.menuItems.filter(function(mi){return Number(mi.menuId||mi.id)!==id;});
+            if(r.menuItems.length!==before) markChanged('recs',r.id);
+        }
+    });
+
+    // Cascade: unlink preps that reference this menu item
+    D.preps.forEach(function(p){
+        if(p.menuId===id){ p.menuId=0; markChanged('preps',p.id); }
+    });
+
     D.menus=D.menus.filter(function(m){return m.id!==id;});
     markDeleted('menus',id);
     closeModal();

@@ -188,7 +188,9 @@ service cloud.firestore {
     // primary path — direct-client create is allowed as a fallback.
     match /tenants/{tenantId}/feedback_events/{eventId} {
       allow read: if isSuperAdmin() || belongsToTenant(tenantId);
-      allow create: if belongsToTenant(tenantId);
+      allow create: if belongsToTenant(tenantId)
+                       && request.resource.data.message is string
+                       && request.resource.data.message.size() < 2000;
       allow update, delete: if isSuperAdmin();
     }
 

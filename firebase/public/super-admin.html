@@ -706,7 +706,7 @@ function enterApp() {
 
 /* ── Call helper ──────────────────────────────────────── */
 async function callSuper(op, params = {}) {
-  const idToken = await STATE.user.getIdToken(false);
+  const idToken = await STATE.user.getIdToken(true);
   const res = await fetch(SUPER_ENDPOINT, {
     method: 'POST',
     headers: {

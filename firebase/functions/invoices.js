@@ -440,7 +440,8 @@ async function handleInbound(req, res) {
       }
     }
   } catch (e) {
-    // functions.config() can throw in emulator — ignore
+    // functions.config() can throw in emulator — ignore; rethrow in prod so it fails CLOSED
+    if (process.env.FUNCTIONS_EMULATOR !== 'true') throw e;
   }
 
   let parsed;
@@ -460,6 +461,14 @@ async function handleInbound(req, res) {
   if (!tenant) {
     console.warn('No tenant for token:', token, 'to:', toField);
     res.status(202).json({ error: 'Unknown recipient — email discarded' });
+    return;
+  }
+
+  // F7-3: reject inbound invoices for inactive tenants (suspended/cancelled/trial-expired)
+  const tStatus = String(tenant.status || '').toLowerCase();
+  if (['suspended', 'cancelled', 'canceled', 'trial_expired'].includes(tStatus)) {
+    console.warn('Inbound invoice for inactive tenant token:', token, 'status:', tStatus);
+    res.status(202).json({ error: 'Account not active' });
     return;
   }
 

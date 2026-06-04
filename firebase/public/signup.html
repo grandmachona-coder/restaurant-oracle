@@ -1427,7 +1427,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   // ── Step 3: show success + redirect ─────────────────────────────────────
   track('signup_succeeded', {
     plan: selectedPlan,
-    tenant_slug: data.tenantSlug || null,
+    tenant_slug: data.slug || data.tenantSlug || null,
     // Never include email, password, or cardNonce here.
   });
   showDone(data.appUrl, restaurantName);

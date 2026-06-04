@@ -101,11 +101,11 @@ const ALLOWED_ORIGINS = [
   'https://restaurant-oracle.firebaseapp.com',
   'http://localhost:5000',
   'http://localhost:5002',
-  'https://lachona-dashboard.vercel.app',
   'http://localhost:3000',
   'http://localhost:3001',
   'https://bistrosteward.com',
   'https://admin.bistrosteward.com',
+  // F6-3: lachona-dashboard.vercel.app removed — separate project, no access needed
 ];
 
 // Allow any tenant subdomain of bistrosteward.com
@@ -398,6 +398,13 @@ setInterval(() => {
   const now = Date.now();
   for (const [k, v] of rateLimitMap) {
     if (now > (v.resetTime + RATE_LIMIT_GC_MS)) rateLimitMap.delete(k);
+  }
+  // F8-1: also GC signupRateMap (separate per-IP bucket for unauthenticated signup).
+  // signupRateMap is declared later in module scope; guard ensures safe first-tick.
+  if (typeof signupRateMap !== 'undefined') {
+    for (const [k, v] of signupRateMap) {
+      if (now > (v.resetTime + RATE_LIMIT_GC_MS)) signupRateMap.delete(k);
+    }
   }
 }, RATE_LIMIT_GC_MS).unref?.();
 
@@ -829,7 +836,7 @@ async function handleRequest(req, res) {
     const idToken = authHeader.replace('Bearer ', '');
     let decodedToken;
     try {
-      decodedToken = await auth.verifyIdToken(idToken);
+      decodedToken = await auth.verifyIdToken(idToken, true);
     } catch (authError) {
       await writeAuditLog('unknown', 'unknown', 'auth_failure', null, 0);
       res.status(401).json({ error: 'Unauthorized' });
@@ -1001,7 +1008,7 @@ async function handleRequest(req, res) {
         ? String(tenantDocForGate.data().status || 'active').toLowerCase()
         : 'active';
       const readOnlyOps = ['select', 'getTenantConfig', 'checkSlugAvailable', 'list_invoices', 'get_tenant_settings'];
-      const blockedStatuses = ['suspended', 'cancelled', 'canceled', 'trial_expired'];
+      const blockedStatuses = ['suspended', 'cancelled', 'canceled', 'trial_expired', 'past_due'];
       if (blockedStatuses.includes(tenantStatus) && !readOnlyOps.includes(operation)) {
         await writeAuditLog(userId, userEmail, 'tenant_status_blocked', table, 0, tenantId, { tenantStatus });
         const messageByStatus = {
@@ -1009,6 +1016,7 @@ async function handleRequest(req, res) {
           cancelled: 'Subscription is cancelled. Reactivate from Billing & Team to continue.',
           canceled: 'Subscription is cancelled. Reactivate from Billing & Team to continue.',
           trial_expired: 'Your free trial has ended. Update billing to continue editing.',
+          past_due: 'Payment is past due. Update your billing information to continue editing.',
         };
         res.status(402).json({
           error: messageByStatus[tenantStatus] || 'Account access is limited. Visit Billing to continue.',
@@ -1074,6 +1082,13 @@ async function handleRequest(req, res) {
         };
 
         if (existingUser) {
+          // F3-1: cross-tenant account takeover guard — only generate a reset
+          // link if the existing account is already bound to THIS tenant.
+          const existingClaims = existingUser.customClaims || {};
+          if (existingClaims.tenantId !== tenantId) {
+            res.status(409).json({ error: 'Email is already in use on another account' });
+            return;
+          }
           const resetLink = await auth.generatePasswordResetLink(inviteEmail, actionCodeSettings);
           await writeAuditLog(userId, userEmail, 'invite_user_reset', inviteEmail, 1, tenantId);
           res.status(200).json({
@@ -1084,6 +1099,12 @@ async function handleRequest(req, res) {
             },
             error: null
           });
+          return;
+        }
+
+        // F3-2: admins cannot create owner accounts
+        if (userRole === 'admin' && data.role === 'owner') {
+          res.status(403).json({ error: 'Admins cannot create Owner accounts' });
           return;
         }
 
@@ -1156,6 +1177,8 @@ async function handleRequest(req, res) {
       if (context.ingredients) context.ingredients = context.ingredients.slice(0, MAX_CONTEXT_ITEMS).map(s => sanitizeString(String(s)));
       if (context.areas)       context.areas       = context.areas.slice(0, MAX_CONTEXT_ITEMS).map(s => sanitizeString(String(s)));
       if (context.preps)       context.preps       = context.preps.slice(0, MAX_CONTEXT_ITEMS).map(s => sanitizeString(String(s)));
+      // F3-7: sanitize currentTab before prompt interpolation
+      const safeTab = sanitizeString(String(context.currentTab || 'inventory')).substring(0, 40);
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         console.error('GEMINI_API_KEY not configured');
@@ -1181,7 +1204,7 @@ Available actions:
 7. "unknown" - Could not understand the command. Params: { "message": "brief sorry message" }
 
 CONTEXT (current app state):
-- Current tab: ${context.currentTab || 'inventory'}
+- Current tab: ${safeTab}
 - Ingredient names: ${(context.ingredients || []).join(', ') || 'none loaded'}
 - Storage area names: ${(context.areas || []).join(', ') || 'none loaded'}
 - Prep item names: ${(context.preps || []).join(', ') || 'none loaded'}
@@ -1310,10 +1333,15 @@ JSON format: { "action": "action_name", "params": { ... }, "toast": "Short human
     // ==================== INVENTORY SCAN (Gemini Vision) ====================
     if (operation === 'scan') {
       const imageData = (data && data.image) || '';
-      const mimeType = (data && data.mimeType) || 'image/jpeg';
+      const rawMimeType = (data && data.mimeType) || 'image/jpeg';
+      // F3-6: mimeType allowlist — reject or default unknown types
+      const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+      const mimeType = ALLOWED_MIME.includes(rawMimeType) ? rawMimeType : 'image/jpeg';
       const areaName = sanitizeString((data && data.areaName) || '');
-      const existingItems = (data && data.existingItems) || [];
-      const allIngredients = (data && data.allIngredients) || [];
+      // F3-3: cap + sanitize before prompt interpolation (mirrors voice handler ~1155)
+      const MAX_CONTEXT_ITEMS = 200;
+      const existingItems = ((data && data.existingItems) || []).slice(0, MAX_CONTEXT_ITEMS).map(x => sanitizeString(String(x)));
+      const allIngredients = ((data && data.allIngredients) || []).slice(0, MAX_CONTEXT_ITEMS).map(x => sanitizeString(String(x)));
 
       if (!imageData || imageData.length < 100) {
         res.status(400).json({ error: 'No image data provided' });
@@ -1469,7 +1497,10 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
     // listener delivers it (no client upsert needed for creation).
     if (operation === 'receiptScan') {
       const imageData = (data && data.image) || '';
-      const mimeType = (data && data.mimeType) || 'image/jpeg';
+      const rawMimeTypeRcpt = (data && data.mimeType) || 'image/jpeg';
+      // F3-6: mimeType allowlist
+      const ALLOWED_MIME_RCPT = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+      const mimeType = ALLOWED_MIME_RCPT.includes(rawMimeTypeRcpt) ? rawMimeTypeRcpt : 'image/jpeg';
       const vendorId = (data && data.vendorId !== undefined && data.vendorId !== null && data.vendorId !== '')
         ? data.vendorId : null;
       const knownIngredients = Array.isArray(data && data.knownIngredients)
@@ -1501,8 +1532,9 @@ JSON format: { "items": [{ "name": "exact ingredient name", "qty": number, "unit
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
+        // F3-4: sanitize ingredient names before prompt interpolation
         const ingList = knownIngredients
-          .map(function (n) { return String(n || '').substring(0, 120); })
+          .map(function (n) { return sanitizeString(String(n || '')).substring(0, 120); })
           .filter(Boolean);
 
         const systemPrompt = `You read photographed restaurant SUPPLIER RECEIPTS / INVOICES for a kitchen management app.
@@ -1902,12 +1934,13 @@ RULES:
           res.status(200).json({ data: { stored: false, reason: 'exists', product: { barcode, name: cur.name, brand: cur.brand || null, size: cur.size || null, unit: cur.unit || null } }, error: null });
           return;
         }
+        // F3-5: sanitize user-supplied fields before writing to shared cross-tenant upc_cache
         const entry = {
           barcode,
-          name: name.substring(0, 200),
-          brand: (data && data.brand) ? String(data.brand).substring(0, 120) : ((cur && cur.brand) || null),
-          size: (data && data.size) ? String(data.size).substring(0, 60) : ((cur && cur.size) || null),
-          unit: (data && data.unit) ? String(data.unit).substring(0, 20) : ((cur && cur.unit) || null),
+          name: sanitizeString(name).substring(0, 200),
+          brand: (data && data.brand) ? sanitizeString(String(data.brand)).substring(0, 120) : ((cur && cur.brand) || null),
+          size: (data && data.size) ? sanitizeString(String(data.size)).substring(0, 60) : ((cur && cur.size) || null),
+          unit: (data && data.unit) ? sanitizeString(String(data.unit)).substring(0, 20) : ((cur && cur.unit) || null),
           source: 'user',
           contributedByTenant: tenantId || null,
           contributedByUid: userId || null,
@@ -2492,18 +2525,34 @@ Return ONLY JSON: { "summary": "...", "hypothesis": "...", "severity": "low|medi
         // Strip incoming _version (server-managed). For new docs stamp 1, for
         // existing docs increment. Done via transaction per doc to avoid races.
         const upserted = [];
-        for (const item of sanitizedUpsert) {
-          const docId = item.id ? String(item.id) : collectionRef.doc().id;
-          const docRef = collectionRef.doc(docId);
-          const { _version: _ignored, ...payloadNoVersion } = item;
-          const final = await db.runTransaction(async (tx) => {
-            const cur = await tx.get(docRef);
-            const v = cur.exists ? Number(cur.data()._version || 1) + 1 : 1;
-            const merged = { ...payloadNoVersion, id: item.id || docId, _version: v };
-            tx.set(docRef, merged, { merge: true });
-            return merged;
-          });
-          upserted.push(final);
+        try {
+          for (const item of sanitizedUpsert) {
+            const docId = item.id ? String(item.id) : collectionRef.doc().id;
+            const docRef = collectionRef.doc(docId);
+            const { _version: _ignored, ...payloadNoVersion } = item;
+            const final = await db.runTransaction(async (tx) => {
+              const cur = await tx.get(docRef);
+              // F5-1/F1-4: new-document guard — employees can update existing docs
+              // via upsert, but creating a brand-new catalog doc (ings, recs, menus,
+              // areas, etc.) requires INSERT permission, which employees don't have.
+              if (!cur.exists && !checkPermission(userRole, 'insert', collection)) {
+                const err = new Error('Cannot create ' + collection);
+                err.status = 403;
+                throw err;
+              }
+              const v = cur.exists ? Number(cur.data()._version || 1) + 1 : 1;
+              const merged = { ...payloadNoVersion, id: item.id || docId, _version: v };
+              tx.set(docRef, merged, { merge: true });
+              return merged;
+            });
+            upserted.push(final);
+          }
+        } catch (upsertErr) {
+          if (upsertErr.status === 403) {
+            res.status(403).json({ error: upsertErr.message });
+            return;
+          }
+          throw upsertErr;
         }
         await writeAuditLog(userId, userEmail, 'upsert', collection, upserted.length, tenantId);
         result = { data: upserted, error: null };
@@ -2590,10 +2639,15 @@ const signupCors = require('cors')({
   }
 });
 
-// ── In-memory rate limit for signup (per-IP, separate bucket from authed API)
+// ── Rate limit for signup (per-IP, separate bucket from authed API)
+// F8-1: Firestore-backed authoritative counter so the 5/hr limit holds
+// across all Cloud Function instances (was in-memory only → 50/hr with
+// maxInstances:10). In-memory map kept as a fast pre-check to avoid
+// Firestore reads on obvious repeat offenders within the same instance.
 const signupRateMap = new Map();
 const SIGNUP_RATE_LIMIT = { maxRequests: 5, windowMs: 60 * 60 * 1000 }; // 5/hr per IP
 
+// In-memory fast pre-check (best-effort, not authoritative)
 function checkSignupRateLimit(ip) {
   const now = Date.now();
   const bucket = signupRateMap.get(ip);
@@ -2606,6 +2660,27 @@ function checkSignupRateLimit(ip) {
   }
   bucket.count++;
   return { allowed: true };
+}
+
+// Firestore-backed authoritative check (transactional, cross-instance)
+async function checkSignupRateLimitDistributed(ipHash) {
+  const now = Date.now();
+  const hourBucket = Math.floor(now / SIGNUP_RATE_LIMIT.windowMs);
+  const docId = ipHash + '_' + hourBucket;
+  const ref = db.collection('signup_rate_limits').doc(docId);
+  return await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      tx.set(ref, { count: 1, ipHash, hourBucket, createdAt: now });
+      return { allowed: true };
+    }
+    const count = Number(snap.data().count || 0);
+    if (count >= SIGNUP_RATE_LIMIT.maxRequests) {
+      return { allowed: false };
+    }
+    tx.update(ref, { count: count + 1 });
+    return { allowed: true };
+  });
 }
 
 // ── Validation helpers ──────────────────────────────────────────────────────
@@ -2709,12 +2784,24 @@ async function handleSignup(req, res) {
       return;
     }
 
-    // Rate limit per IP
+    // Rate limit per IP (F8-1: Firestore-backed authoritative cross-instance check)
     const ip = (req.headers['x-forwarded-for'] || req.ip || 'unknown').toString().split(',')[0].trim();
-    const rl = checkSignupRateLimit(ip);
-    if (!rl.allowed) {
+    // Fast in-memory pre-check
+    const rlMem = checkSignupRateLimit(ip);
+    if (!rlMem.allowed) {
       res.status(429).json({ error: 'Too many signup attempts. Try again later.' });
       return;
+    }
+    // Authoritative Firestore check (hash IP to avoid storing PII in doc IDs)
+    try {
+      const ipHash = require('crypto').createHash('sha256').update(ip).digest('hex').substring(0, 16);
+      const rlDist = await checkSignupRateLimitDistributed(ipHash);
+      if (!rlDist.allowed) {
+        res.status(429).json({ error: 'Too many signup attempts. Try again later.' });
+        return;
+      }
+    } catch (rlErr) {
+      console.warn('[signup] distributed rate limit check failed, falling back to in-memory:', rlErr.message);
     }
 
     // Honeypot (anti-bot). `company_website` is a hidden field a human never
@@ -2769,6 +2856,24 @@ async function handleSignup(req, res) {
     }
     const slugSnap = await db.collection('tenants').where('slug', '==', slug).limit(1).get();
     if (!slugSnap.empty) slug = slug + '-' + Date.now().toString(36);
+    // F8-2: atomically claim the slug so two concurrent NEW signups with the same
+    // restaurant name cannot both grab it (the query above only catches already-
+    // established tenants, not a simultaneous in-flight signup — a TOCTOU race).
+    try {
+      await db.runTransaction(async (tx) => {
+        const resvRef = db.collection('slug_reservations').doc(slug);
+        const snap = await tx.get(resvRef);
+        if (snap.exists) throw new Error('SLUG_TAKEN');
+        tx.set(resvRef, { email, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      });
+    } catch (e) {
+      if (e && e.message === 'SLUG_TAKEN') {
+        // Lost the race — a random suffix is collision-resistant, so a plain set is safe.
+        slug = slug + '-' + Math.random().toString(36).slice(2, 7);
+        await db.collection('slug_reservations').doc(slug)
+          .set({ email, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      } else { throw e; }
+    }
     partialState.slug = slug;
     partialState.stage = 'slug_reserved';
 
@@ -2950,25 +3055,36 @@ async function handleSignup(req, res) {
       console.warn('[signup] provisioning agent non-fatal warning:', e.message);
     }
 
-    // ── Step 9.6: Welcome email (non-fatal) ───────────────────────────────
+    // ── Step 9.6: Welcome email + email verification link (non-fatal) ────────
+    // F8-6: generate and include email verification link so the owner can verify
+    // before hitting the 'Email not verified' gate on next sign-in. Best-effort —
+    // do not fail signup if email send fails.
     try {
+      let verifyLink = null;
+      try {
+        verifyLink = await auth.generateEmailVerificationLink(email);
+      } catch (vErr) {
+        console.warn('[signup] generateEmailVerificationLink non-fatal:', vErr.message);
+      }
       await emails.sendEmail(email, 'owner_welcome', {
         tenantId: newTenantId,
         restaurantName,
         plan: PLAN_CATALOG[plan].name,
         trialEndsAt: trialStart.toISOString(),
+        verifyEmailLink: verifyLink || null,
       });
     } catch (e) {
       console.warn('[signup] welcome email non-fatal:', e.message);
     }
 
     // ── Step 10: Return result ────────────────────────────────────────────
+    // F8-4: omit ownerUid from unauthenticated response (PII exposure).
+    // tenantSlug included so client can build the app URL on its end.
     res.status(200).json({
       data: {
         tenantId: newTenantId,
-        slug,
+        tenantSlug: slug,
         appUrl: `https://bistrosteward.com/user/${slug}`,
-        ownerUid,
       },
       error: null,
     });
@@ -3733,11 +3849,14 @@ async function adminOpUpdateMemberRole(ctx, params) {
 
   await ref.update({ role: rawRole, roleChangedAt: admin.firestore.FieldValue.serverTimestamp(), roleChangedBy: ctx.userEmail });
 
-  // Update JWT claim
+  // Update JWT claim and revoke session so demotion takes effect immediately
+  // (F6-2: without revocation, old role persists until token expiry ~1h)
   try {
     const user = await auth.getUserByEmail(data.email);
     const existing = user.customClaims || {};
     await auth.setCustomUserClaims(user.uid, { ...existing, role: rawRole });
+    try { await auth.revokeRefreshTokens(user.uid); } catch (e) { /* best-effort */ }
+    try { clearUserRoleCache(user.uid, ctx.tenantId); } catch (e) { /* best-effort */ }
   } catch (e) { /* ignore */ }
 
   await writeAuditLog(ctx.userId, ctx.userEmail, 'team_member_role_changed', data.email, 1, ctx.tenantId);
@@ -4112,6 +4231,9 @@ async function superOpSuspendTenant(ctx, params) {
     suspendedBy: ctx.userEmail,
     suspendedReason: reason,
   });
+
+  // F7-5: revoke all tenant user tokens so suspension takes effect immediately
+  await revokeAllTenantUserTokens(tenantId).catch(e => console.warn('[super] revoke on suspend failed:', e.message));
 
   await writeAuditLog(ctx.userId, ctx.userEmail, 'super_admin_suspend', 'tenants', 1, tenantId);
   return { data: { tenantId, status: 'suspended', reason } };
@@ -5538,7 +5660,7 @@ async function superOpAdjustPlan(ctx, params) {
       const newVar = getPlanVariationId(newPlan);
       swapResult = await square.swapSubscriptionPlan({
         subscriptionId: t.squareSubscriptionId,
-        planVariationId: newVar,
+        newPlanVariationId: newVar,
       });
     } catch (e) {
       console.error('[super] adjust plan square swap failed:', e.message);

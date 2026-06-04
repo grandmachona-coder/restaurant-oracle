@@ -49,6 +49,9 @@ function validateSignupInput(body) {
   if (!termsVersion || !/^\d{4}-\d{2}-\d{2}$/.test(termsVersion)) {
     errors.push('Invalid terms version');
   }
+  if (termsVersion !== CURRENT_TERMS_VERSION) {
+    errors.push('Please agree to the current Terms of Service');
+  }
 
   return {
     valid: errors.length === 0,

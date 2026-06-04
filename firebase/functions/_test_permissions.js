@@ -93,6 +93,37 @@ group('owner', () => {
   });
 });
 
+// ─── admin ───
+group('admin', () => {
+  t('can CRUD all collections', () => {
+    for (const c of ALLOWED_COLLECTIONS) {
+      for (const op of ['select', 'insert', 'update', 'upsert', 'delete']) {
+        assert.strictEqual(checkPermission('admin', op, c), true, op + ' ' + c);
+      }
+    }
+  });
+  t('cannot provisionTenant or deprovisionTenant', () => {
+    assert.strictEqual(checkPermission('admin', 'provisionTenant', null), false);
+    assert.strictEqual(checkPermission('admin', 'deprovisionTenant', null), false);
+  });
+  t('cannot rotate_invoice_token or checkSlugAvailable', () => {
+    assert.strictEqual(checkPermission('admin', 'rotate_invoice_token', null), false);
+    assert.strictEqual(checkPermission('admin', 'checkSlugAvailable', null), false);
+  });
+  t('can invite_user, voice, scan, reserve_ids, getTenantConfig', () => {
+    assert.strictEqual(checkPermission('admin', 'invite_user', null), true);
+    assert.strictEqual(checkPermission('admin', 'voice', null), true);
+    assert.strictEqual(checkPermission('admin', 'scan', null), true);
+    assert.strictEqual(checkPermission('admin', 'reserve_ids', null), true);
+    assert.strictEqual(checkPermission('admin', 'getTenantConfig', null), true);
+  });
+  t('can list_invoices, get_tenant_settings, ai_insight', () => {
+    assert.strictEqual(checkPermission('admin', 'list_invoices', null), true);
+    assert.strictEqual(checkPermission('admin', 'get_tenant_settings', null), true);
+    assert.strictEqual(checkPermission('admin', 'ai_insight', null), true);
+  });
+});
+
 // ─── employee ───
 group('employee', () => {
   t('can select any collection', () => {
