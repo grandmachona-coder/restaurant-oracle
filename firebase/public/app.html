@@ -11118,27 +11118,39 @@ function openReceiptCapture(){
 // Canvas re-encode also normalizes HEIC/PNG → JPEG.
 function fittedReceiptJpeg(file, maxEdge, maxBytes){
     return new Promise(function(resolve,reject){
-        var url=URL.createObjectURL(file);
-        var img=new Image();
-        img.onload=function(){
-            URL.revokeObjectURL(url);
+        // Compress a decoded source (HTMLImageElement or ImageBitmap) to a JPEG under maxBytes.
+        function compress(src, w, h, cleanup){
             try{
-                var scale=Math.min(1, maxEdge/Math.max(img.width,img.height));
+                if(!w||!h){ if(cleanup)cleanup(); reject(new Error('decode-zero-dims')); return; }
+                var scale=Math.min(1, maxEdge/Math.max(w,h));
                 var q=0.85, out=null;
-                for(var i=0;i<6;i++){
+                for(var i=0;i<8;i++){
                     var c=document.createElement('canvas');
-                    c.width=Math.max(1,Math.round(img.width*scale));
-                    c.height=Math.max(1,Math.round(img.height*scale));
-                    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-                    var b64=c.toDataURL('image/jpeg',q).split(',')[1]||'';
-                    if(b64.length*0.75<=maxBytes){out={base64:b64,mime:'image/jpeg'};break;}
-                    if(q>0.6){q-=0.1;}else{scale*=0.85;}
+                    c.width=Math.max(1,Math.round(w*scale));
+                    c.height=Math.max(1,Math.round(h*scale));
+                    c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+                    var b64=(c.toDataURL('image/jpeg',q).split(',')[1])||'';
+                    if(b64 && b64.length*0.75<=maxBytes){out={base64:b64,mime:'image/jpeg'};break;}
+                    if(q>0.6){q-=0.1;}else{scale*=0.82;}
                 }
-                if(out){resolve(out);}else{reject(new Error('Could not compress under size cap'));}
-            }catch(err){reject(err);}
-        };
-        img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('Image load failed'));};
-        img.src=url;
+                if(cleanup)cleanup();
+                if(out){resolve(out);}else{reject(new Error('compress-cap'));}
+            }catch(err){ if(cleanup)cleanup(); reject(err); }
+        }
+        // <img>+objectURL fallback (used if createImageBitmap is unavailable or fails).
+        function viaImg(){
+            var url=URL.createObjectURL(file);
+            var img=new Image();
+            img.onload=function(){ compress(img, img.naturalWidth||img.width, img.naturalHeight||img.height, function(){URL.revokeObjectURL(url);}); };
+            img.onerror=function(){ URL.revokeObjectURL(url); reject(new Error('decode-failed')); };
+            img.src=url;
+        }
+        // Preferred: createImageBitmap decodes HEIC + large library photos reliably on iOS/WKWebView.
+        if(typeof createImageBitmap==='function'){
+            createImageBitmap(file).then(function(bmp){
+                compress(bmp, bmp.width, bmp.height, function(){ try{ if(bmp.close)bmp.close(); }catch(_){} });
+            }).catch(function(){ viaImg(); });
+        } else { viaImg(); }
     });
 }
 
@@ -11156,7 +11168,11 @@ async function onReceiptFile(input){
         if(statusEl){statusEl.style.color='#00b894';statusEl.textContent='Photo ready — tap Extract Items.';}
         var btn=document.getElementById('rcpt-extract-btn');if(btn)btn.disabled=false;
     }catch(e){
-        if(statusEl){statusEl.style.color='#ff7675';statusEl.textContent='Could not process that image. Try another photo.';}
+        console.error('[receipt] image prep failed:', (e&&e.message)||e);
+        var _rmsg=(e&&e.message==='compress-cap')
+            ? 'Image too large even after compression — try a closer/smaller photo.'
+            : 'Could not read that image. Try a JPEG/PNG, or retake the photo.';
+        if(statusEl){statusEl.style.color='#ff7675';statusEl.textContent=_rmsg;}
     }
 }
 

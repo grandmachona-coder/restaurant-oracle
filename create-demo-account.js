@@ -40,7 +40,8 @@ const EXECUTE = process.argv.includes('--execute');
 
 // ── Demo account credentials (these go into App Store Connect → App Review Information) ──
 const DEMO_EMAIL = 'demo@bistrosteward.com';
-const DEMO_PASSWORD = '***REMOVED***';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || '';
+if (!DEMO_PASSWORD) { console.error('Set DEMO_PASSWORD env var before running (hardcoded value removed after a secret-scan alert — also rotate the Firebase Auth password for the demo account).'); process.exit(1); }
 const DEMO_DISPLAY = 'Demo Owner';
 const TENANT_ID = 'demo';          // doc id == slug (mirrors lachona)
 const TENANT_SLUG = 'demo';

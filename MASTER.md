@@ -6893,7 +6893,7 @@ async function ensureUser() {
     if (e.code !== 'auth/user-not-found') throw e;
     return auth.createUser({
       email: OWNER_EMAIL,
-      password: '***REMOVED***',
+      password: process.env.DEMO_PASSWORD || '<set-via-env>', // literal removed after secret-scan alert
       displayName: 'Demo Owner',
       emailVerified: true,
     });
@@ -6956,7 +6956,7 @@ async function reset(tenantRef) {
     else        await seedCollection(tenant, name, rows);
   }
 
-  console.log('Done. Login: ' + OWNER_EMAIL + ' / ***REMOVED***');
+  console.log('Done. Login: ' + OWNER_EMAIL + ' / <DEMO_PASSWORD>');
   console.log('URL: https://bistrosteward.com/app.html');
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

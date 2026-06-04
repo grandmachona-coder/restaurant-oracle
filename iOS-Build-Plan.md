@@ -93,7 +93,7 @@ All on `ios-capacitor`, deployed live (hosting + functions), verified. Native sh
 ### Outstanding to ship (current — supersedes §0.1 "Remaining")
 **App Store (critical path → TestFlight):**
 1. ~~**Apple demo account**~~ — ✅ **DONE & E2E-VERIFIED (2026-06-01).** Created via `create-demo-account.js` (repo root, ADC, re-runnable with abort-if-exists guard). Reviewer creds → **App Store Connect → App Review Information → Sign-In Required**:
-   - **Username:** `demo@bistrosteward.com`  **Password:** `***REMOVED***`
+   - **Username:** `demo@bistrosteward.com`  **Password:** _set in App Store Connect → App Review Information; not committed (rotate via `DEMO_PASSWORD` env + `create-demo-account.js`)_
    - Isolated `tenants/demo` (id==slug=='demo', `status:'active'`, `onboardingComplete:true`, plan pro, owner role). LaChona's real data is **not** exposed — fully separate, seeded fictional "Demo Bistro" (14 ingredients, 14 inventory rows, 4 recipes, 3 menus, 2 prep items, all areas/cats/units). Auth user `emailVerified:true` (clears the password-user verify gate); claims `{tenantId,tenantSlug,approved:true,role:owner}`.
    - **Tenant resolves from JWT claims, not hostname** → this account opens the demo tenant on the native iOS app too (loads `restaurant-oracle.web.app/app`).
    - **Barcode scanner (headline native feature) is ON** for demo: `feature_flags/upcScanner.enabledTenants` now `["lachona","demo"]` (flag keys on tenantId/doc-id).

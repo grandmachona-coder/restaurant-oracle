@@ -87,7 +87,7 @@ First release of Bistro Steward for iPhone: native barcode scanning, camera coun
 ```
 Demo account (email/password — Google & Apple SSO are also offered but reviewers should use this):
   Username: demo@bistrosteward.com
-  Password: ***REMOVED***
+  Password: <in App Store Connect → App Review Information; not committed to the repo>
 ```
 
 **Notes for the reviewer:**
